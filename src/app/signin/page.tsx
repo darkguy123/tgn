@@ -86,7 +86,7 @@ const AuthPage = () => {
       <main className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           <div className="flex justify-center mb-8">
-            <Logo className="h-20 w-20 text-primary" />
+            <Logo className="h-20 w-auto" />
           </div>
           
           <Card className="border-0 shadow-xl">

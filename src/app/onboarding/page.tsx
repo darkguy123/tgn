@@ -111,8 +111,8 @@ export default function OnboardingPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
        <div className="absolute top-6 left-6">
         <Link href="/dashboard" className="flex items-center gap-2 text-foreground">
-          <Logo className="h-6 w-6"/>
-          <span className="font-semibold">TGN Hub</span>
+          <Logo className="h-8 w-auto"/>
+          <span className="font-semibold sr-only">TGN Hub</span>
         </Link>
       </div>
       <Card className="w-full max-w-2xl">

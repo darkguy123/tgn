@@ -70,8 +70,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="flex items-center gap-2 text-primary group-data-[collapsible=icon]:justify-center"
             aria-label="Home"
           >
-            <Logo className="size-8 shrink-0" />
-            <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden">
+            <Logo className="size-10 shrink-0 w-auto" />
+            <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden sr-only">
               TGN Hub
             </span>
           </Link>
