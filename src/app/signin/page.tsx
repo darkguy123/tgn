@@ -77,7 +77,7 @@ const AuthPage = () => {
     }
   };
 
-  const authImage = placeholderImages.placeholderImages.find(p => p.id === 'auth-image-2');
+  const authImage = placeholderImages.placeholderImages.find(p => p.id === 'auth-image');
 
   if (isUserLoading || user) {
     return (
@@ -90,9 +90,9 @@ const AuthPage = () => {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground font-body">
       <main className="flex-1 flex items-center justify-center p-4 my-10">
-        <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 bg-transparent rounded-2xl overflow-hidden shadow-2xl">
+        <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 bg-card text-card-foreground rounded-2xl overflow-hidden shadow-2xl">
           {/* Left Side: Form */}
-          <div className="p-8 md:p-12 bg-card text-card-foreground">
+          <div className="p-8 md:p-12 bg-card">
              <div className="flex justify-start mb-8">
                 <Logo className="h-20 object-contain" />
             </div>
@@ -170,7 +170,7 @@ const AuthPage = () => {
               <Image
                 src={authImage.imageUrl}
                 alt={authImage.description}
-                layout='fill'
+                fill={true}
                 objectFit='cover'
                 data-ai-hint={authImage.imageHint}
               />
