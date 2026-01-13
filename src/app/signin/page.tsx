@@ -16,7 +16,6 @@ import {
   OAuthProvider
 } from 'firebase/auth';
 import { Chrome, Facebook, Linkedin, Mail } from 'lucide-react';
-import placeholderImages from '@/lib/placeholder-images.json';
 import Link from 'next/link';
 import { Logo } from '@/components/icons';
 
@@ -77,8 +76,6 @@ const AuthPage = () => {
     }
   };
 
-  const authImage = placeholderImages.placeholderImages.find(p => p.id === 'auth-image');
-
   if (isUserLoading || user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
@@ -92,7 +89,7 @@ const AuthPage = () => {
       <main className="flex-1 flex items-center justify-center p-4 my-10">
         <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 bg-card text-card-foreground rounded-2xl overflow-hidden shadow-2xl">
           {/* Left Side: Form */}
-          <div className="p-8 md:p-12 bg-card">
+          <div className="p-8 md:p-12">
              <div className="flex justify-start mb-8">
                 <Logo className="h-20 object-contain" />
             </div>
@@ -166,15 +163,12 @@ const AuthPage = () => {
           {/* Right Side: Image */}
           <div className="relative hidden md:block">
             <div className="absolute inset-0 bg-black/30 z-10"></div>
-            {authImage && (
-              <Image
-                src={authImage.imageUrl}
-                alt={authImage.description}
-                fill={true}
-                objectFit='cover'
-                data-ai-hint={authImage.imageHint}
-              />
-            )}
+            <Image
+              src="/auth-background.jpeg"
+              alt="Abstract background image"
+              fill={true}
+              objectFit='cover'
+            />
             <div className="relative z-20 flex flex-col justify-end h-full p-12 text-white">
               <h2 className="text-4xl font-bold">Effortless AI Solutions Tailored for Enterprises</h2>
               <p className="mt-4 text-gray-300">
