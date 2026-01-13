@@ -6,11 +6,8 @@ import Link from "next/link";
 import {
   Award,
   Book,
-  ChevronDown,
   LayoutDashboard,
   LogOut,
-  Map,
-  Settings,
   ShoppingBag,
   Sparkles,
   Users,
@@ -24,12 +21,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarProvider,
   SidebarTrigger,
-  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -42,7 +35,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Logo } from "@/components/icons";
 import { Button } from "./ui/button";
-import { members } from "@/lib/data";
+import { useAuth, useUser } from "@/firebase";
+import { signOut } from "firebase/auth";
+import { useRouter } from "next/navigation";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -54,7 +49,17 @@ const navItems = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const currentUser = members[1]; // Using David Lee (Mentee) as the current user
+  const { user } = useUser();
+  const auth = useAuth();
+  const router = useRouter();
+
+  const handleSignOut = () => {
+    signOut(auth);
+  };
+  
+  const handleOnboarding = () => {
+    router.push('/onboarding');
+  }
 
   return (
     <SidebarProvider>
@@ -96,28 +101,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="w-full justify-start h-auto p-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:aspect-square">
                     <Avatar className="h-8 w-8">
-                        <AvatarImage src={`https://picsum.photos/seed/${currentUser.id}/100/100`} alt={currentUser.name} />
-                        <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={user?.photoURL ?? `https://picsum.photos/seed/${user?.uid}/100/100`} alt={user?.displayName ?? ""} />
+                        <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div className="ml-2 text-left group-data-[collapsible=icon]:hidden">
-                        <p className="font-medium text-sm">{currentUser.name}</p>
-                        <p className="text-xs text-muted-foreground">{currentUser.role}</p>
+                        <p className="font-medium text-sm">{user?.displayName ?? user?.email}</p>
+                        <p className="text-xs text-muted-foreground">Member</p>
                     </div>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="right" align="start" className="w-56">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleOnboarding}>
                     <Book className="mr-2 h-4 w-4" />
                     <span>Go to Onboarding</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                 </DropdownMenuItem>

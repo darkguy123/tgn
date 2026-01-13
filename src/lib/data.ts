@@ -111,12 +111,36 @@ export const members: Member[] = [
 ];
 
 export const sectors = [
-  'Technology',
-  'Finance',
-  'Healthcare',
-  'Marketing',
-  'Education',
-  'E-commerce',
+    'Technology',
+    'Finance',
+    'Healthcare',
+    'Marketing',
+    'Education',
+    'E-commerce',
+    'Creative Industries',
+    'Social Impact',
+    'Legal',
+    'Manufacturing',
+    'Hospitality',
+    'Real Estate',
+    'Energy',
+    'Telecommunications',
+    'Transportation',
+    'Agriculture',
+    'Biotechnology',
+    'Pharmaceuticals',
+    'Retail',
+    'Media & Entertainment',
+    'Government',
+    'Non-Profit',
+    'Consulting',
+    'Human Resources',
+    'Sales',
+    'Automotive',
+    'Aerospace',
+    'Construction',
+    'Fashion',
+    'Food & Beverage'
 ];
 
 export const countries = [
@@ -173,4 +197,15 @@ export const products: Product[] = [
     type: 'Course',
     imageId: 'product-4',
   },
+];
+
+
+export const continents = [
+    "Africa",
+    "Antarctica",
+    "Asia",
+    "Europe",
+    "North America",
+    "Oceania",
+    "South America"
 ];

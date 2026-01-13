@@ -8,7 +8,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the TGN Member."
+          "description": "Unique identifier for the TGN Member (matches Firebase Auth UID)."
         },
         "tgnMemberId": {
           "type": "string",
@@ -16,7 +16,12 @@
         },
         "signInType": {
           "type": "string",
-          "description": "Method used for signing in (Google, LinkedIn, Facebook, Email)."
+          "description": "Method used for signing in (e.g., 'google.com', 'password')."
+        },
+        "email": {
+          "type": "string",
+          "description": "The member's email address.",
+          "format": "email"
         },
         "locationContinent": {
           "type": "string",
@@ -32,39 +37,32 @@
         },
         "sectorPreferences": {
           "type": "array",
-          "description": "Array of sector IDs the member has preferences for (up to 30).",
+          "description": "Array of sector names the member has preferences for (up to 30).",
           "items": {
             "type": "string"
           }
         },
         "role": {
           "type": "string",
-          "description": "The member's role within the network (Mentee, Mentor Candidate, Associate, etc.)."
+          "description": "The member's role within the network (e.g., 'mentee', 'mentor_candidate')."
         },
         "purpose": {
           "type": "string",
-          "description": "A description of the members purpose for joining the network."
+          "description": "A description of the member's purpose for joining the network."
         },
         "identityProfile": {
           "type": "string",
-          "description": "A description of the members self-identified identity."
-        },
-        "email": {
-          "type": "string",
-          "description": "The members email address.",
-          "format": "email"
+          "description": "A description of the member's self-identified identity."
         }
       },
       "required": [
         "id",
         "tgnMemberId",
         "signInType",
+        "email",
         "locationContinent",
         "locationCountry",
-        "locationRegion",
-        "sectorPreferences",
-        "role",
-        "email"
+        "role"
       ]
     },
     "Sector": {
@@ -322,160 +320,56 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "google.com"
     ]
   },
   "firestore": {
-    "structure": [
+    "collections": [
       {
         "path": "/users/{userId}",
-        "definition": {
-          "entityName": "TGNMember",
-          "schema": {
-            "$ref": "#/backend/entities/TGNMember"
-          },
-          "description": "Stores TGN Member profiles. Path-based ownership for private user data. Includes user's core information and role. The 'userId' param matches the Firebase Auth UID.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Auth UID of the TGN Member."
-            }
-          ]
-        }
+        "entity": "TGNMember",
+        "description": "Stores TGN Member profiles. Path-based ownership for private user data. Includes user's core information and role. The 'userId' param matches the Firebase Auth UID."
       },
       {
         "path": "/sectors/{sectorId}",
-        "definition": {
-          "entityName": "Sector",
-          "schema": {
-            "$ref": "#/backend/entities/Sector"
-          },
-          "description": "Stores information about mentorship sectors. Accessible to all members for reference.",
-          "params": [
-            {
-              "name": "sectorId",
-              "description": "The unique identifier of the sector."
-            }
-          ]
-        }
+        "entity": "Sector",
+        "description": "Stores information about mentorship sectors. Accessible to all members for reference."
       },
       {
         "path": "/affiliate_referrals/{referralId}",
-        "definition": {
-          "entityName": "AffiliateReferral",
-          "schema": {
-            "$ref": "#/backend/entities/AffiliateReferral"
-          },
-          "description": "Stores affiliate referral data. Security rules will control access based on referrer and referred member IDs.",
-          "params": [
-            {
-              "name": "referralId",
-              "description": "Unique identifier for the referral."
-            }
-          ]
-        }
+        "entity": "AffiliateReferral",
+        "description": "Stores affiliate referral data. Security rules will control access based on referrer and referred member IDs."
       },
       {
         "path": "/mentor_certifications/{certificationId}",
-        "definition": {
-          "entityName": "MentorCertification",
-          "schema": {
-            "$ref": "#/backend/entities/MentorCertification"
-          },
-          "description": "Stores mentor certification data. Access controlled via security rules to allow updates by admins and the mentor themselves.",
-          "params": [
-            {
-              "name": "certificationId",
-              "description": "Unique identifier for the mentor certification."
-            }
-          ]
-        }
+        "entity": "MentorCertification",
+        "description": "Stores mentor certification data. Access controlled via security rules to allow updates by admins and the mentor themselves."
       },
       {
         "path": "/wallets/{walletId}",
-        "definition": {
-          "entityName": "Wallet",
-          "schema": {
-            "$ref": "#/backend/entities/Wallet"
-          },
-          "description": "Stores wallet information for each member. Owned by member, with admin access for financial oversight. Denormalized 'memberId' field for authorization.",
-          "params": [
-            {
-              "name": "walletId",
-              "description": "Unique identifier for the wallet."
-            }
-          ]
-        }
+        "entity": "Wallet",
+        "description": "Stores wallet information for each member. Owned by member, with admin access for financial oversight. Denormalized 'memberId' field for authorization."
       },
       {
         "path": "/products/{productId}",
-        "definition": {
-          "entityName": "Product",
-          "schema": {
-            "$ref": "#/backend/entities/Product"
-          },
-          "description": "Stores product information for the e-commerce marketplace. Access controlled by sellerMemberId and admin roles. Includes 'sellerMemberId' for authorization independence.",
-          "params": [
-            {
-              "name": "productId",
-              "description": "Unique identifier for the product."
-            }
-          ]
-        }
+        "entity": "Product",
+        "description": "Stores product information for the e-commerce marketplace. Access controlled by sellerMemberId and admin roles. Includes 'sellerMemberId' for authorization independence."
       },
       {
         "path": "/events/{eventId}",
-        "definition": {
-          "entityName": "Event",
-          "schema": {
-            "$ref": "#/backend/entities/Event"
-          },
-          "description": "Stores event information. Publicly accessible, but with admin controls for creation and modification.",
-          "params": [
-            {
-              "name": "eventId",
-              "description": "Unique identifier for the event."
-            }
-          ]
-        }
+        "entity": "Event",
+        "description": "Stores event information. Publicly accessible, but with admin controls for creation and modification."
       },
       {
         "path": "/matchmaking_recommendations/{recommendationId}",
-        "definition": {
-          "entityName": "MatchmakingRecommendation",
-          "schema": {
-            "$ref": "#/backend/entities/MatchmakingRecommendation"
-          },
-          "description": "Stores matchmaking recommendations for members. Accessible to the member to whom the recommendation is made, as indicated by 'memberId'.",
-          "params": [
-            {
-              "name": "recommendationId",
-              "description": "Unique identifier for the matchmaking recommendation."
-            }
-          ]
-        }
+        "entity": "MatchmakingRecommendation",
+        "description": "Stores matchmaking recommendations for members. Accessible to the member to whom the recommendation is made, as indicated by 'memberId'."
       },
       {
         "path": "/users/{userId}/matchmaking_recommendations/{recommendationId}",
-        "definition": {
-          "entityName": "MatchmakingRecommendation",
-          "schema": {
-            "$ref": "#/backend/entities/MatchmakingRecommendation"
-          },
-          "description": "Stores matchmaking recommendations for members. Nested under user to clearly show ownership and for easier access to recommendations specific to a user.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Auth UID of the TGN Member."
-            },
-            {
-              "name": "recommendationId",
-              "description": "Unique identifier for the matchmaking recommendation."
-            }
-          ]
-        }
+        "entity": "MatchmakingRecommendation",
+        "description": "Stores matchmaking recommendations for members. Nested under user to clearly show ownership and for easier access to recommendations specific to a user."
       }
-    ],
-    "reasoning": "This Firestore structure is designed to support the Transcend Global Network Hub, emphasizing authorization independence, scalability, and debuggability. It leverages denormalization and structural segregation to simplify security rules and optimize query performance. User-owned data is stored under `/users/{userId}`, while collaborative data utilizes membership maps for access control. Global roles are managed through dedicated collections to streamline administration.\n\n**Authorization Independence:** Denormalization is heavily used to ensure authorization context is readily available within each document, avoiding costly and complex `get()` calls in security rules. For instance, access to products is governed by the `sellerMemberId` field within the `products` collection.\n\n**Structural Segregation:** Data with differing access requirements are stored in separate collections. User profiles reside in `/users/{userId}`, while publicly accessible events are stored in the root-level `events` collection.\n\n**QAPs Support:** Secure list operations are enabled through structural segregation and consistent application of ownership and membership patterns. For example, listing products can be secured by checking the `sellerMemberId` against the authenticated user's ID.\n\nThe structure also supports the integrity of ownership, timestamps, and denormalized data by using explicit state modeling with the `status` field and radical consistency with naming conventions."
+    ]
   }
 }
