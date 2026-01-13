@@ -1,0 +1,205 @@
+/**
+ * Core Philosophy:
+ * This ruleset enforces a user-centric security model where users have full control
+ * over their own data, while interacting with shared or public data in a controlled manner.
+ * The primary principle is "Authorization Independence," where authorization data is
+ * denormalized onto documents to create simple, performant, and secure rules without
+ * needing cross-document reads (`get()`).
+ *
+ * Data Structure:
+ * The data is organized into a mix of a primary user-owned tree and several top-level
+ * collections.
+ * - /users/{userId}: The root for all data strictly private to a single user.
+ * - Top-Level Collections (/products, /wallets, /events, etc.): These collections
+ *   contain shared or global data. Access is governed by denormalized ownership fields
+ *   (e.g., `sellerMemberId`, `memberId`) within each document.
+ *
+ * Key Security Decisions:
+ * - Strict User Ownership: A user can only read or write data within their own
+ *   `/users/{userId}` path. Listing other users is disallowed.
+ * - Denormalized Authorization: Collections like `/products` and `/wallets` rely on
+ *   internal fields (`sellerMemberId`, `memberId`) to grant access. This is faster and
+ *   more secure than using `get()` calls to check permissions on related documents.
+ * - Public vs. Private Data: Structural segregation is used. Publicly readable
+ *   information like events and sectors is stored in top-level collections with open
+ *   read access. Private user data is nested under `/users`.
+ * - Default to Secure: Writes to public collections (`/events`, `/sectors`) and
+ *   sensitive collections (`/wallets`) are disabled by default for clients. These
+ *   operations are expected to be handled by a trusted backend or an admin role,
+ *   which is noted with a 'TODO' for future implementation.
+ * - No Client-Side Financial Transactions: All write operations on `/wallets` are
+ *   explicitly disabled to prevent tampering. All wallet modifications must be
+ *   performed by a secure backend server.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------------
+    // Helper Functions
+    // ------------------------------------------------------------------------
+
+    /**
+     * Verifies that the request is from an authenticated user.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Verifies that the requesting user's UID matches the provided userId.
+     * This is the core function for enforcing document ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Verifies ownership for an existing document. Used for safe updates and deletes.
+     * Checks that the document exists (`resource != null`) and that the requester
+     * is the owner based on the document's owner field.
+     */
+    function isExistingOwner(ownerId) {
+      return resource != null && isOwner(ownerId);
+    }
+
+
+    // ------------------------------------------------------------------------
+    // User Data (/users)
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description Controls access to a TGN Member's profile document.
+     * @path /users/{userId}
+     * @allow (create) - A new user creating their own profile.
+     * @deny (get) - An authenticated user trying to read another user's profile.
+     * @principle Restricts access to a user's own data tree. Ensures a user can only create a profile for themselves.
+     */
+    match /users/{userId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isOwner(userId) && resource != null && request.resource.data.id == resource.data.id;
+      allow delete: if isOwner(userId) && resource != null;
+
+      /**
+       * @description Controls access to a user's private matchmaking recommendations.
+       * @path /users/{userId}/matchmaking_recommendations/{recommendationId}
+       * @allow (list) - An authenticated user listing their own recommendations.
+       * @deny (get) - An authenticated user trying to read recommendations of another user.
+       * @principle Enforces path-based ownership for subcollections. Writes are disallowed as recommendations are system-generated.
+       */
+      match /matchmaking_recommendations/{recommendationId} {
+        allow get, list: if isOwner(userId);
+        allow create: if false; // Recommendations are created by a backend service
+        allow update: if false; // Recommendations are immutable
+        allow delete: if false; // Recommendations are not deleted by users
+      }
+    }
+
+
+    // ------------------------------------------------------------------------
+    // Public Read-Only Collections
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description Controls access to mentorship sectors. Data is public for all to read.
+     * @path /sectors/{sectorId}
+     * @allow (get, list) - Any client, authenticated or not, can read sector data.
+     * @deny (create) - A signed-in user trying to create a new sector.
+     * @principle Provides public read access for reference data. Writes are restricted to prevent unauthorized modifications.
+     */
+    match /sectors/{sectorId} {
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Implement admin-only access for managing sectors
+    }
+
+    /**
+     * @description Controls access to events. Event data is public for all to read.
+     * @path /events/{eventId}
+     * @allow (get, list) - Any client, authenticated or not, can read event information.
+     * @deny (update) - A signed-in user trying to modify an event.
+     * @principle Provides public read access for global data. Writes are restricted to trusted roles.
+     */
+    match /events/{eventId} {
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Implement admin-only access for event management
+    }
+
+
+    // ------------------------------------------------------------------------
+    // Collections with Denormalized Ownership
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description Controls access to affiliate referrals.
+     * @path /affiliate_referrals/{referralId}
+     * @allow (get) - The user who referred or was referred can read the document.
+     * @deny (list) - A user trying to list all referrals in the system.
+     * @principle Secures data based on participation. Only the referrer can create the record. Updates/deletes are disallowed.
+     */
+    match /affiliate_referrals/{referralId} {
+      allow get: if isSignedIn() && (isOwner(resource.data.referrerMemberId) || isOwner(resource.data.referredMemberId));
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.referrerMemberId == request.auth.uid;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Controls access to mentor certifications. A mentor can view their own certification status.
+     * @path /mentor_certifications/{certificationId}
+     * @allow (get) - A user reading their own certification document.
+     * @deny (list) - A user trying to list all certifications.
+     * @principle Grants read-only access to the document owner. Writes are restricted to prevent self-certification.
+     */
+    match /mentor_certifications/{certificationId} {
+      allow get: if isOwner(resource.data.memberId);
+      allow list: if false;
+      allow create, update, delete: if false; // TODO: Implement admin-only access for managing certifications
+    }
+
+    /**
+     * @description Controls access to user wallets. Extremely restricted.
+     * @path /wallets/{walletId}
+     * @allow (get) - A user can read their own wallet balance.
+     * @deny (update) - A user trying to change their own wallet balance directly.
+     * @principle Secures sensitive financial data. All modifications must be handled by a trusted backend.
+     */
+    match /wallets/{walletId} {
+      allow get: if isOwner(resource.data.memberId);
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Controls access to products in the marketplace. Products are publicly viewable.
+     * @path /products/{productId}
+     * @allow (create) - A signed-in user creating a product listing and setting themselves as the seller.
+     * @deny (update) - A user trying to update a product owned by another user.
+     * @principle Enforces document ownership for writes while allowing public reads, a common pattern for marketplaces.
+     */
+    match /products/{productId} {
+      allow get, list: if true;
+      allow create: if isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid;
+      allow update: if isExistingOwner(resource.data.sellerMemberId) && request.resource.data.sellerMemberId == resource.data.sellerMemberId;
+      allow delete: if isExistingOwner(resource.data.sellerMemberId);
+    }
+
+    /**
+     * @description Controls access to matchmaking recommendations stored at the top level.
+     * @path /matchmaking_recommendations/{recommendationId}
+     * @allow (get) - A user can read a recommendation made for them.
+     * @deny (list) - A user trying to scan all recommendations in the system.
+     * @principle Enforces ownership via a denormalized field. Writes are disallowed as recommendations are system-generated.
+     */
+    match /matchmaking_recommendations/{recommendationId} {
+      allow get: if isOwner(resource.data.memberId);
+      allow list: if false;
+      allow create: if false; // Recommendations are created by a backend service
+      allow update: if false; // Recommendations are immutable
+      allow delete: if false; // Recommendations are not deleted by users
+    }
+  }
+}
