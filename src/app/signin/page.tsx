@@ -77,22 +77,22 @@ const AuthPage = () => {
     }
   };
 
-  const authImage = placeholderImages.placeholderImages.find(p => p.id === 'auth-image');
+  const authImage = placeholderImages.placeholderImages.find(p => p.id === 'auth-image-2');
 
   if (isUserLoading || user) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[#0C0A15]">
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-t-transparent"></div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#0C0A15] text-white font-body" style={{backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0)' , backgroundSize: '20px 20px'}}>
+    <div className="flex min-h-screen flex-col bg-background text-foreground font-body">
       <main className="flex-1 flex items-center justify-center p-4 my-10">
-        <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 bg-transparent rounded-2xl overflow-hidden">
+        <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 bg-transparent rounded-2xl overflow-hidden shadow-2xl">
           {/* Left Side: Form */}
-          <div className="p-8 md:p-12">
+          <div className="p-8 md:p-12 bg-card text-card-foreground">
              <div className="flex justify-start mb-8">
                 <Logo className="h-20 object-contain" />
             </div>
@@ -108,29 +108,29 @@ const AuthPage = () => {
 
             {!showEmailForm ? (
               <div className='mt-8 space-y-4'>
-                 <Button variant="outline" className="w-full justify-start gap-3 h-12 bg-white/5 border-white/10 hover:bg-white/10 text-white" onClick={() => handleSocialLogin('google')}>
+                 <Button variant="outline" className="w-full justify-start gap-3 h-12" onClick={() => handleSocialLogin('google')}>
                   <Chrome className="h-5 w-5" />
                   <span>Continue with Google</span>
                 </Button>
-                <Button variant="outline" className="w-full justify-start gap-3 h-12 bg-white/5 border-white/10 hover:bg-white/10 text-white" onClick={() => handleSocialLogin('linkedin')}>
+                <Button variant="outline" className="w-full justify-start gap-3 h-12" onClick={() => handleSocialLogin('linkedin')}>
                   <Linkedin className="h-5 w-5" />
                   <span>Continue with LinkedIn</span>
                 </Button>
-                <Button variant="outline" className="w-full justify-start gap-3 h-12 bg-white/5 border-white/10 hover:bg-white/10 text-white" onClick={() => handleSocialLogin('facebook')}>
+                <Button variant="outline" className="w-full justify-start gap-3 h-12" onClick={() => handleSocialLogin('facebook')}>
                   <Facebook className="h-5 w-5" />
                   <span>Continue with Facebook</span>
                 </Button>
 
                 <div className="relative my-6">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-white/10"></div>
+                    <div className="w-full border-t border-border"></div>
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-[#0C0A15] px-2 text-muted-foreground">or</span>
+                    <span className="bg-card px-2 text-muted-foreground">or</span>
                   </div>
                 </div>
 
-                <Button variant="outline" className="w-full justify-start gap-3 h-12 bg-white/5 border-white/10 hover:bg-white/10 text-white" onClick={() => setShowEmailForm(true)}>
+                <Button variant="outline" className="w-full justify-start gap-3 h-12" onClick={() => setShowEmailForm(true)}>
                   <Mail className="h-5 w-5" />
                   <span>Continue with Email</span>
                 </Button>
@@ -139,14 +139,14 @@ const AuthPage = () => {
               <form onSubmit={handleEmailSubmit} className="mt-8 space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required className="h-12 bg-white/5 border-white/10 focus:ring-primary text-base"/>
+                  <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required className="h-12 text-base"/>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required className="h-12 bg-white/5 border-white/10 focus:ring-primary text-base"/>
+                  <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required className="h-12 text-base"/>
                 </div>
                 {error && <p className="text-sm text-red-500">{error}</p>}
-                <Button type="submit" className="w-full h-12 bg-primary hover:bg-primary/90">
+                <Button type="submit" className="w-full h-12">
                   {isSignUp ? 'Create Account' : 'Sign In'}
                 </Button>
                 <Button type="button" variant="ghost" className="w-full" onClick={() => setShowEmailForm(false)}>
@@ -173,10 +173,9 @@ const AuthPage = () => {
                 layout='fill'
                 objectFit='cover'
                 data-ai-hint={authImage.imageHint}
-                className="opacity-70"
               />
             )}
-            <div className="relative z-20 flex flex-col justify-end h-full p-12">
+            <div className="relative z-20 flex flex-col justify-end h-full p-12 text-white">
               <h2 className="text-4xl font-bold">Effortless AI Solutions Tailored for Enterprises</h2>
               <p className="mt-4 text-gray-300">
                 Transform the way your business operates with seamless AI integration—designed to automate workflows, accelerate decision-making, without the technical complexity.
