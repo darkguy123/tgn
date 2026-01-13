@@ -11,28 +11,29 @@ import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
+  FacebookAuthProvider, // Added for Facebook
+  OAuthProvider, // Generic OAuth provider for others like LinkedIn
 } from 'firebase/auth';
-import { Chrome, Eye } from 'lucide-react';
+import { Chrome, Linkedin, Facebook, Mail } from 'lucide-react';
 import { Logo } from '@/components/icons';
-import Image from 'next/image';
-import { Checkbox } from '@/components/ui/checkbox';
-import Link from 'next/link';
-import placeholderImages from "@/lib/placeholder-images.json";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const AuthPage = () => {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  
+
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 
-  const authImage = placeholderImages.placeholderImages.find(p => p.id === 'auth-image');
-
   useEffect(() => {
     if (!isUserLoading && user) {
+      // A quick check to see if the user exists in Firestore might be needed here
+      // before redirecting to /dashboard or /onboarding.
+      // For now, we'll redirect to onboarding as the primary flow.
       router.push('/dashboard');
     }
   }, [user, isUserLoading, router]);
@@ -52,136 +53,191 @@ const AuthPage = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleSocialLogin = async (providerName: 'google' | 'linkedin' | 'facebook') => {
     setError(null);
-    const provider = new GoogleAuthProvider();
+    let provider;
+    switch (providerName) {
+      case 'google':
+        provider = new GoogleAuthProvider();
+        break;
+      case 'linkedin':
+        // Note: LinkedIn requires custom parameters and whitelisting in Firebase Console
+        provider = new OAuthProvider('linkedin.com');
+        break;
+      case 'facebook':
+        provider = new FacebookAuthProvider();
+        break;
+      default:
+        setError('Unknown provider.');
+        return;
+    }
+    
     try {
       await signInWithPopup(auth, provider);
       router.push('/onboarding');
     } catch (error: any) {
+      // Handle specific errors, like account-exists-with-different-credential
       setError(error.message);
     }
   };
 
-  if (isUserLoading || (!isUserLoading && user)) {
-      return null;
+  if (isUserLoading || user) {
+    return null; // Or a loading spinner
   }
 
   return (
-    <div className="min-h-screen w-full lg:grid lg:grid-cols-2">
-      <div className="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r">
-        {authImage && (
-             <Image
-                src={authImage.imageUrl}
-                alt={authImage.description}
-                fill
-                className="absolute inset-0 object-cover"
-                data-ai-hint={authImage.imageHint}
-             />
-        )}
-        <div className="relative z-20">
-          <Link href="/" className="flex items-center text-lg font-medium">
-             A WISE QUOTE
-          </Link>
-        </div>
-        <div className="relative z-20 mt-auto">
-          <div className="space-y-2 text-4xl font-bold">
-            <h1>Get</h1>
-            <h1>Everything</h1>
-            <h1>You Want</h1>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Background gradient effect */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+      
+      <main className="flex-1 flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md animate-fade-in">
+          {/* Logo */}
+          <div className="flex justify-center mb-8">
+            <Logo className="h-20 object-contain" />
           </div>
-          <p className="mt-4 text-lg">
-            You can get everything you want if you work hard, trust the process, and stick to the plan.
-          </p>
-        </div>
-      </div>
-      <div className="flex items-center justify-center py-12">
-        <div className="mx-auto grid w-[350px] gap-8">
-            <div className="flex justify-start">
-                <Logo className="h-6 w-auto" />
-            </div>
-          <div className="grid gap-2 text-left">
-            <h1 className="text-3xl font-bold">
-              {isSignUp ? 'Create an account' : 'Welcome Back'}
-            </h1>
-            <p className="text-balance text-muted-foreground">
-              {isSignUp
-                ? 'Enter your details below to create your account'
-                : 'Enter your email and password to access your account'}
-            </p>
-          </div>
-          <form onSubmit={handleEmailSubmit} className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-                <div className="flex items-center">
+          
+          <Card className="border-0 shadow-xl">
+            <CardHeader className="text-center pb-4">
+              <CardTitle className="text-2xl font-bold text-foreground">
+                {isSignUp ? "Create Account" : "Welcome back"}
+              </CardTitle>
+              <CardDescription className="text-muted-foreground">
+                {isSignUp 
+                  ? "Join the global mentorship network" 
+                  : "Securely sign in to your account"}
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="space-y-4">
+              {!showEmailForm ? (
+                <>
+                  {/* Social Login Buttons */}
+                  <Button 
+                    variant="outline"
+                    className="w-full justify-start gap-3 h-12"
+                    onClick={() => handleSocialLogin("google")}
+                  >
+                    <Chrome className="h-5 w-5 text-[#4285F4]" />
+                    <span>Continue with Google</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start gap-3 h-12"
+                    onClick={() => handleSocialLogin("linkedin")}
+                  >
+                    <Linkedin className="h-5 w-5 text-[#0A66C2]" />
+                    <span>Continue with LinkedIn</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start gap-3 h-12"
+                    onClick={() => handleSocialLogin("facebook")}
+                  >
+                    <Facebook className="h-5 w-5 text-[#1877F2]" />
+                    <span>Continue with Facebook</span>
+                  </Button>
+                  
+                  <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-border"></div>
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">or</span>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start gap-3 h-12"
+                    onClick={() => setShowEmailForm(true)}
+                  >
+                    <Mail className="h-5 w-5 text-primary" />
+                    <span>Continue with Email</span>
+                  </Button>
+                </>
+              ) : (
+                <form onSubmit={handleEmailSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="h-12"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
-                    {!isSignUp && (
-                        <Link
-                            href="/forgot-password"
-                            className="ml-auto inline-block text-sm underline"
-                        >
-                            Forgot Password
-                        </Link>
-                    )}
-                </div>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <Eye className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="h-12"
+                    />
+                  </div>
+                  
+                  {error && <p className="text-sm text-destructive">{error}</p>}
+                  
+                  <Button type="submit" className="w-full h-12" size="lg">
+                    {isSignUp ? "Create Account" : "Sign In"}
+                  </Button>
+                  
+                  <Button 
+                    type="button"
+                    variant="ghost" 
+                    className="w-full"
+                    onClick={() => setShowEmailForm(false)}
+                  >
+                    Back to all options
+                  </Button>
+                </form>
+              )}
+              
+              {/* Toggle Sign Up / Sign In */}
+              <div className="pt-4 text-center text-sm text-muted-foreground">
+                {isSignUp ? (
+                  <>
+                    Already have an account?{" "}
+                    <button 
+                      onClick={() => setIsSignUp(false)}
+                      className="text-primary font-medium hover:underline"
+                    >
+                      Sign in
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Don't have an account?{" "}
+                    <button 
+                      onClick={() => setIsSignUp(true)}
+                      className="text-primary font-medium hover:underline"
+                    >
+                      Create one
+                    </button>
+                  </>
+                )}
               </div>
-            </div>
-            {!isSignUp && (
-                <div className="flex items-center space-x-2">
-                    <Checkbox id="remember-me" />
-                    <Label htmlFor="remember-me" className="font-normal">Remember me</Label>
-                </div>
-            )}
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full bg-black text-white hover:bg-black/90">
-              {isSignUp ? 'Create account' : 'Sign In'}
-            </Button>
-            <Button variant="outline" className="w-full" type="button" onClick={handleGoogleLogin}>
-              <Chrome className="mr-2 h-4 w-4" />
-              Sign in with Google
-            </Button>
-          </form>
-          <div className="mt-4 text-center text-sm">
-            {isSignUp ? (
-              <>
-                Already have an account?{' '}
-                <button onClick={() => setIsSignUp(false)} className="underline">
-                  Sign in
-                </button>
-              </>
-            ) : (
-              <>
-                Don't have an account?{' '}
-                <button onClick={() => setIsSignUp(true)} className="underline">
-                  Sign Up
-                </button>
-              </>
-            )}
-          </div>
+            </CardContent>
+          </Card>
         </div>
-      </div>
+      </main>
+      
+      {/* Footer */}
+      <footer className="py-6 text-center text-sm text-muted-foreground">
+        <p>Transcend Global Network © All rights reserved</p>
+      </footer>
     </div>
   );
-}
+};
 
 export default AuthPage;
