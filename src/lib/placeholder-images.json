@@ -39,7 +39,7 @@
     {
       "id": "user-7",
       "description": "Profile picture for Emily White",
-      "imageUrl": "https://images.unsplash.com/photo-1701096351544-7de3c7fa0272?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHx3b21hbiUyMHByb2Zlc3Npb25hbHxlbnwwfHx8fDE3NjgyNzIxMDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1701096351544-7de3c7fa0272?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHx3b21hbiUyMHByb2Zlc3Npb25hbHxlbnwwfHx8fDE3NjgyNzIxMDZ8MA&ixlibrb-4.1.0&q=80&w=1080",
       "imageHint": "woman professional"
     },
     {
@@ -75,8 +75,8 @@
     {
       "id": "auth-image",
       "description": "Abstract colorful waves for authentication page background",
-      "imageUrl": "https://images.unsplash.com/photo-1659905323699-7d7c8e0328d5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGNvbG9yZnVsfGVufDB8fHx8MTc2ODI0Njc1M3ww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "abstract colorful"
+      "imageUrl": "https://images.unsplash.com/photo-1534447677768-be436a0976f2?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "imageHint": "abstract futuristic"
     }
   ]
 }
