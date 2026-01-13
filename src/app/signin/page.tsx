@@ -17,6 +17,7 @@ import {
 } from 'firebase/auth';
 import { Chrome, Facebook, Linkedin, Mail } from 'lucide-react';
 import { Logo } from '@/components/icons';
+import placeholderImages from '@/lib/placeholder-images.json';
 
 const AuthPage = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -72,6 +73,8 @@ const AuthPage = () => {
     }
   };
 
+  const authBgImage = placeholderImages.placeholderImages.find(p => p.id === 'auth-background');
+
   if (isUserLoading || user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
@@ -87,7 +90,7 @@ const AuthPage = () => {
           {/* Left Side: Form */}
           <div className="p-8 md:p-12 bg-card">
              <div className="flex justify-start mb-8">
-                <Logo className="h-20 object-contain" />
+                <Logo className="h-20 object-contain"/>
             </div>
 
             <h1 className="text-3xl font-bold text-foreground">
@@ -159,12 +162,13 @@ const AuthPage = () => {
           {/* Right Side: Image */}
           <div className="relative hidden md:block">
             <div className="absolute inset-0 bg-black/30 z-10"></div>
-            <Image
-              src="/signinpagebg.jpeg"
-              alt="Abstract background image"
+            {authBgImage && <Image
+              src={authBgImage.imageUrl}
+              alt={authBgImage.description}
               fill={true}
               objectFit='cover'
-            />
+              data-ai-hint={authBgImage.imageHint}
+            />}
             <div className="relative z-20 flex flex-col justify-end h-full p-12 text-white">
               <h2 className="text-4xl font-bold">Effortless AI Solutions Tailored for Enterprises</h2>
               <p className="mt-4 text-gray-300">
