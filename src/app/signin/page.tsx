@@ -12,13 +12,18 @@ import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
+  FacebookAuthProvider, 
+  OAuthProvider
 } from 'firebase/auth';
-import { Chrome } from 'lucide-react';
+import { Chrome, Facebook, Linkedin, Mail } from 'lucide-react';
 import placeholderImages from '@/lib/placeholder-images.json';
 import Link from 'next/link';
+import { Logo } from '@/components/icons';
+
 
 const AuthPage = () => {
-  const [isSignUp, setIsSignUp] = useState(true);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -34,7 +39,7 @@ const AuthPage = () => {
     }
   }, [user, isUserLoading, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     try {
@@ -49,12 +54,17 @@ const AuthPage = () => {
     }
   };
 
-  const handleSocialLogin = async (providerName: 'google') => {
+  const handleSocialLogin = async (providerName: 'google' | 'linkedin' | 'facebook') => {
     setError(null);
     let provider;
     if (providerName === 'google') {
       provider = new GoogleAuthProvider();
-    } else {
+    } else if (providerName === 'facebook') {
+      provider = new FacebookAuthProvider();
+    } else if (providerName === 'linkedin') {
+      provider = new OAuthProvider('linkedin.com');
+    }
+    else {
       setError('Unknown provider.');
       return;
     }
@@ -77,98 +87,107 @@ const AuthPage = () => {
     );
   }
 
-  const XIcon = () => (
-    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 fill-current">
-        <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 7.184L18.901 1.153zm-1.653 19.57h2.608L5.401 2.542H2.639l14.609 18.181z"></path>
-    </svg>
-  );
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0C0A15] p-4 font-body" style={{backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0)' , backgroundSize: '20px 20px'}}>
-        <div className="grid w-full max-w-6xl grid-cols-1 overflow-hidden rounded-2xl bg-white shadow-2xl md:grid-cols-2">
-            
-            <div className="p-8 md:p-12">
-                <h1 className="text-3xl font-bold text-gray-900">{isSignUp ? 'Create an account' : 'Log in'}</h1>
-                <p className="mt-2 text-gray-600">{isSignUp ? "Let's get started with 30-days free trial" : 'Welcome back! Please enter your details.'}</p>
-                
-                <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <Button variant="outline" className="h-12 border-gray-300" onClick={() => handleSocialLogin('google')}>
-                        <Chrome className="mr-2 h-5 w-5" />
-                        Sign {isSignUp ? 'up' : 'in'} with Google
-                    </Button>
-                    <Button variant="outline" className="h-12 border-gray-300 bg-black text-white hover:bg-black/80 hover:text-white">
-                        <XIcon />
-                        <span className='ml-2'>Sign {isSignUp ? 'up' : 'in'} with X</span>
-                    </Button>
-                </div>
-
-                <div className="relative my-8">
-                    <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-gray-300"></div>
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                        <span className="bg-white px-2 text-gray-500">Or</span>
-                    </div>
-                </div>
-
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {isSignUp && (
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Name*</Label>
-                            <Input id="name" type="text" placeholder="Enter your name" value={name} onChange={e => setName(e.target.value)} required className="h-12"/>
-                        </div>
-                    )}
-                    <div className="space-y-2">
-                        <Label htmlFor="email">Email*</Label>
-                        <Input id="email" type="email" placeholder="Enter your email" value={email} onChange={e => setEmail(e.target.value)} required className="h-12"/>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="password">Password*</Label>
-                        <Input id="password" type="password" placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} required className="h-12"/>
-                    </div>
-
-                    {error && <p className="text-sm text-red-600">{error}</p>}
-
-                    <Button type="submit" className="w-full h-12 bg-gray-900 text-white hover:bg-gray-700">
-                        {isSignUp ? 'Sign up' : 'Log in'}
-                    </Button>
-                </form>
-
-                <p className="mt-8 text-center text-sm text-gray-600">
-                    {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
-                    <button onClick={() => setIsSignUp(!isSignUp)} className="font-medium text-indigo-600 hover:text-indigo-500">
-                        {isSignUp ? 'Log in' : 'Sign up'}
-                    </button>
-                </p>
-
-                {isSignUp && (
-                    <p className="mt-4 text-center text-xs text-gray-500">
-                        By creating an account, you agree to our <Link href="#" className="underline">terms of use</Link>.
-                    </p>
-                )}
+    <div className="flex min-h-screen flex-col bg-[#0C0A15] text-white font-body" style={{backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0)' , backgroundSize: '20px 20px'}}>
+      <main className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 bg-transparent rounded-2xl overflow-hidden">
+          {/* Left Side: Form */}
+          <div className="p-8 md:p-12">
+             <div className="flex justify-start mb-8">
+                <Logo className="h-20 object-contain" />
             </div>
 
-            <div className="relative hidden items-center justify-center bg-gray-900 md:flex">
-                 <div className="absolute inset-0 bg-black/50"></div>
-                {authImage && (
-                    <Image
-                        src={authImage.imageUrl}
-                        alt={authImage.description}
-                        layout='fill'
-                        objectFit='cover'
-                        data-ai-hint={authImage.imageHint}
-                        className="opacity-50"
-                    />
-                )}
-                <div className="relative z-10 max-w-sm p-8 text-white">
-                    <h2 className="text-4xl font-bold">Effortless AI Solutions Tailored for Enterprises</h2>
-                    <p className="mt-4 text-gray-300">
-                        Transform the way your business operates with seamless AI integration—designed to automate workflows, accelerate decision-making, without the technical complexity.
-                    </p>
-                </div>
-            </div>
+            <h1 className="text-3xl font-bold">
+              {isSignUp ? "Create Account" : "Welcome back"}
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              {isSignUp 
+                ? "Join the global mentorship network" 
+                : "Securely sign in to your account"}
+            </p>
 
+            {!showEmailForm ? (
+              <div className='mt-8 space-y-4'>
+                 <Button variant="outline" className="w-full justify-start gap-3 h-12 bg-white/5 border-white/10 hover:bg-white/10 text-white" onClick={() => handleSocialLogin('google')}>
+                  <Chrome className="h-5 w-5" />
+                  <span>Continue with Google</span>
+                </Button>
+                <Button variant="outline" className="w-full justify-start gap-3 h-12 bg-white/5 border-white/10 hover:bg-white/10 text-white" onClick={() => handleSocialLogin('linkedin')}>
+                  <Linkedin className="h-5 w-5" />
+                  <span>Continue with LinkedIn</span>
+                </Button>
+                <Button variant="outline" className="w-full justify-start gap-3 h-12 bg-white/5 border-white/10 hover:bg-white/10 text-white" onClick={() => handleSocialLogin('facebook')}>
+                  <Facebook className="h-5 w-5" />
+                  <span>Continue with Facebook</span>
+                </Button>
+
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-white/10"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-[#0C0A15] px-2 text-muted-foreground">or</span>
+                  </div>
+                </div>
+
+                <Button variant="outline" className="w-full justify-start gap-3 h-12 bg-white/5 border-white/10 hover:bg-white/10 text-white" onClick={() => setShowEmailForm(true)}>
+                  <Mail className="h-5 w-5" />
+                  <span>Continue with Email</span>
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleEmailSubmit} className="mt-8 space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required className="h-12 bg-white/5 border-white/10 focus:ring-primary text-base"/>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required className="h-12 bg-white/5 border-white/10 focus:ring-primary text-base"/>
+                </div>
+                {error && <p className="text-sm text-red-500">{error}</p>}
+                <Button type="submit" className="w-full h-12 bg-primary hover:bg-primary/90">
+                  {isSignUp ? 'Create Account' : 'Sign In'}
+                </Button>
+                <Button type="button" variant="ghost" className="w-full" onClick={() => setShowEmailForm(false)}>
+                  Back to all options
+                </Button>
+              </form>
+            )}
+
+            <div className="pt-6 text-center text-sm text-muted-foreground">
+              {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
+              <button onClick={() => setIsSignUp(!isSignUp)} className="font-medium text-primary hover:underline">
+                {isSignUp ? 'Sign in' : 'Create one'}
+              </button>
+            </div>
+          </div>
+
+          {/* Right Side: Image */}
+          <div className="relative hidden md:block">
+            <div className="absolute inset-0 bg-black/30 z-10"></div>
+            {authImage && (
+              <Image
+                src={authImage.imageUrl}
+                alt={authImage.description}
+                layout='fill'
+                objectFit='cover'
+                data-ai-hint={authImage.imageHint}
+                className="opacity-70"
+              />
+            )}
+            <div className="relative z-20 flex flex-col justify-end h-full p-12">
+              <h2 className="text-4xl font-bold">Effortless AI Solutions Tailored for Enterprises</h2>
+              <p className="mt-4 text-gray-300">
+                Transform the way your business operates with seamless AI integration—designed to automate workflows, accelerate decision-making, without the technical complexity.
+              </p>
+            </div>
+          </div>
         </div>
+      </main>
+      <footer className="py-6 text-center text-sm text-muted-foreground">
+        <p>Transcend Global Network © All rights reserved</p>
+      </footer>
     </div>
   );
 };
