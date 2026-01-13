@@ -89,7 +89,7 @@ const AuthPage = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#0C0A15] text-white font-body" style={{backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0)' , backgroundSize: '20px 20px'}}>
-      <main className="flex-1 flex items-center justify-center p-4">
+      <main className="flex-1 flex items-center justify-center p-4 my-10">
         <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 bg-transparent rounded-2xl overflow-hidden">
           {/* Left Side: Form */}
           <div className="p-8 md:p-12">
@@ -193,5 +193,3 @@ const AuthPage = () => {
 };
 
 export default AuthPage;
-
-    
