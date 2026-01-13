@@ -16,9 +16,7 @@ import {
   OAuthProvider
 } from 'firebase/auth';
 import { Chrome, Facebook, Linkedin, Mail } from 'lucide-react';
-import Link from 'next/link';
 import { Logo } from '@/components/icons';
-
 
 const AuthPage = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -47,7 +45,6 @@ const AuthPage = () => {
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
-      // On success, the useEffect will trigger the redirect
     } catch (error: any) {
       setError(error.message);
     }
@@ -70,7 +67,6 @@ const AuthPage = () => {
     
     try {
       await signInWithPopup(auth, provider);
-      // On success, the useEffect will trigger the redirect
     } catch (error: any) {
       setError(error.message);
     }
@@ -89,12 +85,12 @@ const AuthPage = () => {
       <main className="flex-1 flex items-center justify-center p-4 my-10">
         <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 bg-card text-card-foreground rounded-2xl overflow-hidden shadow-2xl">
           {/* Left Side: Form */}
-          <div className="p-8 md:p-12">
+          <div className="p-8 md:p-12 bg-card">
              <div className="flex justify-start mb-8">
                 <Logo className="h-20 object-contain" />
             </div>
 
-            <h1 className="text-3xl font-bold">
+            <h1 className="text-3xl font-bold text-foreground">
               {isSignUp ? "Create Account" : "Welcome back"}
             </h1>
             <p className="mt-2 text-muted-foreground">
@@ -164,7 +160,7 @@ const AuthPage = () => {
           <div className="relative hidden md:block">
             <div className="absolute inset-0 bg-black/30 z-10"></div>
             <Image
-              src="/auth-background.jpeg"
+              src="/signinpagebg.jpeg"
               alt="Abstract background image"
               fill={true}
               objectFit='cover'
