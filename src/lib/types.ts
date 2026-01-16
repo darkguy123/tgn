@@ -10,6 +10,7 @@ export interface TGNMember {
     role: 'mentee' | 'mentor-candidate' | 'associate-mentor' | 'collaborator' | 'sponsor' | 'country-manager' | 'volunteer' | 'media';
     purpose?: string;
     identityProfile?: string;
+    createdAt?: string;
 }
 
 export type Member = {
@@ -50,4 +51,7 @@ export type Program = {
   description: string;
   format: 'Live' | 'Pre-recorded' | 'Self-paced' | 'Hybrid';
   type: 'Free' | 'Paid' | 'Executive';
+  createdAt?: string;
+  updatedAt?: string;
+  deactivatedAt?: string;
 };

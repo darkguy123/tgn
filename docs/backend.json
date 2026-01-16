@@ -63,6 +63,11 @@
         "identityProfile": {
           "type": "string",
           "description": "A JSON string containing the member's self-identified goals and interests."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the member account was created."
         }
       },
       "required": [
@@ -142,6 +147,21 @@
         "price": {
           "type": "number",
           "description": "Price of the program (if applicable)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the program was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the program was last updated."
+        },
+        "deactivatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the program was deactivated."
         }
       },
       "required": [

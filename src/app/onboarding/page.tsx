@@ -35,12 +35,6 @@ const Onboarding = () => {
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
   const [interests, setInterests] = useState("");
 
-  useEffect(() => {
-    if (completed) {
-        const newId = `TGN-2026-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-        setTgnMemberId(newId);
-    }
-  }, [completed]);
 
   const toggleSector = (sector: string) => {
     if (selectedSectors.includes(sector)) {
@@ -62,11 +56,11 @@ const Onboarding = () => {
     if (step < 4) {
       setStep(step + 1);
     } else {
-      setCompleted(true);
-      if (user) {
+       if (user && firestore) {
+        const newId = `TGN-2026-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         const dataToSave = {
             id: user.uid,
-            tgnMemberId: `TGN-2026-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+            tgnMemberId: newId,
             signInType: user.providerData[0]?.providerId || "password",
             email: user.email,
             locationContinent: continent,
@@ -76,35 +70,15 @@ const Onboarding = () => {
             role: selectedRole,
             purpose: bio,
             identityProfile: JSON.stringify({ goals: selectedGoals, interests: interests }),
+            createdAt: new Date().toISOString(),
         };
         const userDocRef = doc(firestore, "users", user.uid);
         setDocumentNonBlocking(userDocRef, dataToSave, { merge: true });
+        setTgnMemberId(newId);
+        setCompleted(true);
       }
     }
   };
-  
-  useEffect(() => {
-      if (completed && tgnMemberId) {
-          if (user) {
-              const dataToSave = {
-                  id: user.uid,
-                  tgnMemberId: tgnMemberId,
-                  signInType: user.providerData[0]?.providerId || "password",
-                  email: user.email,
-                  locationContinent: continent,
-                  locationCountry: country,
-                  locationRegion: region,
-                  sectorPreferences: selectedSectors,
-                  role: selectedRole,
-                  purpose: bio,
-                  identityProfile: JSON.stringify({ goals: selectedGoals, interests: interests }),
-              };
-              const userDocRef = doc(firestore, "users", user.uid);
-              setDocumentNonBlocking(userDocRef, dataToSave, { merge: true });
-          }
-      }
-  }, [completed, tgnMemberId, user, firestore, continent, country, region, selectedSectors, selectedRole, bio, selectedGoals, interests]);
-
 
   const handleComplete = () => {
     router.push("/dashboard");

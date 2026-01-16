@@ -62,7 +62,7 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button>Manage Network</Button>
+              <Button onClick={() => router.push('/admin/programs')}>Manage Programs</Button>
             </CardContent>
           </Card>
         )
