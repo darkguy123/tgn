@@ -12,18 +12,26 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import type { Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, PlusCircle, PackageSearch } from 'lucide-react';
+import { ArrowLeft, PlusCircle, PackageSearch, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function MyProductsPage() {
   const router = useRouter();
   const firestore = useFirestore();
   const { profile, isLoading: profileLoading } = useMemberProfile();
+  const { toast } = useToast();
 
   const productsQuery = useMemoFirebase(
     () =>
@@ -37,11 +45,35 @@ export default function MyProductsPage() {
 
   const isLoading = profileLoading || productsLoading;
 
+  const handleDelete = (productId: string) => {
+    if (!firestore || !window.confirm('Are you sure you want to permanently delete this product?')) {
+      return;
+    }
+    const productDocRef = doc(firestore, 'products', productId);
+    deleteDoc(productDocRef)
+      .then(() => {
+        toast({
+          title: 'Product Deleted',
+          description: 'Your product listing has been permanently deleted.',
+        });
+      })
+      .catch((e) => {
+        console.error(e);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: productDocRef.path, operation: 'delete' }));
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Could not delete the product.',
+        });
+      });
+  };
+
   const filteredProducts = useMemo(() => {
     const live = products?.filter(p => p.approvalStatus === 'approved') ?? [];
     const pending = products?.filter(p => p.approvalStatus === 'pending') ?? [];
+    const inReview = products?.filter(p => p.approvalStatus === 'in_review') ?? [];
     const rejected = products?.filter(p => p.approvalStatus === 'rejected') ?? [];
-    return { live, pending, rejected };
+    return { live, pending, inReview, rejected };
   }, [products]);
 
   const renderProductList = (products: Product[]) => {
@@ -65,6 +97,27 @@ export default function MyProductsPage() {
                   fill
                   className="rounded-md object-cover"
                 />
+                 <div className="absolute top-2 right-2">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="secondary" size="icon" className="h-8 w-8 bg-black/50 hover:bg-black/70 text-white border-none">
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            {product.approvalStatus === 'rejected' && (
+                                <DropdownMenuItem onClick={() => router.push(`/marketplace/my-products/${product.id}/edit`)}>
+                                    <Edit className="mr-2 h-4 w-4" /> Edit & Resubmit
+                                </DropdownMenuItem>
+                            )}
+                            {(product.approvalStatus === 'pending' || product.approvalStatus === 'rejected') && (
+                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(product.id)}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
               </div>
               <h3 className="font-semibold truncate">{product.name}</h3>
               <div className="flex justify-between items-center mt-2">
@@ -114,9 +167,10 @@ export default function MyProductsPage() {
       <Card>
         <Tabs defaultValue="live" className="w-full">
             <CardHeader>
-                <TabsList>
+                <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
                     <TabsTrigger value="live">Live ({filteredProducts.live.length})</TabsTrigger>
                     <TabsTrigger value="pending">Pending ({filteredProducts.pending.length})</TabsTrigger>
+                    <TabsTrigger value="in_review">In Review ({filteredProducts.inReview.length})</TabsTrigger>
                     <TabsTrigger value="rejected">Rejected ({filteredProducts.rejected.length})</TabsTrigger>
                 </TabsList>
             </CardHeader>
@@ -134,6 +188,9 @@ export default function MyProductsPage() {
                         </TabsContent>
                         <TabsContent value="pending">
                             {renderProductList(filteredProducts.pending)}
+                        </TabsContent>
+                         <TabsContent value="in_review">
+                            {renderProductList(filteredProducts.inReview)}
                         </TabsContent>
                         <TabsContent value="rejected">
                             {renderProductList(filteredProducts.rejected)}
