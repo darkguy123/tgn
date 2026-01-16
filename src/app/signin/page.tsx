@@ -12,10 +12,8 @@ import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
-  FacebookAuthProvider, 
-  OAuthProvider
 } from 'firebase/auth';
-import { Chrome, Facebook, Linkedin, Mail } from 'lucide-react';
+import { Chrome, Mail } from 'lucide-react';
 import { Logo } from '@/components/icons';
 import placeholderImages from '@/lib/placeholder-images.json';
 
@@ -24,7 +22,6 @@ const AuthPage = () => {
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const auth = useAuth();
@@ -51,17 +48,12 @@ const AuthPage = () => {
     }
   };
 
-  const handleSocialLogin = async (providerName: 'google' | 'linkedin' | 'facebook') => {
+  const handleSocialLogin = async (providerName: 'google') => {
     setError(null);
     let provider;
     if (providerName === 'google') {
       provider = new GoogleAuthProvider();
-    } else if (providerName === 'facebook') {
-      provider = new FacebookAuthProvider();
-    } else if (providerName === 'linkedin') {
-      provider = new OAuthProvider('linkedin.com');
-    }
-    else {
+    } else {
       setError('Unknown provider.');
       return;
     }
@@ -73,7 +65,7 @@ const AuthPage = () => {
     }
   };
 
-  const authBgImage = placeholderImages.placeholderImages.find(p => p.id === 'auth-background');
+  const authBgImage = placeholderImages.placeholderImages.find(p => p.id === 'auth-background-futuristic');
 
   if (isUserLoading || user) {
     return (
@@ -88,7 +80,7 @@ const AuthPage = () => {
       <main className="flex-1 flex items-center justify-center p-4 my-10">
         <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 bg-card text-card-foreground rounded-2xl overflow-hidden shadow-2xl">
           {/* Left Side: Form */}
-          <div className="p-8 md:p-12 bg-card">
+          <div className="p-8 md:p-12">
              <div className="flex justify-start mb-8">
                 <Logo className="h-20 object-contain"/>
             </div>
@@ -107,14 +99,6 @@ const AuthPage = () => {
                  <Button variant="outline" className="w-full justify-start gap-3 h-12" onClick={() => handleSocialLogin('google')}>
                   <Chrome className="h-5 w-5" />
                   <span>Continue with Google</span>
-                </Button>
-                <Button variant="outline" className="w-full justify-start gap-3 h-12" onClick={() => handleSocialLogin('linkedin')}>
-                  <Linkedin className="h-5 w-5" />
-                  <span>Continue with LinkedIn</span>
-                </Button>
-                <Button variant="outline" className="w-full justify-start gap-3 h-12" onClick={() => handleSocialLogin('facebook')}>
-                  <Facebook className="h-5 w-5" />
-                  <span>Continue with Facebook</span>
                 </Button>
 
                 <div className="relative my-6">
@@ -166,7 +150,7 @@ const AuthPage = () => {
               src={authBgImage.imageUrl}
               alt={authBgImage.description}
               fill={true}
-              objectFit='cover'
+              style={{objectFit:'cover'}}
               data-ai-hint={authBgImage.imageHint}
             />}
             <div className="relative z-20 flex flex-col justify-end h-full p-12 text-white">

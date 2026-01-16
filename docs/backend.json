@@ -320,9 +320,7 @@
   "auth": {
     "providers": [
       "password",
-      "google.com",
-      "linkedin.com",
-      "facebook.com"
+      "google.com"
     ]
   },
   "firestore": {
