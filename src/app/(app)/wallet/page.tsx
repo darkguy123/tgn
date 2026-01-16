@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ const WalletPage = () => {
     const { profile, isLoading: isProfileLoading } = useMemberProfile();
     const { toast } = useToast();
     const firestore = useFirestore();
+    const searchParams = useSearchParams();
 
     const usersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
     const { data: allMembers, isLoading: membersLoading } = useCollection<TGNMember>(usersRef);
@@ -60,6 +62,15 @@ const WalletPage = () => {
     const [accountNumber, setAccountNumber] = useState('');
 
     const isLoading = isWalletLoading || isProfileLoading || membersLoading || isTransactionsLoading;
+
+    // Pre-fill recipient from URL
+    useEffect(() => {
+        const recipientFromUrl = searchParams.get('recipient');
+        if(recipientFromUrl) {
+            setRecipientId(recipientFromUrl);
+            setSendOpen(true);
+        }
+    }, [searchParams]);
 
     // Debounce for recipient search
     useEffect(() => {
