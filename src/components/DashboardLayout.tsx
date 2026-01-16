@@ -23,6 +23,7 @@ import {
   Megaphone,
   Shield,
   LayoutGrid,
+  Network,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -48,6 +49,7 @@ const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
   { id: 'chat', label: 'Messages', icon: MessageSquare, path: '/chat' },
   { id: 'community', label: 'Community Feed', icon: LayoutGrid, path: '/community' },
+  { id: 'network', label: 'My Network', icon: Network, path: '/network' },
   { id: 'directory', label: 'Member Directory', icon: Users, path: '/directory' },
   { id: 'events', label: 'Events', icon: Calendar, path: '/community/events' },
   { id: 'causes', label: 'Causes', icon: Heart, path: '/community/causes' },
