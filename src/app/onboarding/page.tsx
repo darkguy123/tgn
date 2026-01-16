@@ -16,6 +16,8 @@ import { continents, countries, sectors as SECTORS, roles as ROLES, goals as GOA
 import { useUser, useFirestore } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useMemberProfile } from "@/hooks/useMemberProfile";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Onboarding = () => {
   const router = useRouter();
@@ -24,6 +26,8 @@ const Onboarding = () => {
   const [step, setStep] = useState(1);
   const [completed, setCompleted] = useState(false);
   const [tgnMemberId, setTgnMemberId] = useState("");
+  
+  const { profile, isLoading: isProfileLoading } = useMemberProfile();
 
   // Form state
   const [continent, setContinent] = useState("");
@@ -34,6 +38,12 @@ const Onboarding = () => {
   const [bio, setBio] = useState("");
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
   const [interests, setInterests] = useState("");
+
+  useEffect(() => {
+    if (!isProfileLoading && profile) {
+      router.push('/dashboard');
+    }
+  }, [profile, isProfileLoading, router]);
 
 
   const toggleSector = (sector: string) => {
@@ -90,13 +100,20 @@ const Onboarding = () => {
     <User key="3" className="h-5 w-5" />,
     <Target key="4" className="h-5 w-5" />
   ];
-
-  useEffect(() => {
-      // Prefill user data if it exists
-      if (user) {
-        // Here you could fetch existing user data from Firestore and prefill the form
-      }
-  }, [user]);
+  
+  if (isProfileLoading || profile) {
+    return (
+        <div className="flex h-screen w-screen items-center justify-center">
+            <div className="flex items-center space-x-4">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-[250px]" />
+                    <Skeleton className="h-4 w-[200px]" />
+                </div>
+            </div>
+        </div>
+    )
+  }
 
 
   if (completed) {
@@ -333,6 +350,12 @@ const Onboarding = () => {
               size="lg" 
               className="w-full"
               onClick={handleNext}
+              disabled={
+                (step === 1 && (!continent || !country)) ||
+                (step === 2 && selectedSectors.length === 0) ||
+                (step === 3 && !selectedRole) ||
+                (step === 4 && !bio)
+              }
             >
               {step === 4 ? "Complete Setup" : "Continue"}
             </Button>
