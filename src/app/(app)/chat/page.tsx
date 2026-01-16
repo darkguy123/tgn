@@ -80,15 +80,23 @@ export default function ChatListPage() {
       user
         ? query(
             collection(firestore, 'chats'),
-            where('members', 'array-contains', user.uid),
-            where('lastMessage.timestamp', '>', Timestamp.fromMillis(0)),
-            orderBy('lastMessage.timestamp', 'desc')
+            where('members', 'array-contains', user.uid)
           )
         : null,
     [user, firestore]
   );
 
   const { data: chats, isLoading } = useCollection<Chat>(chatsQuery);
+
+  const sortedChats = useMemo(() => {
+    if (!chats) return [];
+    return [...chats].sort((a, b) => {
+      const timeA = a.lastMessage?.timestamp?.toDate()?.getTime() || 0;
+      const timeB = b.lastMessage?.timestamp?.toDate()?.getTime() || 0;
+      return timeB - timeA;
+    });
+  }, [chats]);
+
 
   return (
     <div className="space-y-6">
@@ -113,16 +121,16 @@ export default function ChatListPage() {
                 ))}
              </div>
           )}
-          {!isLoading && chats?.length === 0 && (
+          {!isLoading && sortedChats?.length === 0 && (
             <div className="text-center py-20 text-muted-foreground">
                 <MessageSquarePlus className="mx-auto h-12 w-12" />
                 <h3 className="mt-4 text-lg font-medium">No Conversations</h3>
                 <p className="mt-1 text-sm">Connect with members in the directory to start chatting.</p>
             </div>
           )}
-          {!isLoading && chats && chats.length > 0 && (
+          {!isLoading && sortedChats && sortedChats.length > 0 && (
             <div className="divide-y">
-                {chats.map(chat => (
+                {sortedChats.filter(chat => chat.lastMessage).map(chat => (
                     <ChatListItem key={chat.id} chat={chat} />
                 ))}
             </div>
