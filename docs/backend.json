@@ -234,40 +234,55 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MentorCertification",
       "type": "object",
-      "description": "Represents the certification status and details of a mentor.",
+      "description": "Represents the certification status and progress for a TGN member.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the mentor certification."
+          "description": "Unique identifier for the certification record."
         },
         "memberId": {
           "type": "string",
-          "description": "Reference to the TGN Member being certified as a mentor. (Relationship: TGNMember 1:1 MentorCertification)"
+          "description": "The UID of the member this certification belongs to."
         },
-        "programCompletion": {
-          "type": "boolean",
-          "description": "Indicates if the mentor has completed the certification program."
-        },
-        "platformActivityScore": {
+        "paidProgramsCompleted": {
           "type": "number",
-          "description": "Score based on the mentor's activity on the platform."
+          "description": "Number of paid programs the member has completed."
         },
-        "evaluationScore": {
+        "accountAgeInMonths": {
           "type": "number",
-          "description": "Score based on evaluations received from mentees."
+          "description": "The member's account age in months."
         },
-        "isVerified": {
+        "menteeBadgeLevel": {
+          "type": "number",
+          "description": "The member's current Mentee Badge level."
+        },
+        "curriculumCompleted": {
           "type": "boolean",
-          "description": "Indicates if the mentor is a verified associate."
+          "description": "Whether the member has completed the certification curriculum."
+        },
+        "evaluationPassed": {
+          "type": "boolean",
+          "description": "Whether the member has passed the TGN evaluation."
+        },
+        "isCertified": {
+          "type": "boolean",
+          "description": "Overall status indicating if the member is a TGN Certified Mentor."
+        },
+        "certificationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date the certification was awarded."
         }
       },
       "required": [
         "id",
         "memberId",
-        "programCompletion",
-        "platformActivityScore",
-        "evaluationScore",
-        "isVerified"
+        "paidProgramsCompleted",
+        "accountAgeInMonths",
+        "menteeBadgeLevel",
+        "curriculumCompleted",
+        "evaluationPassed",
+        "isCertified"
       ]
     },
     "Wallet": {

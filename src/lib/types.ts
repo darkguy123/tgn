@@ -84,3 +84,15 @@ export type ChatConversation = {
   messages: ChatMessage[];
   unreadCount?: number;
 };
+
+export interface MentorCertification {
+  id: string;
+  memberId: string;
+  paidProgramsCompleted: number;
+  accountAgeInMonths: number;
+  menteeBadgeLevel: number;
+  curriculumCompleted: boolean;
+  evaluationPassed: boolean;
+  isCertified: boolean;
+  certificationDate?: string;
+}
