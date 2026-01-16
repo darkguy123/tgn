@@ -53,7 +53,7 @@ export interface Product {
     sellerName: string; 
     sellerAvatarUrl: string; 
 
-    approvalStatus: 'pending' | 'approved' | 'rejected';
+    approvalStatus: 'pending' | 'in_review' | 'approved' | 'rejected';
     createdAt: any; 
 }
 
@@ -209,7 +209,7 @@ export interface AdCampaign {
     creatorName: string;
     creatorAvatarUrl: string;
     name: string;
-    status: 'pending' | 'active' | 'paused' | 'rejected';
+    status: 'pending' | 'in_review' | 'active' | 'paused' | 'rejected';
     budget: number;
     amountSpent?: number;
     headline: string;
