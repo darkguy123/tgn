@@ -21,7 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, runTransaction, doc, serverTimestamp, addDoc } from 'firebase/firestore';
 import type { TGNMember, Transaction } from '@/lib/types';
 
 
@@ -50,6 +50,8 @@ const WalletPage = () => {
     const [recipient, setRecipient] = useState<TGNMember & { name: string } | null | 'loading' | 'not_found'>(null);
     const [amount, setAmount] = useState('');
     const [pin, setPin] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
 
     // Withdraw Dialog State
     const [isWithdrawOpen, setWithdrawOpen] = useState(false);
@@ -105,46 +107,126 @@ const WalletPage = () => {
         }, 300);
     };
 
-    const handleConfirmSend = () => {
-        // Simulate PIN check and transaction
+    const handleConfirmSend = async () => {
         if (pin.length < 4) {
             toast({ variant: 'destructive', title: 'Invalid PIN', description: 'Transaction PIN must be 4 digits.' });
             return;
         }
-        if (recipient && typeof recipient !== 'string') {
-            toast({ title: 'Transfer Successful!', description: `You have sent ${formatCurrency(parseFloat(amount))} to ${recipient.name}.` });
-            setSendStep(3); // Move to success step
+        if (!user || !recipient || typeof recipient === 'string' || !profile) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Recipient not found.' });
+            return;
+        }
+        
+        setIsSubmitting(true);
+
+        const transferAmount = parseFloat(amount);
+
+        try {
+            const senderWalletRef = doc(firestore, 'wallets', user.uid);
+            const recipientWalletRef = doc(firestore, 'wallets', recipient.id);
+
+            await runTransaction(firestore, async (transaction) => {
+                const senderWalletDoc = await transaction.get(senderWalletRef);
+                if (!senderWalletDoc.exists() || senderWalletDoc.data().balance < transferAmount) {
+                    throw new Error("Insufficient funds.");
+                }
+
+                const recipientWalletDoc = await transaction.get(recipientWalletRef);
+
+                // Update sender's wallet
+                const newSenderBalance = senderWalletDoc.data().balance - transferAmount;
+                transaction.update(senderWalletRef, { balance: newSenderBalance });
+
+                // Update or create recipient's wallet
+                if (recipientWalletDoc.exists()) {
+                    const newRecipientBalance = recipientWalletDoc.data().balance + transferAmount;
+                    transaction.update(recipientWalletRef, { balance: newRecipientBalance });
+                } else {
+                    transaction.set(recipientWalletRef, {
+                        memberId: recipient.id,
+                        currency: 'USD',
+                        balance: transferAmount,
+                    });
+                }
+            });
+
+            // Create transaction logs after the atomic update
+            const senderTransactionsRef = collection(firestore, 'users', user.uid, 'transactions');
+            await addDoc(senderTransactionsRef, {
+                type: 'purchase',
+                status: 'completed',
+                amount: -transferAmount,
+                currency: 'USD',
+                description: `Sent to ${recipient.name}`,
+                createdAt: serverTimestamp(),
+            });
+
+            const recipientTransactionsRef = collection(firestore, 'users', recipient.id, 'transactions');
+            await addDoc(recipientTransactionsRef, {
+                type: 'deposit',
+                status: 'completed',
+                amount: transferAmount,
+                currency: 'USD',
+                description: `Received from ${profile.name || 'a member'}`,
+                createdAt: serverTimestamp(),
+            });
+            
+            setSendStep(3);
+        } catch (e: any) {
+            console.error("Transfer failed", e);
+            toast({ variant: 'destructive', title: 'Transfer Failed', description: e.message || 'An error occurred.' });
+        } finally {
+            setIsSubmitting(false);
         }
     };
     
-    const handleWithdrawRequest = () => {
+    const handleWithdrawRequest = async () => {
+        setIsSubmitting(true);
         const amountNum = parseFloat(withdrawAmount);
         if (!wallet || !amountNum || amountNum <= 0) {
             toast({ variant: 'destructive', title: 'Invalid Amount', description: 'Please enter a valid amount to withdraw.' });
+            setIsSubmitting(false);
             return;
         }
         if (amountNum > wallet.balance) {
             toast({ variant: 'destructive', title: 'Insufficient Funds', description: 'Your withdrawal amount exceeds your available balance.' });
+            setIsSubmitting(false);
             return;
         }
         if (!bankName.trim() || !accountNumber.trim()) {
             toast({ variant: 'destructive', title: 'Missing Details', description: 'Please provide both bank name and account number.' });
+            setIsSubmitting(false);
             return;
         }
 
-        // Simulate request
-        toast({
-            title: 'Withdrawal Request Submitted',
-            description: `${formatCurrency(amountNum)} will be processed to your bank account. Status is pending.`
-        });
+        try {
+            if (!user) throw new Error("User not found");
+            const transactionsRef = collection(firestore, 'users', user.uid, 'transactions');
+            await addDoc(transactionsRef, {
+                type: 'withdrawal',
+                status: 'pending',
+                amount: -amountNum,
+                currency: 'USD',
+                description: `Withdrawal to ${bankName}`,
+                createdAt: serverTimestamp(),
+            });
 
-        // Reset form and close dialog
-        setWithdrawOpen(false);
-        setTimeout(() => {
-            setWithdrawAmount('');
-            setBankName('');
-            setAccountNumber('');
-        }, 300)
+            toast({
+                title: 'Withdrawal Request Submitted',
+                description: `${formatCurrency(amountNum)} will be processed to your bank account.`
+            });
+
+            setWithdrawOpen(false);
+            setTimeout(() => {
+                setWithdrawAmount('');
+                setBankName('');
+                setAccountNumber('');
+            }, 300);
+        } catch(e: any) {
+             toast({ variant: 'destructive', title: 'Request Failed', description: e.message || 'An error occurred.' });
+        } finally {
+             setIsSubmitting(false);
+        }
     };
 
 
@@ -229,9 +311,9 @@ const WalletPage = () => {
                                         </TableCell>
                                         <TableCell className={cn(
                                             "text-right font-semibold",
-                                            tx.amount > 0 ? 'text-green-600' : 'text-foreground'
+                                            (tx.type === 'deposit' || tx.type === 'commission') ? 'text-green-600' : 'text-foreground'
                                         )}>
-                                            {tx.amount > 0 ? `+${formatCurrency(tx.amount, tx.currency)}` : formatCurrency(tx.amount, tx.currency)}
+                                            {(tx.type === 'deposit' || tx.type === 'commission') ? `+${formatCurrency(tx.amount, tx.currency)}` : formatCurrency(tx.amount, tx.currency)}
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -242,7 +324,7 @@ const WalletPage = () => {
 
             </div>
 
-            <div className="lg:col-span-1 space-y-6">
+            <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-24">
                  {profile && (
                      <Card>
                         <CardHeader>
@@ -338,7 +420,10 @@ const WalletPage = () => {
                                     </div>
                                     <DialogFooter>
                                         <Button type="button" variant="outline" onClick={() => setSendStep(1)}>Back</Button>
-                                        <Button type="button" onClick={handleConfirmSend} disabled={pin.length !== 4}>Send Now</Button>
+                                        <Button type="button" onClick={handleConfirmSend} disabled={pin.length !== 4 || isSubmitting}>
+                                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+                                            Send Now
+                                        </Button>
                                     </DialogFooter>
                                     </>
                                 )}
@@ -425,7 +510,10 @@ const WalletPage = () => {
                                         </div>
                                         <DialogFooter>
                                             <Button variant="outline" onClick={() => setWithdrawOpen(false)}>Cancel</Button>
-                                            <Button onClick={handleWithdrawRequest}>Submit Request</Button>
+                                            <Button onClick={handleWithdrawRequest} disabled={isSubmitting}>
+                                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+                                                Submit Request
+                                            </Button>
                                         </DialogFooter>
                                     </DialogContent>
                                 </Dialog>
