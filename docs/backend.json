@@ -690,6 +690,10 @@
           "type": "number",
           "description": "The amount raised so far."
         },
+        "backersCount": {
+          "type": "number",
+          "description": "The number of people who have contributed to the cause."
+        },
         "status": {
           "type": "string",
           "description": "The approval status of the cause.",

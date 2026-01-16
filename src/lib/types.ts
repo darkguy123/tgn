@@ -181,6 +181,7 @@ export interface Cause {
     description: string;
     goalAmount: number;
     currentAmount: number;
+    backersCount?: number;
     status: 'pending' | 'approved' | 'rejected';
     createdAt: any; // Allow Firestore ServerTimestamp
 }
