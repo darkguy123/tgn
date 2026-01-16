@@ -77,6 +77,30 @@
       "description": "Abstract background for authentication page",
       "imageUrl": "https://images.unsplash.com/photo-1535223289827-42f1e9919769?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxhYnN0cmFjdCUyMHRlY2hub2xvZ3l8ZW58MHx8fHwxNzE3Nzc0NTU4fDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "abstract technology"
+    },
+    {
+      "id": "program-leadership",
+      "description": "Program image for Executive Leadership Circle",
+      "imageUrl": "https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80",
+      "imageHint": "leadership meeting"
+    },
+    {
+      "id": "program-startup",
+      "description": "Program image for Startup Founder 101",
+      "imageUrl": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2232&q=80",
+      "imageHint": "startup team"
+    },
+    {
+      "id": "program-mentorship",
+      "description": "Program image for Introduction to Mentorship",
+      "imageUrl": "https://images.unsplash.com/photo-1516321497487-e288fb19713f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80",
+      "imageHint": "people collaborating"
+    },
+    {
+      "id": "program-agritech",
+      "description": "Program image for Agri-Tech Innovation",
+      "imageUrl": "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80",
+      "imageHint": "agriculture technology"
     }
   ]
 }

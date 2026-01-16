@@ -1,5 +1,4 @@
-
-import type { Member, Product } from './types';
+import type { Member, Product, Program } from './types';
 
 export const members: Member[] = [
     { id: '9', name: "Dr. Amara Obi", role: "Executive Mentor", country: "Nigeria", sector: "Technology", badge: 7, connections: 234, tgnId: 'TGN-0009', location: 'Lagos, Nigeria', isVerified: true, profile: 'Executive mentor specializing in tech leadership.', imageId: 'user-1' },
@@ -101,6 +100,48 @@ export const products: Product[] = [
   },
 ];
 
+export const programs: Program[] = [
+  {
+    id: 'prog-1',
+    name: 'Executive Leadership Circle',
+    description: 'A premium, cohort-based program for senior leaders aiming for the C-suite. Includes live sessions with industry titans and personalized coaching.',
+    mentor: 'Dr. Amara Obi',
+    type: 'Executive',
+    format: 'Live',
+    price: 4999,
+    imageId: 'program-leadership',
+  },
+  {
+    id: 'prog-2',
+    name: 'Startup Founder 101',
+    description: 'A comprehensive, self-paced course covering everything from idea validation to securing your first round of funding. Lifetime access to materials.',
+    mentor: 'James Chen',
+    type: 'Paid',
+    format: 'Self-paced',
+    price: 499,
+    imageId: 'program-startup',
+  },
+  {
+    id: 'prog-3',
+    name: 'Introduction to Mentorship',
+    description: 'A free, pre-recorded webinar that introduces the core concepts of effective mentorship and how to make the most of the TGN platform.',
+    mentor: 'Sarah Williams',
+    type: 'Free',
+    format: 'Pre-recorded',
+    imageId: 'program-mentorship',
+  },
+  {
+    id: 'prog-4',
+    name: 'Agri-Tech Innovation',
+    description: 'A hybrid program combining self-paced modules with live workshops. Learn how technology is transforming agriculture in emerging markets.',
+    mentor: 'David Okonkwo',
+    type: 'Paid',
+    format: 'Hybrid',
+    price: 250,
+    imageId: 'program-agritech',
+  },
+];
+
 
 export const continents = [
     "Africa",
@@ -131,4 +172,3 @@ export const goals = [
 export const badgeLevels = ["All Levels", "★ 1", "★ 2", "★ 3", "★ 4", "★ 5", "★ 6", "★ 7"];
 
 export const mentorTypes = ["All Types", "Associate Mentor", "Certified Mentor", "Executive Mentor"];
-

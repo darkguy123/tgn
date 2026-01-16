@@ -120,6 +120,17 @@ service cloud.firestore {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
+    
+    /**
+     * @description Controls access to learning programs. Data is public for all to read.
+     * @path /programs/{programId}
+     * @allow (get, list) - Any client can read program information.
+     * @deny (create, update, delete) - Only admins can manage programs.
+     */
+    match /programs/{programId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
 
     /**
      * @description Controls access to events. Event data is public for all to read.

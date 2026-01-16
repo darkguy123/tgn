@@ -36,3 +36,14 @@ export type Product = {
   type: 'Book' | 'Course' | 'Tool';
   imageId: string;
 };
+
+export type Program = {
+  id: string;
+  name: string;
+  description: string;
+  mentor: string;
+  type: 'Free' | 'Paid' | 'Executive';
+  format: 'Live' | 'Pre-recorded' | 'Self-paced' | 'Hybrid';
+  price?: number;
+  imageId: string;
+};

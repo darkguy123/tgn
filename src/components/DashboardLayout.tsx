@@ -13,6 +13,7 @@ import {
   Menu,
   Bell,
   LogOut,
+  GraduationCap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser } from '@/firebase';
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
   { id: 'directory', label: 'Member Directory', icon: Users, path: '/directory' },
   { id: 'matchmaking', label: 'Matchmaking', icon: Sparkles, path: '/matchmaking' },
+  { id: 'programs', label: 'Programs', icon: GraduationCap, path: '/programs' },
   { id: 'marketplace', label: 'Marketplace', icon: ShoppingBag, path: '/marketplace' },
   { id: 'certification', label: 'Certification', icon: Award, path: '/certification' },
 ];

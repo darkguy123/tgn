@@ -98,6 +98,61 @@
         "name"
       ]
     },
+    "Program": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Program",
+      "type": "object",
+      "description": "Represents a mentorship or learning program.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the program."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the program."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the program."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of program.",
+          "enum": [
+            "Free",
+            "Paid",
+            "Executive"
+          ]
+        },
+        "format": {
+          "type": "string",
+          "description": "The learning format of the program.",
+          "enum": [
+            "Live",
+            "Pre-recorded",
+            "Self-paced",
+            "Hybrid"
+          ]
+        },
+        "mentorId": {
+          "type": "string",
+          "description": "Reference to the TGN Member who is the primary mentor for this program."
+        },
+        "price": {
+          "type": "number",
+          "description": "Price of the program (if applicable)."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "type",
+        "format",
+        "mentorId"
+      ]
+    },
     "AffiliateReferral": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AffiliateReferral",
@@ -343,6 +398,11 @@
         "path": "/sectors/{sectorId}",
         "entity": "Sector",
         "description": "Stores information about mentorship sectors. Accessible to all members for reference."
+      },
+      {
+        "path": "/programs/{programId}",
+        "entity": "Program",
+        "description": "Stores all available learning and mentorship programs. Publicly readable."
       },
       {
         "path": "/affiliate_referrals/{referralId}",
