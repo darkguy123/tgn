@@ -29,6 +29,7 @@ import {
   ExternalLink,
   Heart,
   CheckCheck,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
@@ -189,6 +190,9 @@ const Dashboard = () => {
               </Button>
               <Button variant="outline" onClick={() => router.push('/admin/causes')}>
                 Manage Causes <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
+              <Button variant="outline" onClick={() => router.push('/admin/analytics')}>
+                View Analytics <BarChart3 className="ml-2 h-4 w-4" />
               </Button>
             </CardContent>
           </Card>
@@ -640,5 +644,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
-    
