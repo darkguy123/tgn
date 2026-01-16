@@ -14,6 +14,7 @@ import {
   Bell,
   LogOut,
   GraduationCap,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser } from '@/firebase';
@@ -24,6 +25,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
   { id: 'directory', label: 'Member Directory', icon: Users, path: '/directory' },
+  { id: 'community', label: 'Community', icon: MessageSquare, path: '/community' },
   { id: 'matchmaking', label: 'Matchmaking', icon: Sparkles, path: '/matchmaking' },
   { id: 'programs', label: 'Programs', icon: GraduationCap, path: '/programs' },
   { id: 'marketplace', label: 'Marketplace', icon: ShoppingBag, path: '/marketplace' },
