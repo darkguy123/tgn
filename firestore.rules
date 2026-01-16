@@ -233,6 +233,20 @@ service cloud.firestore {
         allow delete: if isAdmin();
     }
 
+    /**
+     * @description Controls access to community posts.
+     * @path /posts/{postId}
+     * @allow (list, get) - Any authenticated user can read posts.
+     * @allow (create) - A user can create their own post.
+     * @allow (update) - A user can update their own post (e.g., edit content). For likes, a more granular rule or backend function is recommended.
+     * @allow (delete) - A user can delete their own post, or an admin can.
+     */
+    match /posts/{postId} {
+      allow list, get: if isSignedIn();
+      allow create: if isOwner(request.resource.data.authorId);
+      allow update: if isOwner(resource.data.authorId) || isAdmin(); // Simplified for now.
+      allow delete: if isOwner(resource.data.authorId) || isAdmin();
+    }
 
     /**
      * @description Controls access to matchmaking recommendations stored at the top level.

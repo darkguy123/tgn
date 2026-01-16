@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import {
   Dialog,
   DialogContent,
@@ -8,6 +11,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogClose,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,7 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { members, stories as storiesData, conversations } from '@/lib/data';
+import { members, conversations } from '@/lib/data';
 import placeholderImages from '@/lib/placeholder-images.json';
 import {
   LayoutGrid,
@@ -30,23 +34,22 @@ import {
   Share2,
   Bookmark,
   MoreHorizontal,
-  PlusCircle,
-  UploadCloud,
-  X,
-  ChevronLeft,
-  ChevronRight,
   Search,
   MessageSquarePlus,
-  Ellipsis,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { Separator } from '@/components/ui/separator';
-import type { Story, ChatConversation } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import type { ChatConversation, Post } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, addDoc, serverTimestamp, query, orderBy, updateDoc, doc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatDistanceToNow } from 'date-fns';
 
 const communityNavItems = [
   { label: 'Feed', icon: LayoutGrid, path: '/community' },
@@ -59,12 +62,7 @@ const communityNavItems = [
 ];
 
 const pagesYouLike = [
-  {
-    name: 'Football FC',
-    initial: 'FF',
-    color: 'bg-red-500',
-    notifications: 120,
-  },
+  { name: 'Football FC', initial: 'FF', color: 'bg-red-500', notifications: 120 },
   { name: 'Badminton Club', initial: 'BC', color: 'bg-blue-500' },
   { name: 'UI/UX Community', initial: 'UI', color: 'bg-purple-500' },
   { name: 'Web Designer', initial: 'WD', color: 'bg-green-500' },
@@ -73,293 +71,239 @@ const pagesYouLike = [
 const reels = [
   { author: 'Sarah Chen', imageId: 'product-2', views: '1.2M' },
   { author: 'David Okonkwo', imageId: 'product-4', views: '890K' },
-  {
-    author: 'Elena Rodriguez',
-    imageId: 'program-global-business',
-    views: '540K',
-  },
-  {
-    author: 'James Chen',
-    imageId: 'program-business-strategy',
-    views: '320K',
-  },
-];
-
-const posts = [
-  {
-    id: 'post1',
-    author: members.find(m => m.name === 'Sarah Chen'),
-    timestamp: '12 April at 09:28 PM',
-    content:
-      'One of the perks of working in an international company is sharing knowledge with your colleagues.',
-    images: ['community-post-office-1', 'community-post-office-2'],
-    likes: 120000,
-    comments: 25,
-    shares: 231,
-    saves: 12,
-  },
-  {
-    id: 'post2',
-    author: members.find(m => m.name === 'Maria Santos'),
-    timestamp: '11 April at 08:15 PM',
-    content: 'A great way to generate all the motivation you need to get fit.',
-    images: [],
-    likes: 12,
-    comments: 7,
-    shares: 0,
-    saves: 0,
-  },
+  { author: 'Elena Rodriguez', imageId: 'program-global-business', views: '540K' },
+  { author: 'James Chen', imageId: 'program-business-strategy', views: '320K' },
 ];
 
 const getImage = (imageId: string) => {
   return placeholderImages.placeholderImages.find(p => p.id === imageId);
 };
 
-// --- Story Creation Dialog ---
-function CreateStoryDialog({
-  open,
-  onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
+const postSchema = z.object({
+  content: z.string().min(1, 'Post content cannot be empty.').max(500, 'Post content is too long.'),
+});
+
+type PostFormData = z.infer<typeof postSchema>;
+
+function CreatePostDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
+  const { profile } = useMemberProfile();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<PostFormData>({
+    resolver: zodResolver(postSchema),
+  });
+
+  const handlePostSubmit = async (data: PostFormData) => {
+    if (!profile || !firestore) {
+      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to post.' });
+      return;
+    }
+    
+    try {
+      await addDoc(collection(firestore, 'posts'), {
+        content: data.content,
+        authorId: profile.id,
+        authorName: profile.email.split('@')[0], // a better name would be stored in the profile
+        authorImageId: profile.imageId || 'default-male-avatar',
+        authorRole: profile.role,
+        likes: 0,
+        commentsCount: 0,
+        createdAt: serverTimestamp(),
+      });
+
+      toast({ title: 'Success', description: 'Your post has been published.' });
+      reset();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error creating post: ", error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to publish your post.' });
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create a new story</DialogTitle>
-          <DialogDescription>
-            Share a photo or a short video (max 30 seconds). Stories disappear
-            after 24 hours.
-          </DialogDescription>
+          <DialogTitle>Create a new post</DialogTitle>
+          <DialogDescription>Share your thoughts with the community.</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid w-full max-w-sm items-center gap-1.5">
-            <Label htmlFor="story-file">Upload Media</Label>
-            <div className="flex items-center justify-center w-full">
-              <label
-                htmlFor="story-file"
-                className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/80"
-              >
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <UploadCloud className="w-10 h-10 mb-3 text-muted-foreground" />
-                  <p className="mb-2 text-sm text-muted-foreground">
-                    <span className="font-semibold">Click to upload</span> or
-                    drag and drop
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Image or Video (MAX. 30s)
-                  </p>
-                </div>
-                <Input
-                  id="story-file"
-                  type="file"
-                  className="hidden"
-                  accept="image/*,video/mp4,video/quicktime"
+        <form onSubmit={handleSubmit(handlePostSubmit)}>
+          <div className="py-4 space-y-4">
+            <div className="flex items-start gap-4">
+              <Avatar>
+                <AvatarImage src={getImage(profile?.imageId || 'user-1')?.imageUrl} />
+                <AvatarFallback>{profile?.email.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 space-y-2">
+                <Textarea
+                  placeholder="What's on your mind?"
+                  className="min-h-[120px] resize-none"
+                  {...register('content')}
                 />
-              </label>
+                {errors.content && <p className="text-sm text-destructive">{errors.content.message}</p>}
+              </div>
+            </div>
+            <div className="flex gap-2 text-muted-foreground">
+                <Button variant="ghost" size="icon" type="button"><ImageIcon /></Button>
+                <Button variant="ghost" size="icon" type="button"><Calendar /></Button>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="caption">Caption (optional)</Label>
-            <Input id="caption" placeholder="Add a caption..." />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button type="submit">Post Story</Button>
-        </DialogFooter>
+          <DialogFooter>
+            <DialogClose asChild>
+                <Button variant="outline" type="button">Cancel</Button>
+            </DialogClose>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Post
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
 }
 
-// --- Story Viewer ---
-function StoryViewer({
-  stories,
-  initialStoryIndex,
-  onClose,
-}: {
-  stories: Story[];
-  initialStoryIndex: number | null;
-  onClose: () => void;
-}) {
-  const [currentStoryIdx, setCurrentStoryIdx] = useState(initialStoryIndex);
-  const [currentItemIdx, setCurrentItemIdx] = useState(0);
-  const [progress, setProgress] = useState(0);
 
-  useEffect(() => {
-    if (currentStoryIdx === null) return;
-    const story = stories[currentStoryIdx];
-    if (!story || !story.items) return;
-
-    const item = story.items[currentItemIdx];
-    if (!item) return;
-
-    setProgress(0);
-    const timer = setTimeout(() => {
-      handleNextItem();
-    }, item.duration * 1000);
-
-    const interval = setInterval(() => {
-      setProgress(p => Math.min(100, p + 100 / (item.duration * 10)));
-    }, 100);
-
-    return () => {
-      clearTimeout(timer);
-      clearInterval(interval);
-    };
-  }, [currentStoryIdx, currentItemIdx, stories]);
-
-  const handleNextStory = () => {
-    if (currentStoryIdx === null) return;
-    if (currentStoryIdx < stories.length - 1) {
-      setCurrentStoryIdx(currentStoryIdx + 1);
-      setCurrentItemIdx(0);
-    } else {
-      onClose();
-    }
-  };
-
-  const handlePrevStory = () => {
-    if (currentStoryIdx === null) return;
-    if (currentStoryIdx > 0) {
-      setCurrentStoryIdx(currentStoryIdx - 1);
-      setCurrentItemIdx(0);
-    }
-  };
-
-  const handleNextItem = () => {
-    if (currentStoryIdx === null) return;
-    const story = stories[currentStoryIdx];
-    if (story && story.items && currentItemIdx < story.items.length - 1) {
-      setCurrentItemIdx(currentItemIdx + 1);
-    } else {
-      handleNextStory();
-    }
-  };
-
-  if (currentStoryIdx === null) return null;
-
-  const story = stories[currentStoryIdx];
-  if (!story || !story.items) return null;
-  const item = story.items[currentItemIdx];
-  const authorImage = getImage(story.author.imageId);
-
-  return (
-    <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-0 md:p-4 animate-in fade-in-0">
-      <div className="relative w-full h-full md:max-w-sm md:h-[95vh] bg-card rounded-none md:rounded-xl overflow-hidden shadow-2xl flex flex-col">
-        <div className="relative flex-1 w-full h-full bg-black">
-          {item.type === 'image' && (
-            <Image
-              key={item.id}
-              src={getImage(item.mediaId)?.imageUrl ?? ''}
-              alt="Story"
-              fill
-              className="object-contain animate-scale-in"
-            />
-          )}
-        </div>
-        <div className="absolute top-0 left-0 right-0 p-4 z-10 bg-gradient-to-b from-black/60 to-transparent">
-          <div className="flex items-center gap-1 mb-2">
-            {story.items.map((_, index) => (
-              <div
-                className="flex-1 h-1 bg-white/30 rounded-full"
-                key={index}
-              >
-                <div
-                  className="h-1 bg-white rounded-full transition-all duration-100 linear"
-                  style={{
-                    width: `${
-                      index < currentItemIdx
-                        ? 100
-                        : index === currentItemIdx
-                        ? progress
-                        : 0
-                    }%`,
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-3 text-white">
-            <Avatar className="h-9 w-9">
-              {authorImage && <AvatarImage src={authorImage.imageUrl} />}
-              <AvatarFallback>{story.author.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <p className="text-sm font-semibold">{story.author.name}</p>
-          </div>
-        </div>
-        <div
-          className="absolute inset-y-0 left-0 w-1/3 z-20 cursor-pointer"
-          onClick={handlePrevStory}
-        />
-        <div
-          className="absolute inset-y-0 right-0 w-2/3 z-20 cursor-pointer"
-          onClick={handleNextItem}
-        />
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute top-4 right-4 z-50 text-white hover:bg-white/20"
-        onClick={onClose}
-      >
-        <X />
-      </Button>
-      {currentStoryIdx > 0 && (
-        <Button
-          variant="secondary"
-          size="icon"
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-50 rounded-full h-10 w-10 hidden lg:flex"
-          onClick={handlePrevStory}
-        >
-          <ChevronLeft />
-        </Button>
-      )}
-      {currentStoryIdx < stories.length - 1 && (
-        <Button
-          variant="secondary"
-          size="icon"
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-50 rounded-full h-10 w-10 hidden lg:flex"
-          onClick={handleNextStory}
-        >
-          <ChevronRight />
-        </Button>
-      )}
-    </div>
-  );
-}
-
-// --- Main Community Page ---
 export default function CommunityPage() {
-  const { profile, isLoading } = useMemberProfile();
-  const [isCreateStoryOpen, setCreateStoryOpen] = useState(false);
-  const [storyViewerState, setStoryViewerState] = useState<{
-    open: boolean;
-    index: number | null;
-  }>({ open: false, index: null });
+  const { profile } = useMemberProfile();
+  const [isCreatePostOpen, setCreatePostOpen] = useState(false);
+  const firestore = useFirestore();
 
-  const handleOpenStoryViewer = (index: number) => {
-    setStoryViewerState({ open: true, index });
+  const postsQuery = useMemoFirebase(() =>
+    firestore ? query(collection(firestore, 'posts'), orderBy('createdAt', 'desc')) : null,
+    [firestore]
+  );
+  
+  const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
+
+  const handleLike = async (post: Post) => {
+    if (!firestore) return;
+    const postRef = doc(firestore, 'posts', post.id);
+    try {
+      await updateDoc(postRef, {
+        likes: (post.likes || 0) + 1,
+      });
+    } catch (error) {
+      console.error("Error liking post: ", error)
+    }
+  }
+  
+  const renderPosts = (postList: Post[] | null) => {
+    if (postsLoading) {
+      return Array.from({ length: 2 }).map((_, i) => (
+        <Card key={i}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            </div>
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-4/5 mb-4" />
+            <Skeleton className="h-40 w-full" />
+          </CardContent>
+        </Card>
+      ));
+    }
+
+    if (!postList || postList.length === 0) {
+      return (
+        <Card>
+          <CardContent className="p-10 text-center text-muted-foreground">
+            <p>No posts to show right now.</p>
+            <p>Be the first one to share something!</p>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return postList.map(post => {
+      const authorImage = getImage(post.authorImageId);
+      return (
+        <Card key={post.id}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-start gap-3">
+                <Avatar>
+                  {authorImage && <AvatarImage src={authorImage.imageUrl} />}
+                  <AvatarFallback>{post.authorName.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <Link href={`#`}>
+                    <h4 className="font-semibold hover:underline">{post.authorName}</h4>
+                  </Link>
+                  <p className="text-xs text-muted-foreground">
+                    {post.createdAt ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : 'just now'}
+                  </p>
+                </div>
+              </div>
+              <Button variant="ghost" size="icon">
+                <MoreHorizontal className="h-5 w-5" />
+              </Button>
+            </div>
+            <p className="text-sm mb-4 whitespace-pre-wrap">{post.content}</p>
+            {post.images && post.images.length > 0 && (
+              <div className={`grid gap-2 grid-cols-${post.images.length > 1 ? 2 : 1} mb-4`}>
+                {post.images.map(imgId => {
+                  const img = getImage(imgId);
+                  return img ? (
+                    <Image
+                      key={imgId}
+                      src={img.imageUrl}
+                      alt="Post image"
+                      width={400}
+                      height={300}
+                      className="rounded-lg object-cover w-full aspect-[4/3]"
+                      data-ai-hint={img.imageHint}
+                    />
+                  ) : null;
+                })}
+              </div>
+            )}
+            <div className="flex justify-between text-sm text-muted-foreground mb-2">
+              <div className="flex gap-4">
+                <span>{post.commentsCount || 0} Comments</span>
+                <span>
+                  {Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(post.likes || 0)} Likes
+                </span>
+              </div>
+            </div>
+            <Separator className="mb-2" />
+            <div className="flex justify-around">
+              <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground">
+                <MessageSquare className="h-5 w-5" /> Comment
+              </Button>
+              <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground" onClick={() => handleLike(post)}>
+                <ThumbsUp className="h-5 w-5" /> Like
+              </Button>
+              <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground">
+                <Share2 className="h-5 w-5" /> Share
+              </Button>
+              <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground">
+                <Bookmark className="h-5 w-5" /> Save
+              </Button>
+            </div>
+            <Separator className="mt-2" />
+            <div className="mt-4 flex items-center gap-3">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={getImage(profile?.imageId ?? 'user-1')?.imageUrl} />
+                <AvatarFallback>{profile?.email.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <Input placeholder="Write your comment..." className="h-10 rounded-full bg-muted border-none" />
+            </div>
+          </CardContent>
+        </Card>
+      );
+    });
   };
 
-  const handleCloseStoryViewer = () => {
-    setStoryViewerState({ open: false, index: null });
-  };
+  const mentorsOnlyPosts = posts?.filter(post => post.authorRole.includes('mentor'));
 
   return (
     <>
-      <CreateStoryDialog
-        open={isCreateStoryOpen}
-        onOpenChange={setCreateStoryOpen}
-      />
-      {storyViewerState.open && (
-        <StoryViewer
-          stories={storiesData}
-          initialStoryIndex={storyViewerState.index}
-          onClose={handleCloseStoryViewer}
-        />
-      )}
+      <CreatePostDialog open={isCreatePostOpen} onOpenChange={setCreatePostOpen} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Sidebar */}
@@ -369,22 +313,11 @@ export default function CommunityPage() {
               {profile && (
                 <>
                   <Avatar className="h-16 w-16 mx-auto mb-2">
-                    <AvatarImage
-                      src={
-                        getImage(
-                          members.find(m => m.tgnId === profile.tgnMemberId)
-                            ?.imageId ?? 'user-1'
-                        )?.imageUrl
-                      }
-                    />
+                    <AvatarImage src={getImage(profile.imageId || 'default-male-avatar')?.imageUrl} />
                     <AvatarFallback>{profile.email.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <h3 className="font-semibold">
-                    {profile.email.split('@')[0]}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    @{profile.tgnMemberId}
-                  </p>
+                  <h3 className="font-semibold">{profile.email.split('@')[0]}</h3>
+                  <p className="text-sm text-muted-foreground">@{profile.tgnMemberId}</p>
                 </>
               )}
             </CardContent>
@@ -410,26 +343,18 @@ export default function CommunityPage() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-semibold">
-                Pages You Like
-              </CardTitle>
+              <CardTitle className="text-sm font-semibold">Pages You Like</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {pagesYouLike.map(page => (
                 <div key={page.name} className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback
-                      className={`${page.color} text-white text-xs font-bold`}
-                    >
+                    <AvatarFallback className={`${page.color} text-white text-xs font-bold`}>
                       {page.initial}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-sm font-medium flex-1">
-                    {page.name}
-                  </span>
-                  {page.notifications && (
-                    <Badge variant="destructive">{page.notifications}</Badge>
-                  )}
+                  <span className="text-sm font-medium flex-1">{page.name}</span>
+                  {page.notifications && <Badge variant="destructive">{page.notifications}</Badge>}
                 </div>
               ))}
             </CardContent>
@@ -438,49 +363,16 @@ export default function CommunityPage() {
 
         {/* Main Feed */}
         <main className="lg:col-span-6 space-y-6">
-          <div className="flex space-x-4 p-4 bg-card rounded-lg overflow-x-auto">
-            <div className="flex flex-col items-center space-y-1 flex-shrink-0 w-20 text-center">
-              <button
-                onClick={() => setCreateStoryOpen(true)}
-                className="h-16 w-16 rounded-full bg-muted flex items-center justify-center border-2 border-dashed border-primary"
-              >
-                <PlusCircle className="h-8 w-8 text-primary" />
-              </button>
-              <p className="text-xs font-medium truncate w-full">
-                Create Story
-              </p>
-            </div>
-            {storiesData.map((story, index) => {
-              const img = getImage(story.author.imageId);
-              return (
-                <div
-                  key={story.id}
-                  className="flex flex-col items-center space-y-1 flex-shrink-0 w-20 text-center cursor-pointer"
-                  onClick={() => handleOpenStoryViewer(index)}
-                >
-                  <div className="p-0.5 border-2 border-primary rounded-full">
-                    <Avatar className="h-16 w-16">
-                      {img && <AvatarImage src={img.imageUrl} />}
-                      <AvatarFallback>
-                        {story.author.name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <p className="text-xs font-medium text-muted-foreground truncate w-full">
-                    {story.author.name}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-
           <Card>
              <CardContent className="p-4 flex items-center gap-3 border-b">
                 <Avatar>
-                    <AvatarImage src={getImage(members.find(m => m.tgnId === profile?.tgnMemberId)?.imageId ?? 'user-1')?.imageUrl} />
+                    <AvatarImage src={getImage(profile?.imageId ?? 'user-1')?.imageUrl} />
                     <AvatarFallback>{profile?.email.charAt(0)}</AvatarFallback>
                 </Avatar>
-                <button className="w-full text-left h-12 px-4 rounded-full bg-muted border border-input hover:bg-muted/80 transition-colors text-muted-foreground text-sm">
+                <button
+                  className="w-full text-left h-12 px-4 rounded-full bg-muted border border-input hover:bg-muted/80 transition-colors text-muted-foreground text-sm"
+                  onClick={() => setCreatePostOpen(true)}
+                >
                     Start a post
                 </button>
             </CardContent>
@@ -506,269 +398,12 @@ export default function CommunityPage() {
               <TabsTrigger value="mentors">Mentors Only</TabsTrigger>
             </TabsList>
             <TabsContent value="all" className="mt-6 space-y-6">
-              {posts.map(post => {
-                if (!post.author) return null;
-                const authorImage = getImage(post.author.imageId);
-                return (
-                  <Card key={post.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-start gap-3">
-                          <Avatar>
-                            {authorImage && (
-                              <AvatarImage src={authorImage.imageUrl} />
-                            )}
-                            <AvatarFallback>
-                              {post.author.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <Link href={`/profile/${post.author.id}`}>
-                              <h4 className="font-semibold hover:underline">
-                                {post.author.name}
-                              </h4>
-                            </Link>
-                            <p className="text-xs text-muted-foreground">
-                              {post.timestamp}
-                            </p>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-5 w-5" />
-                        </Button>
-                      </div>
-
-                      <p className="text-sm mb-4">{post.content}</p>
-
-                      {post.images && post.images.length > 0 && (
-                        <div
-                          className={`grid gap-2 grid-cols-${
-                            post.images.length > 1 ? 2 : 1
-                          } mb-4`}
-                        >
-                          {post.images.map(imgId => {
-                            const img = getImage(imgId);
-                            return img ? (
-                              <Image
-                                key={imgId}
-                                src={img.imageUrl}
-                                alt="Post image"
-                                width={400}
-                                height={300}
-                                className="rounded-lg object-cover w-full aspect-[4/3]"
-                                data-ai-hint={img.imageHint}
-                              />
-                            ) : null;
-                          })}
-                        </div>
-                      )}
-
-                      <div className="flex justify-between text-sm text-muted-foreground mb-2">
-                        <div className="flex gap-4">
-                          <span>{post.comments} Comments</span>
-                          <span>
-                            {Intl.NumberFormat('en-US', {
-                              notation: 'compact',
-                              maximumFractionDigits: 1,
-                            }).format(post.likes)}{' '}
-                            Likes
-                          </span>
-                          <span>{post.shares} Share</span>
-                        </div>
-                        <span>{post.saves} Saved</span>
-                      </div>
-
-                      <Separator className="mb-2" />
-
-                      <div className="flex justify-around">
-                        <Button
-                          variant="ghost"
-                          className="flex-1 flex items-center gap-2 text-muted-foreground"
-                        >
-                          <MessageSquare className="h-5 w-5" /> Comment
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="flex-1 flex items-center gap-2 text-muted-foreground"
-                        >
-                          <ThumbsUp className="h-5 w-5" /> Like
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="flex-1 flex items-center gap-2 text-muted-foreground"
-                        >
-                          <Share2 className="h-5 w-5" /> Share
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="flex-1 flex items-center gap-2 text-muted-foreground"
-                        >
-                          <Bookmark className="h-5 w-5" /> Save
-                        </Button>
-                      </div>
-                      <Separator className="mt-2" />
-                      <div className="mt-4 flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage
-                            src={
-                              getImage(
-                                members.find(m => m.tgnId === profile?.tgnMemberId)
-                                  ?.imageId ?? 'user-1'
-                              )?.imageUrl
-                            }
-                          />
-                          <AvatarFallback>
-                            {profile?.email.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <Input
-                          placeholder="Write your comment..."
-                          className="h-10 rounded-full bg-muted border-none"
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+              {renderPosts(posts)}
             </TabsContent>
             <TabsContent value="mentors" className="mt-6 space-y-6">
-              {posts
-                .filter(post => post.author?.role.includes('Mentor'))
-                .map(post => {
-                if (!post.author) return null;
-                const authorImage = getImage(post.author.imageId);
-                return (
-                  <Card key={post.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-start gap-3">
-                          <Avatar>
-                            {authorImage && (
-                              <AvatarImage src={authorImage.imageUrl} />
-                            )}
-                            <AvatarFallback>
-                              {post.author.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <Link href={`/profile/${post.author.id}`}>
-                              <h4 className="font-semibold hover:underline">
-                                {post.author.name}
-                              </h4>
-                            </Link>
-                            <p className="text-xs text-muted-foreground">
-                              {post.timestamp}
-                            </p>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-5 w-5" />
-                        </Button>
-                      </div>
-
-                      <p className="text-sm mb-4">{post.content}</p>
-
-                      {post.images && post.images.length > 0 && (
-                        <div
-                          className={`grid gap-2 grid-cols-${
-                            post.images.length > 1 ? 2 : 1
-                          } mb-4`}
-                        >
-                          {post.images.map(imgId => {
-                            const img = getImage(imgId);
-                            return img ? (
-                              <Image
-                                key={imgId}
-                                src={img.imageUrl}
-                                alt="Post image"
-                                width={400}
-                                height={300}
-                                className="rounded-lg object-cover w-full aspect-[4/3]"
-                                data-ai-hint={img.imageHint}
-                              />
-                            ) : null;
-                          })}
-                        </div>
-                      )}
-
-                      <div className="flex justify-between text-sm text-muted-foreground mb-2">
-                        <div className="flex gap-4">
-                          <span>{post.comments} Comments</span>
-                          <span>
-                            {Intl.NumberFormat('en-US', {
-                              notation: 'compact',
-                              maximumFractionDigits: 1,
-                            }).format(post.likes)}{' '}
-                            Likes
-                          </span>
-                          <span>{post.shares} Share</span>
-                        </div>
-                        <span>{post.saves} Saved</span>
-                      </div>
-
-                      <Separator className="mb-2" />
-
-                      <div className="flex justify-around">
-                        <Button
-                          variant="ghost"
-                          className="flex-1 flex items-center gap-2 text-muted-foreground"
-                        >
-                          <MessageSquare className="h-5 w-5" /> Comment
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="flex-1 flex items-center gap-2 text-muted-foreground"
-                        >
-                          <ThumbsUp className="h-5 w-5" /> Like
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="flex-1 flex items-center gap-2 text-muted-foreground"
-                        >
-                          <Share2 className="h-5 w-5" /> Share
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="flex-1 flex items-center gap-2 text-muted-foreground"
-                        >
-                          <Bookmark className="h-5 w-5" /> Save
-                        </Button>
-                      </div>
-                      <Separator className="mt-2" />
-                      <div className="mt-4 flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage
-                            src={
-                              getImage(
-                                members.find(m => m.tgnId === profile?.tgnMemberId)
-                                  ?.imageId ?? 'user-1'
-                              )?.imageUrl
-                            }
-                          />
-                          <AvatarFallback>
-                            {profile?.email.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <Input
-                          placeholder="Write your comment..."
-                          className="h-10 rounded-full bg-muted border-none"
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-              {posts.filter(p => p.author?.role.includes('Mentor')).length === 0 && (
-                <Card>
-                  <CardContent className="p-10 text-center text-muted-foreground">
-                    <p>This feed is exclusively for mentors.</p>
-                    <p>No posts from mentors to show right now.</p>
-                  </CardContent>
-                </Card>
-              )}
+              {renderPosts(mentorsOnlyPosts || null)}
             </TabsContent>
           </Tabs>
-
         </main>
 
         {/* Right Sidebar */}
@@ -777,12 +412,8 @@ export default function CommunityPage() {
             <CardHeader className="flex flex-row items-center justify-between p-3 border-b">
               <CardTitle className="text-base font-semibold">Messaging</CardTitle>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MessageSquarePlus className="h-4 w-4" />
-                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8"><MessageSquarePlus className="h-4 w-4" /></Button>
               </div>
             </CardHeader>
             <div className="p-2">
@@ -797,13 +428,8 @@ export default function CommunityPage() {
                 if (!otherParticipant) return null;
                 const participantImage = getImage(otherParticipant.imageId);
                 const lastMessage = conv.messages[conv.messages.length - 1];
-
                 return (
-                  <Link
-                    key={conv.id}
-                    href={`/chat/${otherParticipant.id}`}
-                    className="w-full text-left p-2 rounded-lg hover:bg-muted flex items-start gap-3"
-                  >
+                  <Link key={conv.id} href={`/chat/${otherParticipant.id}`} className="w-full text-left p-2 rounded-lg hover:bg-muted flex items-start gap-3">
                     <Avatar className="h-10 w-10 border-2 border-background">
                       {participantImage && <AvatarImage src={participantImage.imageUrl} />}
                       <AvatarFallback>{otherParticipant.name.charAt(0)}</AvatarFallback>
@@ -815,42 +441,25 @@ export default function CommunityPage() {
                       </div>
                       <div className="flex items-start justify-between">
                         <p className="text-xs text-muted-foreground truncate pr-2">{lastMessage.text}</p>
-                        {conv.unreadCount && conv.unreadCount > 0 && (
-                          <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center text-xs">{conv.unreadCount}</Badge>
-                        )}
+                        {conv.unreadCount && conv.unreadCount > 0 && <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center text-xs">{conv.unreadCount}</Badge>}
                       </div>
                     </div>
                   </Link>
-                )
+                );
               })}
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-semibold">
-                Reels and Short Videos
-              </CardTitle>
-              <Button variant="ghost" size="sm">
-                See All
-              </Button>
+              <CardTitle className="text-sm font-semibold">Reels and Short Videos</CardTitle>
+              <Button variant="ghost" size="sm">See All</Button>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-2">
               {reels.map(reel => {
                 const img = getImage(reel.imageId);
                 return (
-                  <div
-                    key={reel.author}
-                    className="relative aspect-[9/16] rounded-lg overflow-hidden group"
-                  >
-                    {img && (
-                      <Image
-                        src={img.imageUrl}
-                        alt={`Reel by ${reel.author}`}
-                        fill
-                        style={{ objectFit: 'cover' }}
-                        data-ai-hint={img.imageHint}
-                      />
-                    )}
+                  <div key={reel.author} className="relative aspect-[9/16] rounded-lg overflow-hidden group">
+                    {img && <Image src={img.imageUrl} alt={`Reel by ${reel.author}`} fill style={{ objectFit: 'cover' }} data-ai-hint={img.imageHint} />}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                     <div className="absolute bottom-2 left-2 text-white">
                       <div className="flex items-center gap-1.5">
@@ -861,57 +470,6 @@ export default function CommunityPage() {
                   </div>
                 );
               })}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-semibold">Events</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-muted rounded-lg">
-                  <Calendar className="h-5 w-5 text-primary" />
-                </div>
-                <p className="text-sm font-medium">10 Events Invites</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-muted rounded-lg">
-                  <Calendar className="h-5 w-5 text-primary" />
-                </div>
-                <p className="text-sm font-medium">Prada's Invitation Birthday</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-semibold">
-                Suggested Pages
-              </CardTitle>
-              <Button variant="ghost" size="sm">
-                See All
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12 rounded-lg">
-                  <AvatarImage src={getImage('suggested-page-logo')?.imageUrl} />
-                  <AvatarFallback>S</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-semibold text-sm">Sebo Studio</p>
-                  <p className="text-xs text-muted-foreground">
-                    Design Studio
-                  </p>
-                </div>
-              </div>
-              <Image
-                src={getImage('suggested-page-banner')?.imageUrl ?? ''}
-                alt="Suggested page banner"
-                width={300}
-                height={150}
-                className="rounded-lg object-cover w-full aspect-video mt-3"
-                data-ai-hint="team photo"
-              />
             </CardContent>
           </Card>
         </aside>

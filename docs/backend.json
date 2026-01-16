@@ -591,6 +591,65 @@
         "status",
         "createdAt"
       ]
+    },
+    "Post": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Post",
+      "description": "Represents a post in the community feed.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the post."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "The UID of the TGN Member who created the post."
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Denormalized name of the author for display."
+        },
+        "authorImageId": {
+          "type": "string",
+          "description": "Denormalized image ID of the author for display."
+        },
+        "authorRole": {
+          "type": "string",
+          "description": "Denormalized role of the author."
+        },
+        "content": {
+          "type": "string",
+          "description": "The text content of the post."
+        },
+        "images": {
+          "type": "array",
+          "description": "Array of image IDs from placeholder-images.json.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "likes": {
+          "type": "number",
+          "description": "Number of likes."
+        },
+        "commentsCount": {
+          "type": "number",
+          "description": "Number of comments."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "authorId",
+        "authorName",
+        "authorImageId",
+        "authorRole",
+        "content",
+        "createdAt"
+      ]
     }
   },
   "auth": {
@@ -660,6 +719,11 @@
         "path": "/causes/{causeId}",
         "entity": "Cause",
         "description": "Stores fundraising causes created by members. Requires admin approval before becoming publicly visible."
+      },
+      {
+        "path": "/posts/{postId}",
+        "entity": "Post",
+        "description": "Stores all community feed posts. Readable by all authenticated members."
       }
     ]
   }

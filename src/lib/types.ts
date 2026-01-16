@@ -67,17 +67,17 @@ export type Program = {
   deactivatedAt?: string;
 };
 
-export type StoryItem = {
+export type Post = {
   id: string;
-  type: 'image' | 'video';
-  mediaId: string; // reference to placeholder-images.json
-  duration: number; // in seconds
-};
-
-export type Story = {
-  id: string;
-  author: Member;
-  items: StoryItem[];
+  authorId: string;
+  authorName: string;
+  authorImageId: string;
+  authorRole: string;
+  content: string;
+  images?: string[];
+  likes: number;
+  commentsCount: number;
+  createdAt: any; // Firestore Timestamp
 };
 
 export type ChatMessage = {
