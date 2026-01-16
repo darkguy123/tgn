@@ -1,4 +1,4 @@
-import type { Member, Product, Program, Story, ChatConversation, Event } from './types';
+import type { Member, Product, Program, Story, ChatConversation, Event, Wallet, Transaction } from './types';
 
 export const members: Member[] = [
     { id: '9', name: "Dr. Amara Obi", role: "Executive Mentor", country: "Nigeria", sector: "Technology", badge: 7, connections: 234, tgnId: 'TGN-0009', location: 'Lagos, Nigeria', isVerified: true, profile: 'Executive mentor specializing in tech leadership.', imageId: 'default-female-avatar', joinDate: 'May 2022', bannerImageId: 'profile-banner-1' },
@@ -234,3 +234,59 @@ export const conversations: ChatConversation[] = [
       ],
     }
   ].filter(c => c.participants.every(p => p)); // Ensure no conversations with undefined participants
+
+
+export const userWallet: Wallet = {
+    memberId: '5', // Corresponds to Chloe Kim
+    currency: 'USD',
+    balance: 125.00,
+    usdtBalance: 50.00
+};
+
+export const transactions: Transaction[] = [
+  {
+    id: 'txn1',
+    type: 'commission',
+    status: 'completed',
+    amount: 15.00,
+    currency: 'USD',
+    description: 'Referral commission from James Chen',
+    createdAt: '2024-07-20T10:00:00Z',
+  },
+  {
+    id: 'txn2',
+    type: 'commission',
+    status: 'completed',
+    amount: 25.00,
+    currency: 'USD',
+    description: 'Commission from "Leadership Essentials" sale',
+    createdAt: '2024-07-18T14:30:00Z',
+  },
+  {
+    id: 'txn3',
+    type: 'withdrawal',
+    status: 'pending',
+    amount: 50.00,
+    currency: 'USD',
+    description: 'Withdrawal to bank account',
+    createdAt: '2024-07-15T09:00:00Z',
+  },
+    {
+    id: 'txn4',
+    type: 'deposit',
+    status: 'completed',
+    amount: 100.00,
+    currency: 'USD',
+    description: 'Initial wallet funding',
+    createdAt: '2024-07-01T12:00:00Z',
+    },
+     {
+    id: 'txn5',
+    type: 'purchase',
+    status: 'completed',
+    amount: -29.99,
+    currency: 'USD',
+    description: 'Purchase: "The Art of Mentorship" Book',
+    createdAt: '2024-07-21T11:00:00Z',
+  },
+];

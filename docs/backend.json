@@ -291,13 +291,9 @@
       "type": "object",
       "description": "Represents a member's digital wallet for multi-currency and USDT transactions.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the wallet."
-        },
         "memberId": {
           "type": "string",
-          "description": "Reference to the TGN Member who owns the wallet. (Relationship: TGNMember 1:1 Wallet)"
+          "description": "The UID of the TGN Member who owns the wallet. This should match the document ID."
         },
         "currency": {
           "type": "string",
@@ -313,11 +309,66 @@
         }
       },
       "required": [
-        "id",
         "memberId",
         "currency",
         "balance",
         "usdtBalance"
+      ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents a single transaction in a member's wallet.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the transaction."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of transaction.",
+          "enum": [
+            "commission",
+            "withdrawal",
+            "deposit",
+            "purchase"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the transaction.",
+          "enum": [
+            "pending",
+            "completed",
+            "failed"
+          ]
+        },
+        "amount": {
+          "type": "number",
+          "description": "The transaction amount."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency of the transaction."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the transaction."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the transaction was created."
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "status",
+        "amount",
+        "currency",
+        "createdAt"
       ]
     },
     "Product": {
@@ -486,9 +537,9 @@
         "description": "Stores mentor certification data, where the document ID is the user's UID. Access controlled via security rules to allow reads by the owner and writes by admins."
       },
       {
-        "path": "/wallets/{walletId}",
+        "path": "/wallets/{userId}",
         "entity": "Wallet",
-        "description": "Stores wallet information for each member. Owned by member, with admin access for financial oversight. Denormalized 'memberId' field for authorization."
+        "description": "Stores wallet information for each member, where the document ID is the user's UID. Owned by member, with admin access for financial oversight."
       },
       {
         "path": "/products/{productId}",
@@ -509,6 +560,11 @@
         "path": "/users/{userId}/matchmaking_recommendations/{recommendationId}",
         "entity": "MatchmakingRecommendation",
         "description": "Stores matchmaking recommendations for members. Nested under user to clearly show ownership and for easier access to recommendations specific to a user."
+      },
+      {
+        "path": "/users/{userId}/transactions/{transactionId}",
+        "entity": "Transaction",
+        "description": "Stores a user's wallet transactions. Owned by the user, writes are system-only."
       }
     ]
   }

@@ -18,6 +18,7 @@ import {
   Settings,
   User as UserIcon,
   Share2,
+  Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser } from '@/firebase';
@@ -45,6 +46,7 @@ const NAV_ITEMS = [
   { id: 'marketplace', label: 'Marketplace', icon: ShoppingBag, path: '/marketplace' },
   { id: 'certification', label: 'Certification', icon: Award, path: '/certification' },
   { id: 'referrals', label: 'Referrals', icon: Share2, path: '/referrals' },
+  { id: 'wallet', label: 'Wallet', icon: Wallet, path: '/wallet' },
 ];
 
 interface DashboardLayoutProps {

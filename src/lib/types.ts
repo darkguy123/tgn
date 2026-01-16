@@ -113,3 +113,20 @@ export interface Event {
     price?: number;
     type?: 'Conference' | 'Webinar' | 'Workshop' | 'Meetup';
 }
+
+export interface Wallet {
+    memberId: string;
+    currency: string;
+    balance: number;
+    usdtBalance: number;
+}
+
+export interface Transaction {
+    id: string;
+    type: 'commission' | 'withdrawal' | 'deposit' | 'purchase';
+    status: 'pending' | 'completed' | 'failed';
+    amount: number;
+    currency: string;
+    description: string;
+    createdAt: string;
+}

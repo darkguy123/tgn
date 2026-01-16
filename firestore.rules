@@ -102,6 +102,17 @@ service cloud.firestore {
         allow update: if false; // Recommendations are immutable
         allow delete: if false; // Recommendations are not deleted by users
       }
+      
+      /**
+       * @description Controls access to a user's wallet transactions.
+       * @path /users/{userId}/transactions/{transactionId}
+       * @allow (get, list) - A user can read their own transaction history.
+       * @deny (create, update, delete) - Transactions are system-generated and immutable by the user.
+       */
+      match /transactions/{transactionId} {
+        allow get, list: if isOwner(userId);
+        allow create, update, delete: if false;
+      }
     }
 
 
@@ -179,16 +190,16 @@ service cloud.firestore {
 
     /**
      * @description Controls access to user wallets. Extremely restricted.
-     * @path /wallets/{walletId}
+     * @path /wallets/{userId}
      * @allow (get) - A user can read their own wallet balance.
      * @deny (update) - A user trying to change their own wallet balance directly.
      * @principle Secures sensitive financial data. All modifications must be handled by a trusted backend.
      */
-    match /wallets/{walletId} {
-      allow get: if isOwner(resource.data.memberId);
-      allow list: if false;
-      allow create: if false;
-      allow update: if false;
+    match /wallets/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Users should not be able to list all wallets
+      allow create: if isOwner(userId) && request.resource.data.memberId == userId; // Allow user to create their own wallet
+      allow update: if false; // Wallet updates must be handled by a secure backend
       allow delete: if false;
     }
 
