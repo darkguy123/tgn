@@ -214,13 +214,11 @@ service cloud.firestore {
     /**
      * @description Controls access to affiliate referrals.
      * @path /affiliate_referrals/{referralId}
-     * @allow (get) - The user who referred, was referred, or an admin can read the document.
-     * @allow (list) - A user can only list referrals where they are the referrer.
+     * @allow (read) - A user can read a referral if they are the referrer or the one referred. This supports the client-side query `where("referrerMemberId", "==", uid)`.
      * @principle Secures data based on participation. Only the referrer can create the record. Updates/deletes are disallowed.
      */
     match /affiliate_referrals/{referralId} {
-      allow get: if (isSignedIn() && (isOwner(resource.data.referrerMemberId) || isOwner(resource.data.referredMemberId))) || isAdmin();
-      allow list: if isSignedIn() && request.query.where[0][0] == "referrerMemberId" && request.query.where[0][1] == "==" && request.query.where[0][2] == request.auth.uid;
+      allow read: if (isSignedIn() && (isOwner(resource.data.referrerMemberId) || isOwner(resource.data.referredMemberId))) || isAdmin();
       allow create: if isSignedIn() && request.resource.data.referrerMemberId == request.auth.uid;
       allow update, delete: if false;
     }
@@ -360,12 +358,12 @@ service cloud.firestore {
       // A user can read or write to a chat if their UID is in the `members` array.
       // This rule supports both `get` and `list` queries. For `list`, the client
       // query MUST include `where('members', 'array-contains', request.auth.uid)`.
-      allow read, write: if request.auth.uid in resource.data.members;
+      allow read, write: if isSignedIn() && request.auth.uid in resource.data.members;
 
       match /messages/{messageId} {
         // A user can read/write messages in a chat they are a member of.
         // This requires a `get` call to the parent chat document to check the `members` array.
-        allow read, write: if request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+        allow read, write: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
       }
     }
 
