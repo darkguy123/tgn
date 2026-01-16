@@ -35,6 +35,8 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const { user } = useUser();
   const firestore = useFirestore();
+  const [selectedCountry, setSelectedCountry] = useState("");
+
 
   const handleNext = async () => {
     if (step === totalSteps) {
@@ -139,7 +141,7 @@ export default function OnboardingPage() {
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="country">Country</Label>
-                    <Select name="country">
+                    <Select name="country" onValueChange={setSelectedCountry}>
                     <SelectTrigger id="country">
                         <SelectValue placeholder="Select your country..." />
                     </SelectTrigger>
@@ -151,9 +153,9 @@ export default function OnboardingPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="region">Region</Label>
-                <Select name="region">
+                <Select name="region" disabled={selectedCountry !== 'United States'}>
                   <SelectTrigger id="region">
-                      <SelectValue placeholder="Select your region..." />
+                      <SelectValue placeholder={selectedCountry !== 'United States' ? 'N/A for selected country' : 'Select your region...'} />
                   </SelectTrigger>
                   <SelectContent>
                       {regions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
