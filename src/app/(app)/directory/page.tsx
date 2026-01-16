@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -299,8 +300,8 @@ const DirectoryPage = () => {
                     <MessageSquare className="h-4 w-4 mr-1" />
                     Connect
                   </Button>
-                  <Button variant="accent" size="sm" className="flex-1 transition-all hover:-translate-y-0.5 hover:shadow-accent">
-                    View Profile
+                  <Button asChild variant="accent" size="sm" className="flex-1 transition-all hover:-translate-y-0.5 hover:shadow-accent">
+                    <Link href={`/profile/${member.id}`}>View Profile</Link>
                   </Button>
                 </div>
               </CardContent>

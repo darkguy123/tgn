@@ -24,6 +24,8 @@ export type Member = {
   isVerified: boolean;
   profile: string;
   imageId: string;
+  bannerImageId?: string;
+  joinDate?: string;
   badge: number;
   connections: number;
 };

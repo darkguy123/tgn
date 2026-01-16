@@ -125,6 +125,24 @@
       "description": "Program image for Global Business Transformation",
       "imageUrl": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80",
       "imageHint": "global team"
+    },
+    {
+      "id": "profile-banner-default",
+      "description": "Default profile banner with abstract blue lines",
+      "imageUrl": "https://images.unsplash.com/photo-1557683316-9ca2a4f4e427?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxhYnN0cmFjdCUyMGJsdWV8ZW58MHx8fHwxNzE3NzU4MDUwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract blue"
+    },
+    {
+      "id": "profile-banner-1",
+      "description": "Tech-themed profile banner",
+      "imageUrl": "https://images.unsplash.com/photo-1550745165-9bc0b252726a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx0ZWNoJTIwYWJzdHJhY3R8ZW58MHx8fHwxNzE4NzQ2MjM3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "tech abstract"
+    },
+    {
+      "id": "profile-banner-2",
+      "description": "Finance-themed profile banner",
+      "imageUrl": "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzdG9jayUyMG1hcmtldCUyMGNoYXJ0fGVufDB8fHx8MTcxODc0NjI5NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "stock chart"
     }
   ]
 }
