@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Logo } from "@/components/icons";
 import { MapPin, Briefcase, User, Target, Check, PartyPopper } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { continents, countries, regions, sectors as SECTORS, roles as ROLES, goals as GOALS } from "@/lib/data";
+import { continents, countries, sectors as SECTORS, roles as ROLES, goals as GOALS } from "@/lib/data";
 import { useUser, useFirestore } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -62,10 +62,11 @@ const Onboarding = () => {
     if (step < 4) {
       setStep(step + 1);
     } else {
-      if (user && tgnMemberId) {
+      setCompleted(true);
+      if (user) {
         const dataToSave = {
             id: user.uid,
-            tgnMemberId: tgnMemberId,
+            tgnMemberId: `TGN-2026-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
             signInType: user.providerData[0]?.providerId || "password",
             email: user.email,
             locationContinent: continent,
@@ -79,9 +80,31 @@ const Onboarding = () => {
         const userDocRef = doc(firestore, "users", user.uid);
         setDocumentNonBlocking(userDocRef, dataToSave, { merge: true });
       }
-      setCompleted(true);
     }
   };
+  
+  useEffect(() => {
+      if (completed && tgnMemberId) {
+          if (user) {
+              const dataToSave = {
+                  id: user.uid,
+                  tgnMemberId: tgnMemberId,
+                  signInType: user.providerData[0]?.providerId || "password",
+                  email: user.email,
+                  locationContinent: continent,
+                  locationCountry: country,
+                  locationRegion: region,
+                  sectorPreferences: selectedSectors,
+                  role: selectedRole,
+                  purpose: bio,
+                  identityProfile: JSON.stringify({ goals: selectedGoals, interests: interests }),
+              };
+              const userDocRef = doc(firestore, "users", user.uid);
+              setDocumentNonBlocking(userDocRef, dataToSave, { merge: true });
+          }
+      }
+  }, [completed, tgnMemberId, user, firestore, continent, country, region, selectedSectors, selectedRole, bio, selectedGoals, interests]);
+
 
   const handleComplete = () => {
     router.push("/dashboard");
@@ -202,14 +225,12 @@ const Onboarding = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Region / State</Label>
-                  <Select value={region} onValueChange={setRegion} disabled={country !== 'United States'}>
-                    <SelectTrigger className="h-12">
-                      <SelectValue placeholder={country !== 'United States' ? 'N/A for selected country' : 'Select your region...'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {regions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    placeholder="Enter your region or state"
+                    value={region}
+                    onChange={(e) => setRegion(e.target.value)}
+                    className="h-12"
+                  />
                 </div>
               </CardContent>
             </>
