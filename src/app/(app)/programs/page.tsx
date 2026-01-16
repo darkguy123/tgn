@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,9 +10,11 @@ import {
   Clock, Users, Award,
   ChevronRight, Star, Calendar, ArrowLeft
 } from "lucide-react";
-import { programs as PROGRAMS_BY_TYPE } from "@/lib/data";
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 import placeholderImages from "@/lib/placeholder-images.json";
 import type { Program } from "@/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const getImage = (imageId: string) => {
   return placeholderImages.placeholderImages.find((p) => p.id === imageId);
@@ -22,6 +24,24 @@ const ProgramsPage = () => {
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const router = useRouter();
+
+  const firestore = useFirestore();
+  const programsCollectionRef = useMemoFirebase(() => collection(firestore, 'programs'), [firestore]);
+  const { data: allPrograms, isLoading, error } = useCollection<Program>(programsCollectionRef);
+
+  const programsByType = useMemo(() => {
+    if (!allPrograms) return { free: [], paid: [], executive: [] };
+    
+    return allPrograms.reduce((acc, program) => {
+      const typeKey = program.type.toLowerCase() as 'free' | 'paid' | 'executive';
+      if (!acc[typeKey]) {
+        acc[typeKey] = [];
+      }
+      acc[typeKey].push(program);
+      return acc;
+    }, { free: [], paid: [], executive: [] } as Record<'free' | 'paid' | 'executive', Program[]>);
+  }, [allPrograms]);
+
 
   if (selectedProgram) {
     const img = getImage(selectedProgram.imageId);
@@ -58,7 +78,7 @@ const ProgramsPage = () => {
                     <Star className="h-4 w-4 text-accent fill-accent" /> {selectedProgram.rating.toFixed(1)}
                     </span>
                     <span className="flex items-center gap-1.5">
-                    <Users className="h-4 w-4" /> {selectedProgram.enrolled} enrolled
+                    <Users className="h-4 w-4" /> {selectedProgram.enrolled || 0} enrolled
                     </span>
                     <span className="flex items-center gap-1.5">
                     <Clock className="h-4 w-4" /> {selectedProgram.duration}
@@ -179,6 +199,31 @@ const ProgramsPage = () => {
       </div>
     );
   }
+  
+  const renderSkeletons = () => (
+    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <Card key={i} className="flex flex-col">
+          <CardHeader className="p-0 relative">
+            <Skeleton className="aspect-[3/2] w-full rounded-t-lg" />
+          </CardHeader>
+          <CardContent className="p-4 flex flex-col flex-1">
+            <Skeleton className="h-5 w-3/4 mb-1" />
+            <Skeleton className="h-4 w-1/2 mb-4" />
+            <div className="space-y-3 my-4 flex-1">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+            </div>
+            <div className="flex items-center justify-between mt-auto">
+              <Skeleton className="h-6 w-1/4" />
+              <Skeleton className="h-9 w-1/3" />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+
 
   return (
     <div>
@@ -193,70 +238,79 @@ const ProgramsPage = () => {
           <TabsTrigger value="paid">Paid</TabsTrigger>
           <TabsTrigger value="executive">Executive</TabsTrigger>
         </TabsList>
+        
+        {error && <p className="text-destructive">Failed to load programs.</p>}
 
-        {Object.entries(PROGRAMS_BY_TYPE).map(([key, programs]) => (
+        {Object.entries(programsByType).map(([key, programs]) => (
           <TabsContent key={key} value={key}>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {programs.map((program) => {
-                const img = getImage(program.imageId);
-                return (
-                    <Card 
-                      key={program.id} 
-                      className="flex flex-col hover:shadow-card transition-all duration-300 cursor-pointer group"
-                      onClick={() => setSelectedProgram(program)}
-                    >
-                      <CardHeader className="p-0 relative">
-                        {img && (
-                            <Image
-                                src={img.imageUrl}
-                                alt={program.title}
-                                width={600}
-                                height={400}
-                                className="aspect-[3/2] w-full object-cover rounded-t-lg"
-                                data-ai-hint={img.imageHint}
-                            />
-                        )}
-                      </CardHeader>
-                      <CardContent className="p-4 flex flex-col flex-1">
-                          <CardTitle className="text-lg group-hover:text-primary transition-colors leading-tight">
-                            {program.title}
-                          </CardTitle>
-                          <CardDescription className="mt-1">with {program.mentor}</CardDescription>
-                          <div className="space-y-3 my-4 flex-1">
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="flex items-center gap-1.5 text-muted-foreground">
-                                <Clock className="h-4 w-4" /> {program.duration}
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                <Star className="h-4 w-4 text-accent fill-accent" /> {program.rating.toFixed(1)}
-                                </span>
+            {isLoading ? renderSkeletons() : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {programs.length === 0 && !isLoading && <p className="text-muted-foreground col-span-full">No {key} programs found.</p>}
+                {programs.map((program) => {
+                  const img = getImage(program.imageId);
+                  return (
+                      <Card 
+                        key={program.id} 
+                        className="flex flex-col hover:shadow-card transition-all duration-300 cursor-pointer group"
+                        onClick={() => setSelectedProgram(program)}
+                      >
+                        <CardHeader className="p-0 relative">
+                          {img ? (
+                              <Image
+                                  src={img.imageUrl}
+                                  alt={program.title}
+                                  width={600}
+                                  height={400}
+                                  className="aspect-[3/2] w-full object-cover rounded-t-lg"
+                                  data-ai-hint={img.imageHint}
+                              />
+                          ) : (
+                            <div className="aspect-[3/2] w-full object-cover rounded-t-lg bg-muted flex items-center justify-center">
+                                <p className="text-muted-foreground text-sm">No Image</p>
                             </div>
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="flex items-center gap-1.5 text-muted-foreground">
-                                <Users className="h-4 w-4" /> {program.enrolled} enrolled
-                                </span>
-                                {program.certified && (
-                                <span className="flex items-center gap-1.5 text-accent font-medium">
-                                    <Award className="h-4 w-4" /> Certified
-                                </span>
+                          )}
+                        </CardHeader>
+                        <CardContent className="p-4 flex flex-col flex-1">
+                            <CardTitle className="text-lg group-hover:text-primary transition-colors leading-tight">
+                              {program.title}
+                            </CardTitle>
+                            <CardDescription className="mt-1">with {program.mentor}</CardDescription>
+                            <div className="space-y-3 my-4 flex-1">
+                              <div className="flex items-center justify-between text-sm">
+                                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                                  <Clock className="h-4 w-4" /> {program.duration}
+                                  </span>
+                                  <span className="flex items-center gap-1.5">
+                                  <Star className="h-4 w-4 text-accent fill-accent" /> {program.rating.toFixed(1)}
+                                  </span>
+                              </div>
+                              <div className="flex items-center justify-between text-sm">
+                                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                                  <Users className="h-4 w-4" /> {program.enrolled || 0} enrolled
+                                  </span>
+                                  {program.certified && (
+                                  <span className="flex items-center gap-1.5 text-accent font-medium">
+                                      <Award className="h-4 w-4" /> Certified
+                                  </span>
+                                  )}
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between mt-auto">
+                                {program.price ? (
+                                    <span className="text-xl font-bold text-foreground">${program.price}</span>
+                                ) : (
+                                    <span className="text-xl font-bold text-accent">Free</span>
                                 )}
+                                <Button variant="accent" size="sm">
+                                    View Program <ChevronRight className="h-4 w-4 ml-1" />
+                                </Button>
                             </div>
-                          </div>
-                          <div className="flex items-center justify-between mt-auto">
-                              {program.price ? (
-                                  <span className="text-xl font-bold text-foreground">${program.price}</span>
-                              ) : (
-                                  <span className="text-xl font-bold text-accent">Free</span>
-                              )}
-                              <Button variant="accent" size="sm">
-                                  View Program <ChevronRight className="h-4 w-4 ml-1" />
-                              </Button>
-                          </div>
-                      </CardContent>
-                    </Card>
-                );
-              })}
-            </div>
+                        </CardContent>
+                      </Card>
+                  );
+                })}
+              </div>
+            )}
           </TabsContent>
         ))}
       </Tabs>

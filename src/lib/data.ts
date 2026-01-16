@@ -100,24 +100,6 @@ export const products: Product[] = [
   },
 ];
 
-export const programs = {
-  free: [
-    { id: 'prog-1', title: "Introduction to Mentorship", mentor: "Dr. Sarah Chen", duration: "4 weeks", enrolled: 1250, rating: 4.8, certified: true, imageId: "program-mentorship", type: 'Free', format: 'Pre-recorded', description: 'A free, pre-recorded webinar that introduces the core concepts of effective mentorship and how to make the most of the TGN platform.', price: 0, createdAt: '2024-07-01T10:00:00Z' },
-    { id: 'prog-2', title: "Personal Branding Basics", mentor: "Michael Okonkwo", duration: "2 weeks", enrolled: 890, rating: 4.6, certified: false, imageId: "program-personal-branding", type: 'Free', format: 'Self-paced', description: 'Learn the fundamentals of building a strong personal brand to advance your career.', price: 0, createdAt: '2024-07-15T10:00:00Z' },
-    { id: 'prog-3', title: "Goal Setting Masterclass", mentor: "Lisa Rodriguez", duration: "3 weeks", enrolled: 2100, rating: 4.9, certified: true, imageId: "program-goal-setting", type: 'Free', format: 'Live', description: 'A live masterclass on setting and achieving your personal and professional goals.', price: 0, createdAt: '2024-08-01T10:00:00Z' },
-  ],
-  paid: [
-    { id: 'prog-4', title: "Leadership Fundamentals", mentor: "Dr. James Okafor", duration: "8 weeks", enrolled: 450, rating: 4.9, certified: true, price: 199, imageId: "program-leadership", type: 'Paid', format: 'Hybrid', description: 'A hybrid program combining self-paced modules with live workshops on leadership.', createdAt: '2024-06-15T10:00:00Z' },
-    { id: 'prog-5', title: "Business Strategy 101", mentor: "Elena Williams", duration: "6 weeks", enrolled: 320, rating: 4.7, certified: true, price: 149, imageId: "program-business-strategy", type: 'Paid', format: 'Self-paced', description: 'A comprehensive course on creating and implementing successful business strategies.', createdAt: '2024-07-20T10:00:00Z' },
-    { id: 'prog-6', title: "Executive Communication", mentor: "David Kim", duration: "5 weeks", enrolled: 280, rating: 4.8, certified: true, price: 179, imageId: "program-executive-communication", type: 'Paid', format: 'Live', description: 'Hone your communication skills for the executive level in this live, interactive course.', createdAt: '2024-08-05T10:00:00Z' },
-  ],
-  executive: [
-    { id: 'prog-7', title: "C-Suite Leadership Program", mentor: "Dr. Amara Obi", duration: "12 weeks", enrolled: 85, rating: 5.0, certified: true, price: 999, imageId: "program-c-suite", type: 'Executive', format: 'Hybrid', description: 'A premium, cohort-based program for senior leaders aiming for the C-suite.', createdAt: '2024-06-01T10:00:00Z' },
-    { id: 'prog-8', title: "Global Business Transformation", mentor: "Prof. Chen Wei", duration: "16 weeks", enrolled: 62, rating: 4.9, certified: true, price: 1499, imageId: "program-global-business", type: 'Executive', format: 'Hybrid', description: 'Learn to lead complex business transformations in a global context.', createdAt: '2024-07-10T10:00:00Z' },
-  ],
-};
-
-
 export const continents = [
     "Africa",
     "Asia",
