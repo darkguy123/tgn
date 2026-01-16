@@ -35,7 +35,7 @@ const communityNavItems = [
   { label: 'Watch Videos', icon: PlayCircle, path: '#' },
   { label: 'Photos', icon: ImageIcon, path: '#' },
   { label: 'Files', icon: FileText, path: '#' },
-  { label: 'Marketplace', icon: '/marketplace', path: '/marketplace' },
+  { label: 'Marketplace', icon: ShoppingBag, path: '/marketplace' },
 ];
 
 const pagesYouLike = [
