@@ -117,15 +117,21 @@ export interface Sector {
 }
 
 export interface Event {
-    id: string;
-    name: string;
-    description: string;
-    startDate: string;
-    endDate: string;
-    location: string;
-    price?: number;
-    type?: 'Conference' | 'Webinar' | 'Workshop' | 'Meetup';
+  id: string;
+  name: string;
+  description: string;
+  startDate: any; // Firestore Timestamp
+  endDate: any; // Firestore Timestamp
+  location: string;
+  price?: number;
+  type: 'Conference' | 'Webinar' | 'Workshop' | 'Meetup';
+  imageUrl?: string;
+  deactivatedAt?: any; // Firestore Timestamp
+  googleMeetUrl?: string;
+  createdAt?: any;
+  updatedAt?: any;
 }
+
 
 export interface Wallet {
     memberId: string;

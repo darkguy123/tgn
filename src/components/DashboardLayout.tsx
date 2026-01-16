@@ -20,6 +20,7 @@ import {
   Share2,
   Wallet,
   Heart,
+  Calendar,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser } from '@/firebase';
@@ -42,6 +43,7 @@ const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
   { id: 'directory', label: 'Member Directory', icon: Users, path: '/directory' },
   { id: 'community', label: 'Community Feed', icon: MessageSquare, path: '/community' },
+  { id: 'events', label: 'Events', icon: Calendar, path: '/community/events' },
   { id: 'causes', label: 'Causes', icon: Heart, path: '/community/causes' },
   { id: 'matchmaking', label: 'Matchmaking', icon: Sparkles, path: '/matchmaking' },
   { id: 'programs', label: 'Programs', icon: GraduationCap, path: '/programs' },

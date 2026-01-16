@@ -556,7 +556,7 @@
         },
         "location": {
           "type": "string",
-          "description": "Location of the event."
+          "description": "Location of the event (can be 'Virtual')."
         },
         "price": {
           "type": "number",
@@ -571,6 +571,21 @@
             "Workshop",
             "Meetup"
           ]
+        },
+        "imageUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the primary event image."
+        },
+        "googleMeetUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL for the Google Meet live session if virtual/hybrid."
+        },
+        "deactivatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the event was deactivated (soft delete)."
         }
       },
       "required": [
@@ -814,5 +829,3 @@
     ]
   }
 }
-
-    

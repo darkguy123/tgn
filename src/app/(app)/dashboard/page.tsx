@@ -182,6 +182,9 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
               <Button onClick={() => router.push('/admin/programs')}>Manage Programs</Button>
+               <Button variant="outline" onClick={() => router.push('/admin/events')}>
+                Manage Events <Calendar className="ml-2 h-4 w-4" />
+              </Button>
               <Button variant="outline" onClick={() => router.push('/admin/products')}>
                 Manage Products <ExternalLink className="ml-2 h-4 w-4" />
               </Button>
@@ -342,7 +345,7 @@ const Dashboard = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push('#')}
+                onClick={() => router.push('/community/events')}
               >
                 View all <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
@@ -453,7 +456,7 @@ const Dashboard = () => {
                       if (item.recommendedType === 'Product')
                         path = `/marketplace`;
                       if (item.recommendedType === 'Event')
-                        path = `/community`;
+                        path = `/community/events`;
                       if (item.recommendedType === 'Sector')
                         path = `/directory`;
                       router.push(path);
