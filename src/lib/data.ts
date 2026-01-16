@@ -1,18 +1,5 @@
 
-export type Member = {
-  id: string;
-  tgnId: string;
-  name: string;
-  role: string;
-  location: string;
-  country: string;
-  sector: string;
-  isVerified: boolean;
-  profile: string;
-  imageId: string;
-  badge: number;
-  connections: number;
-};
+import type { Member, Product } from './types';
 
 export const members: Member[] = [
     { id: '9', name: "Dr. Amara Obi", role: "Executive Mentor", country: "Nigeria", sector: "Technology", badge: 7, connections: 234, tgnId: 'TGN-0009', location: 'Lagos, Nigeria', isVerified: true, profile: 'Executive mentor specializing in tech leadership.', imageId: 'user-1' },
@@ -79,15 +66,6 @@ export const globalRegions = [
 ];
 
 
-export type Product = {
-  id: string;
-  title: string;
-  author: string;
-  price: number;
-  type: 'Book' | 'Course' | 'Tool';
-  imageId: string;
-};
-
 export const products: Product[] = [
   {
     id: '1',
@@ -153,3 +131,4 @@ export const goals = [
 export const badgeLevels = ["All Levels", "★ 1", "★ 2", "★ 3", "★ 4", "★ 5", "★ 6", "★ 7"];
 
 export const mentorTypes = ["All Types", "Associate Mentor", "Certified Mentor", "Executive Mentor"];
+

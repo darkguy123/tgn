@@ -23,18 +23,51 @@ import {
   TrendingUp,
   GraduationCap,
   MessageSquare,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/firebase";
+import { useMemberProfile } from "@/hooks/useMemberProfile";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard = () => {
   const { user } = useUser();
+  const { profile, isLoading: isProfileLoading } = useMemberProfile();
   const userName = user?.displayName?.split(" ")[0] || "Member";
   const router = useRouter();
 
   return (
     <div className="space-y-6">
+      {/* Admin Panel (Conditional) */}
+      {isProfileLoading ? (
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-1/2" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-10 w-32" />
+          </CardContent>
+        </Card>
+      ) : (
+        profile?.role === 'country-manager' && (
+          <Card className="bg-primary/5 border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="text-primary" />
+                Admin Panel
+              </CardTitle>
+              <CardDescription>
+                You have administrative privileges as a Country Manager.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button>Manage Network</Button>
+            </CardContent>
+          </Card>
+        )
+      )}
+
       <div className="mb-8">
         <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
           Welcome, {userName}

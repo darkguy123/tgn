@@ -26,7 +26,7 @@
  * - Default to Secure: Writes to public collections (`/events`, `/sectors`) and
  *   sensitive collections (`/wallets`) are disabled by default for clients. These
  *   operations are expected to be handled by a trusted backend or an admin role,
- *   which is noted with a 'TODO' for future implementation.
+ *   which is now implemented.
  * - No Client-Side Financial Transactions: All write operations on `/wallets` are
  *   explicitly disabled to prevent tampering. All wallet modifications must be
  *   performed by a secure backend server.
@@ -61,6 +61,14 @@ service cloud.firestore {
      */
     function isExistingOwner(ownerId) {
       return resource != null && isOwner(ownerId);
+    }
+    
+    /**
+     * Verifies if the user has an admin role (e.g., 'country-manager').
+     * This requires a read to the user's own profile document.
+     */
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'country-manager';
     }
 
 
@@ -110,7 +118,7 @@ service cloud.firestore {
      */
     match /sectors/{sectorId} {
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Implement admin-only access for managing sectors
+      allow create, update, delete: if isAdmin();
     }
 
     /**
@@ -122,7 +130,7 @@ service cloud.firestore {
      */
     match /events/{eventId} {
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Implement admin-only access for event management
+      allow create, update, delete: if isAdmin();
     }
 
 
@@ -155,7 +163,7 @@ service cloud.firestore {
     match /mentor_certifications/{certificationId} {
       allow get: if isOwner(resource.data.memberId);
       allow list: if false;
-      allow create, update, delete: if false; // TODO: Implement admin-only access for managing certifications
+      allow create, update, delete: if isAdmin();
     }
 
     /**
