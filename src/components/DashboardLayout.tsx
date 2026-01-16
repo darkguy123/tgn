@@ -162,7 +162,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                        <Link href={profilePath}>
+                        <Link href="/dashboard">
                             <UserIcon className="mr-2 h-4 w-4" />
                             <span>Profile</span>
                         </Link>
@@ -197,5 +197,3 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 };
 
 export default DashboardLayout;
-
-    
