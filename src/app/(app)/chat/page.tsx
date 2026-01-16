@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, doc, Timestamp } from 'firebase/firestore';
 import type { Chat, TGNMember } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
@@ -81,6 +81,7 @@ export default function ChatListPage() {
         ? query(
             collection(firestore, 'chats'),
             where('participantIds', 'array-contains', user.uid),
+            where('lastMessage.timestamp', '>', Timestamp.fromMillis(0)),
             orderBy('lastMessage.timestamp', 'desc')
           )
         : null,
