@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, Fragment } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,14 +17,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
 import placeholderImages from '@/lib/placeholder-images.json';
 import {
   LayoutGrid,
   Users,
   Calendar,
-  PlayCircle,
   Image as ImageIcon,
   ShoppingBag,
   ThumbsUp,
@@ -33,10 +31,6 @@ import {
   Bookmark,
   MoreHorizontal,
   Loader2,
-  Plus,
-  X,
-  Heart,
-  Video,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -49,14 +43,11 @@ import { collection, addDoc, serverTimestamp, query, orderBy, updateDoc, doc } f
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
 
 const communityNavItems = [
   { label: 'Feed', icon: LayoutGrid, path: '/community' },

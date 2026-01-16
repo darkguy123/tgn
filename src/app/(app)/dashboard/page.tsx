@@ -17,17 +17,12 @@ import {
   Star,
   Bell,
   ChevronRight,
-  Play,
-  Clock,
-  TrendingUp,
   GraduationCap,
-  MessageSquare,
   Shield,
   Loader2,
   ShoppingBag,
   Briefcase,
   ExternalLink,
-  Heart,
   CheckCheck,
   BarChart3,
   Megaphone,
@@ -43,16 +38,9 @@ import {
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { useMentorCertification } from '@/hooks/useMentorCertification';
 import { Skeleton } from '@/components/ui/skeleton';
-import { products, events, sectors } from '@/lib/data';
-import placeholderImages from '@/lib/placeholder-images.json';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { collection, query, where } from 'firebase/firestore';
 import type { TGNMember, Program, Product, Event, Sector } from '@/lib/types';
 import { getRecommendations, RecommendationResult } from '@/app/actions';
-
-const getImage = (imageId: string) => {
-  return placeholderImages.placeholderImages.find(p => p.id === imageId);
-};
 
 const Dashboard = () => {
   const { user } = useUser();
@@ -70,11 +58,24 @@ const Dashboard = () => {
     () => collection(firestore, 'users'),
     [firestore]
   );
+  const sectorsCollectionRef = useMemoFirebase(
+    () => collection(firestore, 'sectors'),
+    [firestore]
+  );
+  const productsCollectionRef = useMemoFirebase(
+    () => query(collection(firestore, 'products'), where('approvalStatus', '==', 'approved')),
+    [firestore]
+  );
+  const eventsCollectionRef = useMemoFirebase(
+    () => query(collection(firestore, 'events'), where('deactivatedAt', '==', null)),
+    [firestore]
+  );
 
-  const { data: allPrograms, isLoading: programsLoading } =
-    useCollection<Program>(programsCollectionRef);
-  const { data: allMembers, isLoading: membersLoading } =
-    useCollection<TGNMember>(usersCollectionRef);
+  const { data: allPrograms, isLoading: programsLoading } = useCollection<Program>(programsCollectionRef);
+  const { data: allMembers, isLoading: membersLoading } = useCollection<TGNMember>(usersCollectionRef);
+  const { data: allSectors, isLoading: sectorsLoading } = useCollection<Sector>(sectorsCollectionRef);
+  const { data: allProducts, isLoading: productsLoading } = useCollection<Product>(productsCollectionRef);
+  const { data: allEvents, isLoading: eventsLoading } = useCollection<Event>(eventsCollectionRef);
 
   const [recommendations, setRecommendations] = useState<
     RecommendationResult | { error: string } | null
@@ -86,23 +87,25 @@ const Dashboard = () => {
       profile &&
       allPrograms &&
       allMembers &&
+      allProducts &&
+      allEvents &&
+      allSectors &&
       !recommendations &&
       !isLoadingRecs
     ) {
       setIsLoadingRecs(true);
-      // Using static data for products, events, and sectors for now
       getRecommendations(
         profile,
         allMembers,
         allPrograms,
-        products,
-        events,
-        sectors
+        allProducts,
+        allEvents,
+        allSectors
       )
         .then(setRecommendations)
         .finally(() => setIsLoadingRecs(false));
     }
-  }, [profile, allPrograms, allMembers, recommendations, isLoadingRecs]);
+  }, [profile, allPrograms, allMembers, allProducts, allEvents, allSectors, recommendations, isLoadingRecs]);
 
   const defaultProgress = {
     paidProgramsCompleted: 0,
@@ -155,11 +158,10 @@ const Dashboard = () => {
   );
 
   const isLoading =
-    isProfileLoading || isCertLoading || programsLoading || membersLoading;
+    isProfileLoading || isCertLoading || programsLoading || membersLoading || sectorsLoading || productsLoading || eventsLoading;
 
   return (
     <div className="space-y-6">
-      {/* Admin Panel (Conditional) */}
       {isProfileLoading ? (
         <Card>
           <CardHeader>
@@ -247,7 +249,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm">Courses</p>
-                <p className="text-2xl font-bold text-foreground">4</p>
+                <p className="text-2xl font-bold text-foreground">0</p>
               </div>
               <BookOpen className="h-8 w-8 text-primary" />
             </div>
@@ -259,7 +261,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm">Mentors</p>
-                <p className="text-2xl font-bold text-foreground">2</p>
+                <p className="text-2xl font-bold text-foreground">0</p>
               </div>
               <Users className="h-8 w-8 text-primary" />
             </div>
@@ -271,7 +273,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm">Wallet</p>
-                <p className="text-2xl font-bold text-foreground">$250</p>
+                <p className="text-2xl font-bold text-foreground">$0</p>
               </div>
               <Wallet className="h-8 w-8 text-accent" />
             </div>
@@ -298,48 +300,9 @@ const Dashboard = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {[
-                  {
-                    title: 'Leadership Fundamentals',
-                    progress: 75,
-                    mentor: 'Dr. Sarah Chen',
-                  },
-                  {
-                    title: 'Business Strategy 101',
-                    progress: 45,
-                    mentor: 'Michael Okonkwo',
-                  },
-                ].map((course, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg"
-                  >
-                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Play className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground truncate">
-                        {course.title}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        with {course.mentor}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-accent">
-                        {course.progress}%
-                      </p>
-                      <div className="w-16 h-1.5 bg-muted rounded-full mt-1">
-                        <div
-                          className="h-full bg-accent rounded-full transition-all"
-                          style={{ width: `${course.progress}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                <div className="text-center text-muted-foreground p-6">
+                    <p>Your enrolled courses will appear here.</p>
+                </div>
             </CardContent>
           </Card>
 
@@ -358,69 +321,8 @@ const Dashboard = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {[
-                  {
-                    title: 'Weekly Mentor Check-in',
-                    time: 'Today, 3:00 PM',
-                    type: '1-on-1',
-                  },
-                  {
-                    title: 'Cohort Workshop: Pitching',
-                    time: 'Tomorrow, 10:00 AM',
-                    type: 'Group',
-                  },
-                  {
-                    title: 'Leadership Masterclass',
-                    time: 'Jan 8, 2:00 PM',
-                    type: 'Webinar',
-                  },
-                ].map((session, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-accent/20 flex items-center justify-center">
-                        <Calendar className="h-5 w-5 text-accent" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">
-                          {session.title}
-                        </p>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Clock className="h-3 w-3" /> {session.time}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-xs px-2 py-1 bg-muted rounded-full text-muted-foreground">
-                      {session.type}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div>
-                <CardTitle className="text-lg">Community Feed</CardTitle>
-                <CardDescription>
-                  Posts • Updates • Celebrations
-                </CardDescription>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push('/community')}
-              >
-                View all <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4 text-center text-muted-foreground p-4">
-                <p>View the latest community posts.</p>
+              <div className="text-center text-muted-foreground p-6">
+                  <p>Your upcoming sessions will be displayed here.</p>
               </div>
             </CardContent>
           </Card>
@@ -600,14 +502,10 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-center py-4">
-                <p className="text-3xl font-bold text-accent">$125</p>
+                <p className="text-3xl font-bold text-accent">$0.00</p>
                 <p className="text-sm text-muted-foreground">Total earnings</p>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                <TrendingUp className="h-4 w-4 text-accent" />
-                <span>7-level referral preview</span>
-              </div>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={() => router.push('/referrals')}>
                 View Downline
               </Button>
             </CardContent>
@@ -626,7 +524,7 @@ const Dashboard = () => {
                   🏆 Mentor of the Month
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Dr. Amara Obi - Africa Region
+                  To be announced
                 </p>
               </div>
               <div className="p-3 bg-card rounded-lg border border-border">
@@ -634,15 +532,7 @@ const Dashboard = () => {
                   🌟 Mentee of the Month
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Carlos Rivera - LATAM Region
-                </p>
-              </div>
-              <div className="p-3 bg-card rounded-lg border border-border">
-                <p className="font-medium text-foreground text-sm">
-                  📅 Global Summit 2026
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Registration opens Feb 1
+                  To be announced
                 </p>
               </div>
             </CardContent>
@@ -654,5 +544,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
-    

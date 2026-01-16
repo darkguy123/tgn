@@ -16,40 +16,12 @@ import placeholderImages from "@/lib/placeholder-images.json";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 
-const COHORT_SESSIONS = [
-  { id: 1, title: "Week 4: Leadership Essentials", date: "Today, 3:00 PM", type: "Live", status: "upcoming" },
-  { id: 2, title: "Week 3: Strategic Thinking", date: "Jan 3, 2026", type: "Recorded", status: "completed" },
-  { id: 3, title: "Week 2: Communication Skills", date: "Dec 27, 2025", type: "Recorded", status: "completed" },
-  { id: 4, title: "Week 1: Foundation & Intro", date: "Dec 20, 2025", type: "Recorded", status: "completed" },
-];
-
-const TASKS = [
-  { id: 1, title: "Complete leadership assessment", due: "Jan 8", completed: false },
-  { id: 2, title: "Submit case study analysis", due: "Jan 10", completed: false },
-  { id: 3, title: "Peer feedback review", due: "Jan 5", completed: true },
-  { id: 4, title: "Weekly reflection journal", due: "Jan 6", completed: true },
-];
-
-const BREAKOUT_ROOMS = [
-  { id: 1, name: "Strategy Discussion", participants: 4, active: true },
-  { id: 2, name: "Case Study Review", participants: 3, active: true },
-  { id: 3, name: "Q&A with Mentor", participants: 6, active: false },
-];
-
 const CohortsPage = () => {
-  const [tasks, setTasks] = useState(TASKS);
   const firestore = useFirestore();
 
   // Let's fetch some users to act as the accountability group
   const membersQuery = useMemoFirebase(() => query(collection(firestore, 'users'), limit(4)), [firestore]);
   const { data: accountabilityGroup, isLoading: isGroupLoading } = useCollection<TGNMember>(membersQuery);
-
-
-  const toggleTask = (taskId: number) => {
-    setTasks(tasks.map(task => 
-      task.id === taskId ? { ...task, completed: !task.completed } : task
-    ));
-  };
 
   const getImage = (imageId?: string) => {
     if (!imageId) return null;
@@ -131,43 +103,8 @@ const CohortsPage = () => {
               <CardTitle>Cohort Sessions</CardTitle>
               <CardDescription>Live sessions and recorded content</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {COHORT_SESSIONS.map((session) => (
-                <div 
-                  key={session.id}
-                  className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`h-12 w-12 rounded-lg flex items-center justify-center ${
-                      session.status === 'upcoming' ? 'bg-accent/20' : 'bg-muted'
-                    }`}>
-                      {session.status === 'upcoming' ? (
-                        <Video className="h-6 w-6 text-accent" />
-                      ) : (
-                        <Play className="h-6 w-6 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground">{session.title}</p>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> {session.date}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      session.type === 'Live' 
-                        ? 'bg-accent/20 text-accent' 
-                        : 'bg-muted text-muted-foreground'
-                    }`}>
-                      {session.type}
-                    </span>
-                    <Button variant={session.status === 'upcoming' ? 'accent' : 'outline'} size="sm">
-                      {session.status === 'upcoming' ? 'Join Session' : 'Watch Replay'}
-                    </Button>
-                  </div>
-                </div>
-              ))}
+            <CardContent className="space-y-4 text-center text-muted-foreground py-10">
+                No sessions scheduled.
             </CardContent>
           </Card>
         </TabsContent>
@@ -179,37 +116,8 @@ const CohortsPage = () => {
               <CardTitle>Tasks & Assignments</CardTitle>
               <CardDescription>Track your progress</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {tasks.map((task) => (
-                <div 
-                  key={task.id}
-                  className="flex items-center justify-between p-4 border border-border rounded-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => toggleTask(task.id)}
-                      className={`h-6 w-6 rounded border-2 flex items-center justify-center transition-colors ${
-                        task.completed 
-                          ? 'bg-accent border-accent text-white' 
-                          : 'border-border hover:border-primary'
-                      }`}
-                    >
-                      {task.completed && <CheckSquare className="h-4 w-4" />}
-                    </button>
-                    <div>
-                      <p className={`font-medium ${task.completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
-                        {task.title}
-                      </p>
-                      <p className="text-sm text-muted-foreground">Due: {task.due}</p>
-                    </div>
-                  </div>
-                  {!task.completed && (
-                    <Button variant="outline" size="sm">
-                      <FileText className="h-4 w-4 mr-1" /> Submit
-                    </Button>
-                  )}
-                </div>
-              ))}
+            <CardContent className="space-y-3 text-center text-muted-foreground py-10">
+                No tasks assigned.
             </CardContent>
           </Card>
         </TabsContent>
@@ -272,26 +180,8 @@ const CohortsPage = () => {
               <CardTitle>Breakout Rooms</CardTitle>
               <CardDescription>Join focused discussions</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {BREAKOUT_ROOMS.map((room) => (
-                <div 
-                  key={room.id}
-                  className="flex items-center justify-between p-4 border border-border rounded-lg"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`h-3 w-3 rounded-full ${room.active ? 'bg-green-500' : 'bg-muted-foreground'}`} />
-                    <div>
-                      <p className="font-medium text-foreground">{room.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {room.participants} participants • {room.active ? 'Active' : 'Ended'}
-                      </p>
-                    </div>
-                  </div>
-                  <Button variant={room.active ? 'accent' : 'outline'} size="sm" disabled={!room.active}>
-                    {room.active ? 'Join Room' : 'Ended'}
-                  </Button>
-                </div>
-              ))}
+            <CardContent className="space-y-4 text-center text-muted-foreground py-10">
+                No active breakout rooms.
             </CardContent>
           </Card>
         </TabsContent>
