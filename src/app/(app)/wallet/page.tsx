@@ -48,6 +48,12 @@ const WalletPage = () => {
     const [amount, setAmount] = useState('');
     const [pin, setPin] = useState('');
 
+    // Withdraw Dialog State
+    const [isWithdrawOpen, setWithdrawOpen] = useState(false);
+    const [withdrawAmount, setWithdrawAmount] = useState('');
+    const [bankName, setBankName] = useState('');
+    const [accountNumber, setAccountNumber] = useState('');
+
     const displayWallet = wallet || mockWallet;
     const isLoading = isWalletLoading || isProfileLoading;
 
@@ -99,6 +105,36 @@ const WalletPage = () => {
             toast({ title: 'Transfer Successful!', description: `You have sent ${formatCurrency(parseFloat(amount))} to ${recipient.name}.` });
             setSendStep(3); // Move to success step
         }
+    };
+    
+    const handleWithdrawRequest = () => {
+        const amountNum = parseFloat(withdrawAmount);
+        if (!amountNum || amountNum <= 0) {
+            toast({ variant: 'destructive', title: 'Invalid Amount', description: 'Please enter a valid amount to withdraw.' });
+            return;
+        }
+        if (amountNum > displayWallet.balance) {
+            toast({ variant: 'destructive', title: 'Insufficient Funds', description: 'Your withdrawal amount exceeds your available balance.' });
+            return;
+        }
+        if (!bankName.trim() || !accountNumber.trim()) {
+            toast({ variant: 'destructive', title: 'Missing Details', description: 'Please provide both bank name and account number.' });
+            return;
+        }
+
+        // Simulate request
+        toast({
+            title: 'Withdrawal Request Submitted',
+            description: `${formatCurrency(amountNum)} will be processed to your bank account. Status is pending.`
+        });
+
+        // Reset form and close dialog
+        setWithdrawOpen(false);
+        setTimeout(() => {
+            setWithdrawAmount('');
+            setBankName('');
+            setAccountNumber('');
+        }, 300)
     };
 
 
@@ -443,10 +479,59 @@ const WalletPage = () => {
                         <CardTitle className="text-sm font-medium">Withdraw</CardTitle>
                     </CardHeader>
                     <CardContent className="grid grid-cols-2 gap-3">
-                         <Button variant="outline" className="flex-col h-20">
-                            <Landmark className="h-6 w-6 mb-1" />
-                            <span>To Bank</span>
-                        </Button>
+                        <Dialog open={isWithdrawOpen} onOpenChange={setWithdrawOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" className="flex-col h-20">
+                                    <Landmark className="h-6 w-6 mb-1" />
+                                    <span>To Bank</span>
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Withdraw to Bank Account</DialogTitle>
+                                    <DialogDescription>
+                                        Enter the amount and your bank details. Funds will be processed within 2-3 business days.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="withdraw-amount">Amount (USD)</Label>
+                                        <Input 
+                                            id="withdraw-amount" 
+                                            type="number" 
+                                            placeholder="0.00" 
+                                            value={withdrawAmount}
+                                            onChange={(e) => setWithdrawAmount(e.target.value)}
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                            Available balance: {formatCurrency(displayWallet.balance)}
+                                        </p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="bank-name">Bank Name</Label>
+                                        <Input 
+                                            id="bank-name" 
+                                            placeholder="e.g., Chase Bank" 
+                                            value={bankName}
+                                            onChange={(e) => setBankName(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="account-number">Account Number</Label>
+                                        <Input 
+                                            id="account-number" 
+                                            placeholder="Your bank account number"
+                                            value={accountNumber}
+                                            onChange={(e) => setAccountNumber(e.target.value)}
+                                         />
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button variant="outline" onClick={() => setWithdrawOpen(false)}>Cancel</Button>
+                                    <Button onClick={handleWithdrawRequest}>Submit Request</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                         <Button variant="outline" className="flex-col h-20">
                             <Building className="h-6 w-6 mb-1" />
                            <span>To Paystack/Stripe</span>
