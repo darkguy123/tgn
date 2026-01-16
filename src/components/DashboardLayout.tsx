@@ -46,6 +46,7 @@ const NAV_ITEMS = [
   { id: 'events', label: 'Events', icon: Calendar, path: '/community/events' },
   { id: 'causes', label: 'Causes', icon: Heart, path: '/community/causes' },
   { id: 'matchmaking', label: 'Matchmaking', icon: Sparkles, path: '/matchmaking' },
+  { id: 'cohorts', label: 'My Cohorts', icon: Users, path: '/cohorts' },
   { id: 'programs', label: 'Programs', icon: GraduationCap, path: '/programs' },
   { id: 'marketplace', label: 'Marketplace', icon: ShoppingBag, path: '/marketplace' },
   { id: 'certification', label: 'Certification', icon: Award, path: '/certification' },
