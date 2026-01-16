@@ -296,9 +296,11 @@ const DirectoryPage = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    <MessageSquare className="h-4 w-4 mr-1" />
-                    Connect
+                  <Button asChild variant="outline" size="sm" className="flex-1">
+                    <Link href={`/chat/${member.id}`}>
+                      <MessageSquare className="h-4 w-4 mr-1" />
+                      Connect
+                    </Link>
                   </Button>
                   <Button asChild variant="accent" size="sm" className="flex-1 transition-all hover:-translate-y-0.5 hover:shadow-accent">
                     <Link href={`/profile/${member.id}`}>View Profile</Link>

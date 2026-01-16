@@ -653,7 +653,11 @@ export default function CommunityPage() {
                 const lastMessage = conv.messages[conv.messages.length - 1];
 
                 return (
-                  <button key={conv.id} className="w-full text-left p-2 rounded-lg hover:bg-muted flex items-start gap-3">
+                  <Link
+                    key={conv.id}
+                    href={`/chat/${otherParticipant.id}`}
+                    className="w-full text-left p-2 rounded-lg hover:bg-muted flex items-start gap-3"
+                  >
                     <Avatar className="h-10 w-10 border-2 border-background">
                       {participantImage && <AvatarImage src={participantImage.imageUrl} />}
                       <AvatarFallback>{otherParticipant.name.charAt(0)}</AvatarFallback>
@@ -670,7 +674,7 @@ export default function CommunityPage() {
                         )}
                       </div>
                     </div>
-                  </button>
+                  </Link>
                 )
               })}
             </CardContent>
