@@ -7,7 +7,7 @@ import {
   Card,
   CardContent,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -309,9 +309,9 @@ const DirectoryPage = () => {
                       <Send className="h-4 w-4 mr-1" />
                       Connect
                   </Button>
-                  <Button asChild variant="accent" size="sm" className="flex-1 transition-all hover:-translate-y-0.5 hover:shadow-accent">
-                    <Link href={`/profile/${member.id}`}>View Profile</Link>
-                  </Button>
+                  <Link href={`/profile/${member.id}`} className={cn(buttonVariants({ variant: "accent", size: "sm" }), "flex-1 transition-all hover:-translate-y-0.5 hover:shadow-accent")}>
+                    View Profile
+                  </Link>
                 </div>
               </CardContent>
             </Card>
