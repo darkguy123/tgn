@@ -53,6 +53,7 @@ export type Program = {
   description: string;
   format: 'Live' | 'Pre-recorded' | 'Self-paced' | 'Hybrid';
   type: 'Free' | 'Paid' | 'Executive';
+  googleMeetUrl?: string;
   createdAt: string;
   updatedAt?: string;
   deactivatedAt?: string;
@@ -95,3 +96,5 @@ export interface MentorCertification {
   isCertified: boolean;
   certificationDate?: string;
 }
+
+    

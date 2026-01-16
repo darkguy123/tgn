@@ -46,6 +46,7 @@ const programSchema = z.object({
   ),
   certified: z.boolean().default(false),
   imageId: z.string().min(1, 'Image ID is required'),
+  googleMeetUrl: z.string().url("Please enter a valid URL.").optional().or(z.literal('')),
 });
 
 type ProgramFormData = z.infer<typeof programSchema>;
@@ -67,6 +68,7 @@ export function ProgramForm({ initialData, onSave }: ProgramFormProps) {
     defaultValues: {
       ...initialData,
       price: initialData?.price ?? undefined,
+      googleMeetUrl: initialData?.googleMeetUrl ?? '',
     },
   });
 
@@ -196,6 +198,19 @@ export function ProgramForm({ initialData, onSave }: ProgramFormProps) {
               <p className="text-sm text-destructive">{errors.imageId.message}</p>
             )}
           </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="googleMeetUrl">Google Meet URL</Label>
+            <Input
+              id="googleMeetUrl"
+              type="url"
+              {...register('googleMeetUrl')}
+              placeholder="https://meet.google.com/..."
+            />
+            {errors.googleMeetUrl && (
+              <p className="text-sm text-destructive">{errors.googleMeetUrl.message}</p>
+            )}
+          </div>
 
           <div className="flex items-center space-x-2 pt-4">
              <Controller
@@ -228,3 +243,5 @@ export function ProgramForm({ initialData, onSave }: ProgramFormProps) {
     </form>
   );
 }
+
+    

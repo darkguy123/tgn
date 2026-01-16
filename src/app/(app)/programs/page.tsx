@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Clock, Users, Award,
   ChevronRight, Star, Calendar, ArrowLeft,
-  BookCheck, Circle, CheckCircle, GraduationCap
+  BookCheck, Circle, CheckCircle, GraduationCap, Video
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
@@ -202,6 +202,14 @@ const ProgramsPage = () => {
                 <Button variant="accent" className="w-full mb-3" size="lg">
                   Enroll Now
                 </Button>
+                {(selectedProgram.format === 'Live' || selectedProgram.format === 'Hybrid') && selectedProgram.googleMeetUrl && (
+                  <Button asChild variant="default" className="w-full mb-3" size="lg">
+                    <a href={selectedProgram.googleMeetUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
+                        <Video className="mr-2 h-5 w-5" />
+                        Join Live Session
+                    </a>
+                  </Button>
+                )}
                 {selectedProgram.certified && (
                   <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                     <Award className="h-4 w-4 text-accent" />
@@ -408,3 +416,5 @@ const ProgramsPage = () => {
 };
 
 export default ProgramsPage;
+
+    

@@ -169,6 +169,11 @@
           "type": "boolean",
           "description": "Indicates if the program offers a certification upon completion."
         },
+        "googleMeetUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL for the Google Meet live session."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
@@ -494,3 +499,5 @@
     ]
   }
 }
+
+    
