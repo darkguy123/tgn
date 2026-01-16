@@ -25,17 +25,20 @@ import {
   UserCheck,
   Loader2,
   Trash2,
-  Check
+  Check,
+  X,
+  Users
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useDoc, useFirestore, useMemoFirebase, useCollection, useUser } from '@/firebase';
-import { collection, doc, query, where, orderBy, addDoc, serverTimestamp, runTransaction, arrayUnion, arrayRemove, deleteDoc, updateDoc } from 'firebase/firestore';
-import type { TGNMember, MentorCertification, Post, FriendRequest } from '@/lib/types';
+import { useDoc, useFirestore, useMemoFirebase, useCollection, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { collection, doc, query, where, orderBy, addDoc, serverTimestamp, runTransaction, arrayUnion, arrayRemove, deleteDoc, updateDoc, documentId } from 'firebase/firestore';
+import type { TGNMember, Post, FriendRequest } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { useToast } from '@/hooks/use-toast';
+import type { MentorCertification } from '@/lib/types';
 
 // Simplified post card for profile page
 function ProfilePostCard({ post }: { post: Post }) {
@@ -94,6 +97,14 @@ export default function ProfilePage() {
   const { data: certification, isLoading: isCertLoading } = useDoc<MentorCertification>(certRef);
   const { data: posts, isLoading: arePostsLoading } = useCollection<Post>(postsQuery);
 
+  // Fetch profiles for connections
+  const connectionIds = useMemo(() => member?.connections?.slice(0, 9) || [], [member]);
+  const connectionsQuery = useMemoFirebase(
+    () => connectionIds.length > 0 ? query(collection(firestore, 'users'), where(documentId(), 'in', connectionIds)) : null,
+    [firestore, connectionIds]
+  );
+  const { data: connectionProfiles, isLoading: connectionsLoading } = useCollection<TGNMember>(connectionsQuery);
+
   // Connection Status Logic
   const sentRequestQuery = useMemoFirebase(() => (currentUser?.uid && memberId) ? query(collection(firestore, 'friend_requests'), where('senderId', '==', currentUser.uid), where('recipientId', '==', memberId)) : null, [firestore, currentUser, memberId]);
   const { data: sentRequests, isLoading: sentLoading } = useCollection<FriendRequest>(sentRequestQuery);
@@ -109,21 +120,24 @@ export default function ProfilePage() {
     return { connectionStatus: 'none' };
   }, [currentUserProfile?.connections, sentRequests, receivedRequests, memberId]);
 
-  const isLoading = isMemberLoading || isCertLoading || arePostsLoading || sentLoading || receivedLoading;
+  const isLoading = isMemberLoading || isCertLoading || arePostsLoading || sentLoading || receivedLoading || connectionsLoading;
 
   // Actions
   const handleConnect = async () => {
-    if (!currentUser) return;
+    if (!currentUser || !member) return;
     setIsSubmitting(true);
-    try {
-      await addDoc(collection(firestore, 'friend_requests'), {
+    const friendRequestsCollection = collection(firestore, 'friend_requests');
+    const dataToSave = {
         senderId: currentUser.uid,
         recipientId: memberId,
-        status: 'pending',
+        status: 'pending' as const,
         createdAt: serverTimestamp(),
-      });
+    };
+    try {
+      await addDoc(friendRequestsCollection, dataToSave);
       toast({ title: "Connection request sent!" });
     } catch (e) {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: friendRequestsCollection.path, operation: 'create', requestResourceData: dataToSave }));
       toast({ variant: "destructive", title: "Error", description: "Failed to send request." });
     } finally {
       setIsSubmitting(false);
@@ -135,6 +149,7 @@ export default function ProfilePage() {
     setIsSubmitting(true);
     const requestRef = doc(firestore, 'friend_requests', friendRequestId);
     const currentUserRef = doc(firestore, 'users', currentUser.uid);
+    const senderRef = doc(firestore, 'users', member.id);
     try {
         await runTransaction(firestore, async (transaction) => {
             const reqDoc = await transaction.get(requestRef);
@@ -143,6 +158,7 @@ export default function ProfilePage() {
             }
             transaction.update(requestRef, { status: 'accepted' });
             transaction.update(currentUserRef, { connections: arrayUnion(member.id) });
+            transaction.update(senderRef, { connections: arrayUnion(currentUser.uid) });
         });
         toast({ title: "Connection accepted!" });
     } catch (e: any) {
@@ -160,11 +176,50 @@ export default function ProfilePage() {
       await updateDoc(requestRef, { status: 'declined' });
       toast({ title: "Connection request declined." });
     } catch (e) {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: requestRef.path, operation: 'update', requestResourceData: { status: 'declined' }}));
       toast({ variant: 'destructive', title: "Error", description: "Failed to decline request." });
     } finally {
       setIsSubmitting(false);
     }
   };
+  
+  const handleCancelRequest = async () => {
+    if (!friendRequestId) return;
+    setIsSubmitting(true);
+    const requestRef = doc(firestore, 'friend_requests', friendRequestId);
+    try {
+      await deleteDoc(requestRef);
+      toast({ title: "Connection request cancelled." });
+    } catch (e) {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: requestRef.path, operation: 'delete' }));
+      toast({ variant: 'destructive', title: "Error", description: "Failed to cancel request." });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const handleRemoveConnection = async () => {
+    if (!currentUser || !member || connectionStatus !== 'connected') return;
+    if (!window.confirm(`Are you sure you want to remove ${member.name} from your connections?`)) return;
+
+    setIsSubmitting(true);
+    const currentUserRef = doc(firestore, 'users', currentUser.uid);
+    // memberRef is already defined
+    
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            transaction.update(currentUserRef, { connections: arrayRemove(member.id) });
+            transaction.update(memberRef, { connections: arrayRemove(currentUser.uid) });
+        });
+        toast({ title: "Connection Removed" });
+    } catch(e) {
+        console.error("Failed to remove connection:", e);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to remove connection.' });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -182,6 +237,7 @@ export default function ProfilePage() {
         </div>
         <div className="lg:col-span-1 space-y-6">
             <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-48 w-full" />
         </div>
       </div>
     );
@@ -194,6 +250,9 @@ export default function ProfilePage() {
   const name = member.name || member.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
   const renderActionButtons = () => {
+    if (isSubmitting) {
+        return <Button disabled><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Processing...</Button>;
+    }
     if (currentUser?.uid === memberId) {
         return <Button onClick={() => router.push('/settings/profile')}>Edit Profile</Button>;
     }
@@ -206,28 +265,26 @@ export default function ProfilePage() {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild><Button variant="outline" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent>
-                        <DropdownMenuItem className="text-destructive"><Trash2 className="mr-2 h-4 w-4" />Remove Connection</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={handleRemoveConnection}>
+                            <Trash2 className="mr-2 h-4 w-4" />Remove Connection
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                 </>
             );
         case 'pending':
-            return <Button variant="outline" disabled><Clock className="mr-2 h-4 w-4" /> Pending</Button>;
+            return <Button variant="outline" onClick={handleCancelRequest}><Clock className="mr-2 h-4 w-4" /> Request Sent</Button>;
         case 'accept':
             return (
                 <>
-                    <Button onClick={handleAcceptRequest} disabled={isSubmitting}>
-                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Check className="mr-2 h-4 w-4" />}
-                        Accept
+                    <Button onClick={handleAcceptRequest} className="bg-green-600 hover:bg-green-700">
+                        <Check className="mr-2 h-4 w-4" /> Accept
                     </Button>
-                    <Button variant="outline" onClick={handleDeclineRequest} disabled={isSubmitting}>Decline</Button>
+                    <Button variant="ghost" onClick={handleDeclineRequest}><X className="mr-2 h-4 w-4" />Decline</Button>
                 </>
             );
         default:
-            return <Button onClick={handleConnect} disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <UserPlus className="mr-2 h-4 w-4" />}
-                Connect
-            </Button>;
+            return <Button onClick={handleConnect}><UserPlus className="mr-2 h-4 w-4" />Connect</Button>;
     }
   };
 
@@ -262,7 +319,7 @@ export default function ProfilePage() {
 
         <Card>
             <CardHeader><CardTitle>About</CardTitle></CardHeader>
-            <CardContent><p className="text-foreground/90">{member.purpose || 'No bio provided.'}</p></CardContent>
+            <CardContent><p className="text-foreground/90 whitespace-pre-line">{member.purpose || 'No bio provided.'}</p></CardContent>
         </Card>
 
         <div className="space-y-4">
@@ -309,6 +366,27 @@ export default function ProfilePage() {
                 </CardContent>
             </Card>
         )}
+         <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" />Connections ({member.connections?.length || 0})</CardTitle></CardHeader>
+            <CardContent>
+                {connectionsLoading && <Skeleton className="h-16 w-full" />}
+                {!connectionsLoading && connectionProfiles && connectionProfiles.length > 0 && (
+                    <div className="flex flex-wrap gap-3">
+                        {connectionProfiles.map(p => (
+                            <Link key={p.id} href={`/profile/${p.id}`}>
+                                <Avatar>
+                                    <AvatarImage src={p.avatarUrl} alt={p.name} />
+                                    <AvatarFallback>{p.name ? p.name.charAt(0) : p.email.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                            </Link>
+                        ))}
+                    </div>
+                )}
+                {!connectionsLoading && (!connectionProfiles || connectionProfiles.length === 0) && (
+                    <p className="text-sm text-muted-foreground">No connections to show.</p>
+                )}
+            </CardContent>
+        </Card>
       </aside>
     </div>
   );
