@@ -1,4 +1,4 @@
-import type { Member, Product, Program } from './types';
+import type { Member, Product, Program, Story } from './types';
 
 export const members: Member[] = [
     { id: '9', name: "Dr. Amara Obi", role: "Executive Mentor", country: "Nigeria", sector: "Technology", badge: 7, connections: 234, tgnId: 'TGN-0009', location: 'Lagos, Nigeria', isVerified: true, profile: 'Executive mentor specializing in tech leadership.', imageId: 'user-1', joinDate: 'May 2022', bannerImageId: 'profile-banner-1' },
@@ -11,6 +11,42 @@ export const members: Member[] = [
     { id: '16', name: "Michael Adebayo", role: "Certified Mentor", country: "South Africa", sector: "Finance", badge: 5, connections: 145, tgnId: 'TGN-0016', location: 'Johannesburg, South Africa', isVerified: true, profile: 'Finance mentor from South Africa.', imageId: 'user-8', joinDate: 'Nov 2023', bannerImageId: 'profile-banner-2' },
     { id: '5', tgnId: 'TGN-0005', name: 'Chloe Kim', role: 'Mentee', location: 'Toronto, Canada', country: 'Canada', sector: 'Technology', isVerified: true, imageId: 'user-5', profile: "Recent computer science graduate with a passion for artificial intelligence and machine learning. Looking for a mentor to guide career path choices, from big tech to startups, and to gain practical project experience.", badge: 4, connections: 55, joinDate: 'Oct 2023', bannerImageId: 'profile-banner-1'},
     { id: '1', tgnId: 'TGN-0001', name: 'Sarah Chen', role: 'Executive Mentor', location: 'San Francisco, USA', country: 'United States', sector: 'Technology', isVerified: true, imageId: 'user-1', profile: "Seasoned product manager with 10+ years of experience in SaaS and mobile apps. Passionate about helping early-stage founders navigate product-market fit. Expertise in Agile methodologies, user research, and data-driven decision making.", badge: 7, connections: 212, joinDate: 'Jan 2022', bannerImageId: 'profile-banner-1' },
+];
+
+export const stories: Story[] = [
+  {
+    id: 's1',
+    author: members.find(m => m.id === '9')!,
+    items: [{ id: 's1i1', type: 'image', mediaId: 'story-1', duration: 7 }]
+  },
+  {
+    id: 's2',
+    author: members.find(m => m.id === '10')!,
+    items: [
+      { id: 's2i1', type: 'image', mediaId: 'story-2', duration: 5 },
+      { id: 's2i2', type: 'image', mediaId: 'story-3', duration: 8 }
+    ]
+  },
+  {
+    id: 's3',
+    author: members.find(m => m.id === '11')!,
+    items: [{ id: 's3i1', type: 'image', mediaId: 'product-4', duration: 6 }]
+  },
+  {
+    id: 's4',
+    author: members.find(m => m.id === '12')!,
+    items: [{ id: 's4i1', type: 'image', mediaId: 'product-2', duration: 5 }]
+  },
+  {
+    id: 's5',
+    author: members.find(m => m.id === '13')!,
+    items: [{ id: 's5i1', type: 'image', mediaId: 'program-global-business', duration: 7 }]
+  },
+  {
+    id: 's6',
+    author: members.find(m => m.id === '14')!,
+    items: [{ id: 's6i1', type: 'image', mediaId: 'program-business-strategy', duration: 5 }]
+  }
 ];
 
 

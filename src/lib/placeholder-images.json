@@ -167,6 +167,24 @@
       "description": "A diverse team photo for a suggested page",
       "imageUrl": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx0ZWFtJTIwcGhvdG98ZW58MHx8fHwxNzIxODMyNjIxfDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "team photo"
+    },
+    {
+      "id": "story-1",
+      "description": "Person on a mountain top",
+      "imageUrl": "https://images.unsplash.com/photo-1551632811-561732d1e306?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtb3VudGFpbiUyMGhpa2V8ZW58MHx8fHwxNzIyMjM1MTc3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "mountain hike"
+    },
+    {
+      "id": "story-2",
+      "description": "City skyline at night",
+      "imageUrl": "https://images.unsplash.com/photo-1505761671935-62b3ab7dd12e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjaXR5JTIwbmlnaHR8ZW58MHx8fHwxNzIyMjM1MjI4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "city night"
+    },
+    {
+      "id": "story-3",
+      "description": "A delicious plate of food",
+      "imageUrl": "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxmb29kJTIwZGluaW5nfGVufDB8fHx8MTcyMjIzNTI1OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "food dining"
     }
   ]
 }

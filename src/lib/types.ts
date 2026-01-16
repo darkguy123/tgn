@@ -57,3 +57,16 @@ export type Program = {
   updatedAt?: string;
   deactivatedAt?: string;
 };
+
+export type StoryItem = {
+  id: string;
+  type: 'image' | 'video';
+  mediaId: string; // reference to placeholder-images.json
+  duration: number; // in seconds
+};
+
+export type Story = {
+  id: string;
+  author: Member;
+  items: StoryItem[];
+};
