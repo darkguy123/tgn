@@ -201,7 +201,7 @@ service cloud.firestore {
     match /affiliate_referrals/{referralId} {
       allow read: if isAdmin();
       allow get: if isSignedIn() && (isOwner(resource.data.referrerMemberId) || isOwner(resource.data.referredMemberId));
-      allow list: if isSignedIn() && request.query.where[0][0] == "referrerMemberId" && request.query.where[0][2] == request.auth.uid;
+      allow list: if (isSignedIn() && request.query.where[0][0] == "referrerMemberId" && request.query.where[0][2] == request.auth.uid) || isAdmin();
       allow create: if isSignedIn() && request.resource.data.referrerMemberId == request.auth.uid;
       allow update: if false;
       allow delete: if false;
@@ -321,6 +321,30 @@ service cloud.firestore {
       allow create: if false; // Recommendations are created by a backend service
       allow update: if false; // Recommendations are immutable
       allow delete: if false; // Recommendations are not deleted by users
+    }
+    
+    // ------------------------------------------------------------------------
+    // Chat Data
+    // ------------------------------------------------------------------------
+    match /chats/{chatId} {
+      // Chat document can be created by a participant.
+      // participantIds array must contain the requesting user's UID.
+      allow create: if request.auth.uid in request.resource.data.participantIds;
+
+      // Chat metadata can be read or updated by participants.
+      allow read, update: if request.auth.uid in resource.data.participantIds;
+
+      match /messages/{messageId} {
+        // Messages can be read by any participant of the chat.
+        allow read: if request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds;
+
+        // A participant can create a message and must be the sender.
+        allow create: if (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds)
+                      && request.resource.data.senderId == request.auth.uid;
+                      
+        // A message can only be updated or deleted by its original sender or an admin.
+        allow update, delete: if resource.data.senderId == request.auth.uid || isAdmin();
+      }
     }
   }
 }

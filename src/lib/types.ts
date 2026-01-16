@@ -101,17 +101,26 @@ export interface Comment {
 export type ChatMessage = {
   id: string;
   senderId: string;
-  text: string;
-  timestamp: string;
-  isCurrentUser: boolean;
+  type: 'text' | 'image' | 'video' | 'document';
+  content: string; // for text messages
+  mediaUrl?: string; // for media
+  fileName?: string;
+  fileSize?: number;
+  createdAt: any; // Firestore Timestamp
 };
 
-export type ChatConversation = {
+export interface Chat {
   id: string;
-  participants: TGNMember[];
-  messages: ChatMessage[];
-  unreadCount?: number;
-};
+  participantIds: string[];
+  lastMessage?: {
+    text: string;
+    senderId: string;
+    timestamp: any;
+  };
+  typing?: {
+      [key: string]: boolean;
+  };
+}
 
 export interface MentorCertification {
   memberId: string;
@@ -211,5 +220,3 @@ export interface AffiliateReferral {
     level: number;
     commissionPercentage: number;
 }
-
-    

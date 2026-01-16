@@ -886,6 +886,49 @@
         }
       },
       "required": ["authorId", "authorName", "authorImageId", "content", "createdAt"]
+    },
+    "Chat": {
+      "title": "Chat",
+      "type": "object",
+      "description": "Represents a private chat session between two or more members.",
+      "properties": {
+        "participantIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Array of member UIDs who are part of the chat."
+        },
+        "lastMessage": {
+          "type": "object",
+          "properties": {
+            "text": { "type": "string" },
+            "senderId": { "type": "string" },
+            "timestamp": { "type": "string", "format": "date-time" }
+          }
+        },
+        "typing": {
+            "type": "object",
+            "description": "Indicates which users are currently typing. Keys are user UIDs, values are booleans.",
+            "additionalProperties": {
+                "type": "boolean"
+            }
+        }
+      },
+      "required": ["participantIds"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "type": "object",
+      "description": "Represents a single message within a chat.",
+      "properties": {
+        "senderId": { "type": "string", "description": "UID of the member who sent the message." },
+        "type": { "type": "string", "enum": ["text", "image", "video", "document"], "description": "The type of the message content." },
+        "content": { "type": "string", "description": "The text content of the message." },
+        "mediaUrl": { "type": "string", "format": "uri", "description": "URL to the uploaded media file for image, video, or document types." },
+        "fileName": { "type": "string", "description": "The original name of the uploaded file." },
+        "fileSize": { "type": "number", "description": "The size of the uploaded file in bytes." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["senderId", "type", "createdAt"]
     }
   },
   "auth": {
@@ -975,9 +1018,17 @@
         "path": "/ads/{adId}",
         "entity": "AdCampaign",
         "description": "Stores all advertising campaigns. Requires admin approval before going live. Writable by creator, manageable by admin."
+      },
+      {
+        "path": "/chats/{chatId}",
+        "entity": "Chat",
+        "description": "Stores metadata for private chat sessions between members. The chatId is a composite key of participant UIDs."
+      },
+      {
+        "path": "/chats/{chatId}/messages/{messageId}",
+        "entity": "ChatMessage",
+        "description": "Stores all messages for a specific chat session."
       }
     ]
   }
 }
-
-    
