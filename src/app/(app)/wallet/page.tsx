@@ -1,13 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useWallet } from '@/hooks/useWallet';
 import { transactions, userWallet as mockWallet, savedCards, members, chartData } from '@/lib/data';
-import { ArrowDownLeft, ArrowUpRight, DollarSign, Download, Upload, CreditCard, Plus, MoreHorizontal, Send, TrendingUp, TrendingDown, Bell } from 'lucide-react';
+import { 
+    ArrowDownLeft, ArrowUpRight, DollarSign, Upload, CreditCard, Plus, MoreHorizontal, 
+    Send, TrendingUp, TrendingDown, ClipboardCopy, Loader2, PartyPopper, Gift, Heart, User, Building, Landmark
+} from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
@@ -28,26 +31,76 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import placeholderImages from '@/lib/placeholder-images.json';
+import { useMemberProfile } from '@/hooks/useMemberProfile';
+import type { Member } from '@/lib/types';
 
 const WalletPage = () => {
-    const { wallet, isLoading, error } = useWallet();
+    const { wallet, isLoading: isWalletLoading } = useWallet();
+    const { profile, isLoading: isProfileLoading } = useMemberProfile();
     const { toast } = useToast();
 
+    // Send Money Dialog State
+    const [isSendOpen, setSendOpen] = useState(false);
+    const [sendStep, setSendStep] = useState(1);
+    const [recipientId, setRecipientId] = useState('');
+    const [debouncedRecipientId, setDebouncedRecipientId] = useState('');
+    const [recipient, setRecipient] = useState<Member | null | 'loading' | 'not_found'>(null);
+    const [amount, setAmount] = useState('');
+    const [pin, setPin] = useState('');
+
     const displayWallet = wallet || mockWallet;
+    const isLoading = isWalletLoading || isProfileLoading;
+
+    // Debounce for recipient search
+    useEffect(() => {
+        const handler = setTimeout(() => setDebouncedRecipientId(recipientId), 500);
+        return () => clearTimeout(handler);
+    }, [recipientId]);
+
+    useEffect(() => {
+        if (debouncedRecipientId.trim() === '') {
+            setRecipient(null);
+            return;
+        }
+        setRecipient('loading');
+        setTimeout(() => {
+            const foundMember = members.find(m => m.tgnId.toLowerCase() === debouncedRecipientId.toLowerCase());
+            setRecipient(foundMember || 'not_found');
+        }, 500);
+    }, [debouncedRecipientId]);
 
     const formatCurrency = (amount: number, currency = 'USD') => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency,
-        }).format(amount);
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
+    };
+    
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        toast({ title: "Copied!", description: "Account number copied to clipboard." });
+    };
+    
+    const resetSendFlow = () => {
+        setSendOpen(false);
+        setTimeout(() => {
+            setSendStep(1);
+            setRecipientId('');
+            setRecipient(null);
+            setAmount('');
+            setPin('');
+        }, 300);
     };
 
-    const handleTopUp = () => {
-        toast({
-            title: 'Payment Successful',
-            description: 'Your wallet has been topped up.',
-        });
-    }
+    const handleConfirmSend = () => {
+        // Simulate PIN check and transaction
+        if (pin.length < 4) {
+            toast({ variant: 'destructive', title: 'Invalid PIN', description: 'Transaction PIN must be 4 digits.' });
+            return;
+        }
+        if (recipient && typeof recipient !== 'string') {
+            toast({ title: 'Transfer Successful!', description: `You have sent ${formatCurrency(parseFloat(amount))} to ${recipient.name}.` });
+            setSendStep(3); // Move to success step
+        }
+    };
+
 
     const getImage = (imageId: string) => {
       return placeholderImages.placeholderImages.find((p) => p.id === imageId);
@@ -74,16 +127,13 @@ const WalletPage = () => {
         )
     }
 
-    if (error) {
-        return <p className="text-destructive">Error loading wallet information. Please try again later.</p>
-    }
-
     return (
+        <>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             <div className="lg:col-span-2 space-y-6">
                  <header>
                     <h1 className="text-2xl font-bold tracking-tight">Overview</h1>
-                    <p className="text-muted-foreground">Good morning, {displayWallet.memberId}!</p>
+                    <p className="text-muted-foreground">Good morning, {profile?.email.split('@')[0]}!</p>
                 </header>
                 
                 <div className="grid md:grid-cols-2 gap-6">
@@ -210,6 +260,22 @@ const WalletPage = () => {
             </div>
 
             <div className="lg:col-span-1 space-y-6">
+                 {profile && (
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="text-sm font-medium">Your Account Number</CardTitle>
+                            <CardDescription className="text-xs">Use this ID to receive funds from other TGN members.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex w-full items-center space-x-2">
+                                <Input type="text" value={profile.tgnMemberId} readOnly className="bg-muted font-mono" />
+                                <Button onClick={() => copyToClipboard(profile.tgnMemberId)} size="icon" variant="outline">
+                                    <ClipboardCopy className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
                 <Card>
                     <CardHeader>
                         <CardTitle>Total Balance</CardTitle>
@@ -219,60 +285,111 @@ const WalletPage = () => {
                         <p className="text-xs text-green-500 flex items-center gap-1 mt-1"><TrendingUp className="h-3 w-3" /> 12.81% this month</p>
                     </CardContent>
                     <CardFooter className="flex gap-2">
-                        <Button className="flex-1">
-                            <Send className="mr-2 h-4 w-4" />
-                            Send
-                        </Button>
-                        <Dialog>
+                        <Dialog open={isSendOpen} onOpenChange={open => !open && resetSendFlow()}>
                             <DialogTrigger asChild>
-                                <Button variant="outline" className="flex-1">
-                                    <Upload className="mr-2 h-4 w-4"/>
-                                    Receive
+                                <Button className="flex-1" onClick={() => setSendOpen(true)}>
+                                    <Send className="mr-2 h-4 w-4" />
+                                    Send
                                 </Button>
                             </DialogTrigger>
                              <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>Top Up Your Wallet</DialogTitle>
-                                    <DialogDescription>
-                                        Add funds to your TGN wallet. Payments are processed securely.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4 py-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="amount">Amount (USD)</Label>
-                                        <Input id="amount" type="number" placeholder="e.g., 50.00" defaultValue="50.00" />
+                                {sendStep === 1 && (
+                                    <>
+                                    <DialogHeader>
+                                        <DialogTitle>Send Money</DialogTitle>
+                                        <DialogDescription>Enter recipient details and amount.</DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="recipientId">Recipient Member ID</Label>
+                                            <Input id="recipientId" placeholder="TGN-..." value={recipientId} onChange={e => setRecipientId(e.target.value)} />
+                                        </div>
+                                        {recipient === 'loading' && <div className="flex items-center text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Searching...</div>}
+                                        {recipient === 'not_found' && <p className="text-sm text-destructive">Member not found.</p>}
+                                        {recipient && typeof recipient !== 'string' && (
+                                            <div className="p-3 rounded-md border bg-muted/50 flex items-center gap-3">
+                                                <Avatar>
+                                                    <AvatarImage src={getImage(recipient.imageId)?.imageUrl} />
+                                                    <AvatarFallback>{recipient.name.charAt(0)}</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <p className="font-semibold">{recipient.name}</p>
+                                                    <p className="text-xs text-muted-foreground">{recipient.tgnId}</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="amount">Amount (USD)</Label>
+                                            <Input id="amount" type="number" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value)} />
+                                        </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label>Select Payment Method</Label>
-                                        <RadioGroup defaultValue="card1" className="space-y-2">
-                                            {savedCards.map(card => (
-                                                <Label key={card.id} htmlFor={card.id} className="flex items-center gap-3 p-3 border rounded-md has-[:checked]:border-primary has-[:checked]:bg-primary/5 cursor-pointer">
-                                                    <RadioGroupItem value={card.id} id={card.id} />
-                                                    <CreditCard className="h-5 w-5 text-muted-foreground" />
-                                                    <div className="flex-1">
-                                                        <p className="font-medium">{card.brand} ending in {card.last4}</p>
-                                                        <p className="text-xs text-muted-foreground">Expires {card.expiryMonth}/{card.expiryYear}</p>
-                                                    </div>
-                                                    {card.isDefault && <Badge variant="secondary">Default</Badge>}
-                                                </Label>
-                                            ))}
-                                        </RadioGroup>
+                                    <DialogFooter>
+                                        <Button type="button" variant="outline" onClick={resetSendFlow}>Cancel</Button>
+                                        <Button type="button" onClick={() => setSendStep(2)} disabled={!recipient || typeof recipient === 'string' || !amount}>Continue</Button>
+                                    </DialogFooter>
+                                    </>
+                                )}
+                                {sendStep === 2 && recipient && typeof recipient !== 'string' && (
+                                    <>
+                                    <DialogHeader>
+                                        <DialogTitle>Confirm Transaction</DialogTitle>
+                                        <DialogDescription>Please review the details below.</DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                        <p className="text-sm text-muted-foreground">You are sending</p>
+                                        <p className="text-3xl font-bold text-center">{formatCurrency(parseFloat(amount))}</p>
+                                        <p className="text-sm text-muted-foreground text-center">to</p>
+                                        <div className="p-3 rounded-md border flex items-center gap-3">
+                                            <Avatar>
+                                                <AvatarImage src={getImage(recipient.imageId)?.imageUrl} />
+                                                <AvatarFallback>{recipient.name.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="font-semibold">{recipient.name}</p>
+                                                <p className="text-xs text-muted-foreground">{recipient.tgnId}</p>
+                                            </div>
+                                        </div>
+                                         <div className="space-y-2">
+                                            <Label htmlFor="pin">Transaction PIN</Label>
+                                            <Input id="pin" type="password" maxLength={4} placeholder="****" value={pin} onChange={e => setPin(e.target.value)} />
+                                        </div>
                                     </div>
-                                </div>
-                                <DialogFooter className="gap-2 sm:gap-0">
-                                    <Button variant="outline" className="w-full">Add New Card</Button>
-                                    <Button type="submit" className="w-full" onClick={handleTopUp}>
-                                        Pay {formatCurrency(50)}
-                                    </Button>
-                                </DialogFooter>
+                                    <DialogFooter>
+                                        <Button type="button" variant="outline" onClick={() => setSendStep(1)}>Back</Button>
+                                        <Button type="button" onClick={handleConfirmSend} disabled={pin.length !== 4}>Send Now</Button>
+                                    </DialogFooter>
+                                    </>
+                                )}
+                                 {sendStep === 3 && recipient && typeof recipient !== 'string' && (
+                                    <>
+                                    <DialogHeader>
+                                        <DialogTitle className="flex flex-col items-center gap-2 text-center">
+                                            <div className="h-14 w-14 rounded-full bg-green-100 flex items-center justify-center">
+                                                <PartyPopper className="h-8 w-8 text-green-600" />
+                                            </div>
+                                            Transfer Successful
+                                        </DialogTitle>
+                                        <DialogDescription className="text-center">
+                                            You have successfully sent {formatCurrency(parseFloat(amount))} to {recipient.name}.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <DialogFooter>
+                                        <Button type="button" className="w-full" onClick={resetSendFlow}>Done</Button>
+                                    </DialogFooter>
+                                    </>
+                                )}
                             </DialogContent>
                         </Dialog>
+                        <Button variant="outline" className="flex-1">
+                            <Upload className="mr-2 h-4 w-4"/>
+                            Receive
+                        </Button>
                     </CardFooter>
                 </Card>
 
                  <Card>
                     <CardHeader className="flex flex-row justify-between items-center">
-                        <CardTitle>Your Card</CardTitle>
+                        <CardTitle className="text-sm font-medium">Your Card</CardTitle>
                         <Button variant="ghost" size="sm">
                             <Plus className="mr-1 h-4 w-4" />
                             Add Card
@@ -307,51 +424,39 @@ const WalletPage = () => {
                 
                  <Card>
                     <CardHeader>
-                        <CardTitle>Quick Transfer</CardTitle>
+                        <CardTitle className="text-sm font-medium">Gifting & Donations</CardTitle>
                     </CardHeader>
-                    <CardContent className="flex items-center gap-3">
-                        {members.slice(0, 4).map(member => {
-                            const img = getImage(member.imageId);
-                            return (
-                                <Avatar key={member.id} className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-primary ring-offset-2 ring-offset-background transition-all">
-                                    <AvatarImage src={img?.imageUrl} alt={member.name} />
-                                    <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                            )
-                        })}
-                        <Button size="icon" variant="outline" className="rounded-full h-10 w-10">
-                            <Plus className="h-4 w-4" />
+                    <CardContent className="grid grid-cols-2 gap-3">
+                       <Button variant="outline" className="flex-col h-20">
+                            <Gift className="h-6 w-6 mb-1" />
+                            <span>Send a Gift</span>
+                        </Button>
+                        <Button variant="outline" className="flex-col h-20">
+                            <Heart className="h-6 w-6 mb-1" />
+                           <span>Donate</span>
                         </Button>
                     </CardContent>
                 </Card>
 
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle>Notifications</CardTitle>
-                         <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
+                    <CardHeader>
+                        <CardTitle className="text-sm font-medium">Withdraw</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        {transactions.slice(0,3).map(tx => (
-                            <div key={tx.id} className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-full flex items-center justify-center bg-muted">
-                                    {tx.amount > 0 ? <ArrowDownLeft className="h-5 w-5 text-green-500" /> : <ArrowUpRight className="h-5 w-5 text-red-500" />}
-                                </div>
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-foreground">{tx.description}</p>
-                                    <p className="text-xs text-muted-foreground">{new Date(tx.createdAt).toLocaleDateString()}</p>
-                                </div>
-                                <p className={cn("text-sm font-bold", tx.amount > 0 ? 'text-green-500' : 'text-foreground')}>{tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}</p>
-                            </div>
-                        ))}
+                    <CardContent className="grid grid-cols-2 gap-3">
+                         <Button variant="outline" className="flex-col h-20">
+                            <Landmark className="h-6 w-6 mb-1" />
+                            <span>To Bank</span>
+                        </Button>
+                        <Button variant="outline" className="flex-col h-20">
+                            <Building className="h-6 w-6 mb-1" />
+                           <span>To Paystack/Stripe</span>
+                        </Button>
                     </CardContent>
                 </Card>
             </div>
         </div>
+        </>
     );
 };
 
 export default WalletPage;
-
-    

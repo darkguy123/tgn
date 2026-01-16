@@ -13,10 +13,14 @@ import {
   Users,
   Mail,
   MoreHorizontal,
+  Send,
+  Gift,
 } from 'lucide-react';
 import { members } from '@/lib/data';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { Separator } from '@/components/ui/separator';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
 
 const getImage = (imageId: string) => {
   return placeholderImages.placeholderImages.find((p) => p.id === imageId);
@@ -63,14 +67,29 @@ export default function ProfilePage() {
         {/* Profile Actions */}
         <div className="flex justify-end p-4 pt-4">
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon">
-              <MoreHorizontal className="h-4 w-4" />
+            <Button>
+                <Send className="mr-2 h-4 w-4" />
+                Send Money
             </Button>
             <Button variant="outline">
               <Mail className="mr-2 h-4 w-4" />
               Message
             </Button>
-            <Button variant="default">Follow</Button>
+            <Button variant="outline">Follow</Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem>
+                  <Gift className="mr-2 h-4 w-4" />
+                  Send Gift
+                </DropdownMenuItem>
+                <DropdownMenuItem>Report User</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
