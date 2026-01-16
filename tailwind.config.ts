@@ -73,6 +73,7 @@ export default {
       },
       boxShadow: {
         soft: '0 4px 14px 0 rgba(0, 0, 0, 0.05)',
+        accent: '0 4px 14px 0 hsl(var(--accent) / 0.25)',
       },
       keyframes: {
         'accordion-down': {

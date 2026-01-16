@@ -299,7 +299,7 @@ const DirectoryPage = () => {
                     <MessageSquare className="h-4 w-4 mr-1" />
                     Connect
                   </Button>
-                  <Button variant="default" size="sm" className="flex-1">
+                  <Button variant="accent" size="sm" className="flex-1 transition-all hover:-translate-y-0.5 hover:shadow-accent">
                     View Profile
                   </Button>
                 </div>
@@ -322,5 +322,4 @@ const DirectoryPage = () => {
 };
 
 export default DirectoryPage;
-
     
