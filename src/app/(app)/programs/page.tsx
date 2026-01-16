@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Clock, Users, Award,
   ChevronRight, Star, Calendar, ArrowLeft,
-  BookCheck, Circle, CheckCircle, GraduationCap, Video
+  BookCheck, Circle, CheckCircle, GraduationCap, Video, Book
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
@@ -21,20 +21,6 @@ import { cn } from "@/lib/utils";
 const getImage = (imageId: string) => {
   return placeholderImages.placeholderImages.find((p) => p.id === imageId);
 };
-
-const curriculumPrograms = [
-    { id: 'cur1', title: 'TGN Mentorship Fundamentals', description: 'Core principles of effective mentorship.', status: 'completed' },
-    { id: 'cur2', title: 'Ethical Mentoring Practices', description: 'Understand the boundaries and responsibilities.', status: 'completed' },
-    { id: 'cur3', title: 'Advanced Communication Strategies', description: 'Learn to listen, question, and guide.', status: 'in_progress' },
-    { id: 'cur4', title: 'Goal Setting & Achievement', description: 'Help mentees define and reach their goals.', status: 'not_started' },
-    { id: 'cur5', title: 'TGN Platform & Tools Practicum', description: 'Master the tools for successful mentorship.', status: 'not_started' },
-    { id: 'cur6', title: 'Final Evaluation', description: 'Peer and expert review of your mentorship skills.', status: 'not_started' },
-]
-
-const myLearningPrograms = [
-    { ...curriculumPrograms[2], progress: 60, imageId: 'program-executive-communication' },
-    { id: 'learn2', title: 'Business Strategy 101', progress: 45, imageId: 'program-business-strategy' },
-]
 
 const ProgramsPage = () => {
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
@@ -172,26 +158,9 @@ const ProgramsPage = () => {
                   </TabsContent>
 
                   <TabsContent value="schedule" className="space-y-3">
-                    {[
-                      { day: "Week 1-2", topic: "Foundation Sessions", time: "Tuesdays, 3:00 PM" },
-                      { day: "Week 3-4", topic: "Practical Workshops", time: "Thursdays, 2:00 PM" },
-                      { day: "Week 5-6", topic: "Advanced Topics", time: "Tuesdays, 3:00 PM" },
-                      { day: "Week 7-8", topic: "Final Project Review", time: "Flexible" },
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 border border-border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <Calendar className="h-5 w-5 text-primary" />
-                          <div>
-                            <p className="font-medium text-foreground">{item.topic}</p>
-                            <p className="text-sm text-muted-foreground">{item.day}</p>
-                          </div>
-                        </div>
-                        <span className="text-sm text-muted-foreground">{item.time}</span>
-                      </div>
-                    ))}
-                    <p className="text-xs text-muted-foreground mt-2">
-                      📝 Note: Replays available for 30 days after completion.
-                    </p>
+                    <div className="p-6 text-center bg-muted/50 rounded-lg">
+                        <p className="text-muted-foreground">Schedule details for this program are not yet available.</p>
+                    </div>
                   </TabsContent>
                 </Tabs>
               </CardContent>
@@ -290,7 +259,7 @@ const ProgramsPage = () => {
                 <TabsContent key={key} value={key}>
                     {isLoading ? renderSkeletons() : (
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {programs.length === 0 && !isLoading && <p className="text-muted-foreground col-span-full">No {key} programs found.</p>}
+                        {programs.length === 0 && !isLoading && <p className="text-muted-foreground col-span-full text-center py-10">No {key} programs available yet.</p>}
                         {programs.map((program) => {
                         const img = getImage(program.imageId);
                         return (
@@ -362,63 +331,30 @@ const ProgramsPage = () => {
         </TabsContent>
 
         <TabsContent value="my-learning">
-            <div className="grid md:grid-cols-2 gap-6">
-                {myLearningPrograms.map((program) => {
-                    const img = getImage(program.imageId);
-                    return (
-                        <Card key={program.id} className="flex flex-col sm:flex-row items-start gap-4 p-4">
-                            {img && <Image src={img.imageUrl} alt={program.title} width={150} height={100} className="rounded-lg aspect-video object-cover w-full sm:w-[150px]" />}
-                            <div className="flex-1 w-full">
-                                <h3 className="font-semibold">{program.title}</h3>
-                                <div className="flex justify-between items-center text-sm text-muted-foreground my-2">
-                                    <span>Progress</span>
-                                    <span className="font-semibold text-primary">{program.progress}%</span>
-                                </div>
-                                <div className="h-2 bg-muted rounded-full">
-                                    <div className="h-full bg-primary rounded-full" style={{ width: `${program.progress}%`}} />
-                                </div>
-                                <Button variant="secondary" className="w-full mt-3">Continue Learning</Button>
-                            </div>
-                        </Card>
-                    )
-                })}
-            </div>
+            <Card className="flex flex-col items-center justify-center text-center py-20">
+                <CardHeader>
+                    <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Book className="h-10 w-10 text-primary" />
+                    </div>
+                    <CardTitle>Coming Soon</CardTitle>
+                    <CardDescription>
+                        Your enrolled programs and learning progress will appear here.
+                    </CardDescription>
+                </CardHeader>
+            </Card>
         </TabsContent>
 
         <TabsContent value="curriculum">
-             <Card>
+             <Card className="flex flex-col items-center justify-center text-center py-20">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <GraduationCap className="text-primary" />
-                        TGN Mentor Certification Path
-                    </CardTitle>
-                    <CardDescription>Complete all modules to earn your certification. This is a crucial step towards becoming a recognized mentor in our network.</CardDescription>
+                    <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+                        <GraduationCap className="h-10 w-10 text-primary" />
+                    </div>
+                    <CardTitle>Coming Soon</CardTitle>
+                    <CardDescription>
+                        The TGN Mentor Certification learning path will be available here shortly.
+                    </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                    {curriculumPrograms.map((item, index) => (
-                        <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                            <div>
-                                {item.status === 'completed' && <CheckCircle className="h-6 w-6 text-green-500" />}
-                                {item.status === 'in_progress' && <Clock className="h-6 w-6 text-primary animate-pulse" />}
-                                {item.status === 'not_started' && <Circle className="h-6 w-6 text-muted-foreground" />}
-                            </div>
-                            <div className="flex-1">
-                                <h4 className={cn("font-medium", item.status === 'not_started' && 'text-muted-foreground')}>{item.title}</h4>
-                                <p className="text-sm text-muted-foreground">{item.description}</p>
-                            </div>
-                            <Button 
-                                variant={item.status === 'in_progress' ? 'default' : 'outline'}
-                                size="sm"
-                                disabled={item.status === 'completed'}
-                            >
-                                {item.status === 'completed' ? 'Completed' : 'Start Module'}
-                            </Button>
-                        </div>
-                    ))}
-                </CardContent>
-                <CardFooter>
-                    <p className="text-xs text-muted-foreground">Once all modules are complete, you will be eligible for the final evaluation.</p>
-                </CardFooter>
             </Card>
         </TabsContent>
 

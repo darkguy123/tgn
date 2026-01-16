@@ -26,38 +26,6 @@ import { useMentorCertification } from '@/hooks/useMentorCertification';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 
-const CERTIFICATIONS = [
-  {
-    name: 'TGN Certified Mentor',
-    status: 'in_progress', // This will be dynamic
-    progress: 20, // This will be dynamic
-    earned: null,
-    description: 'Foundation certification for aspiring mentors',
-  },
-  {
-    name: 'Associate Mentor',
-    status: 'eligible',
-    progress: 0,
-    earned: null,
-    description: 'Verification for experienced mentors',
-  },
-  {
-    name: 'Executive Mentor',
-    status: 'locked',
-    progress: 0,
-    earned: null,
-    description: 'Elite certification for senior mentors',
-  },
-  {
-    name: 'Leadership Fundamentals',
-    status: 'completed',
-    progress: 100,
-    earned: 'Dec 15, 2025',
-    description: 'Core leadership skills certification',
-  },
-];
-
-
 const CertificationPage = () => {
   const { certification, isLoading, error } = useMentorCertification();
 
@@ -285,105 +253,70 @@ const CertificationPage = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {CERTIFICATIONS.map((cert, i) => {
-              const isTgnCert = cert.name === 'TGN Certified Mentor';
-              const certStatus = isTgnCert ? (certification?.isCertified ? 'completed' : 'in_progress') : cert.status;
-              const certProgress = isTgnCert ? overallProgress : cert.progress;
-              const earnedDate = isTgnCert ? certification?.certificationDate : cert.earned;
-
-              return (
-              <div key={i} className="p-4 border border-border rounded-lg">
+            
+              <div className="p-4 border border-border rounded-lg">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-3">
                     <div
                       className={cn(
                         'h-10 w-10 rounded-lg flex items-center justify-center',
-                        certStatus === 'completed' && 'bg-accent/20',
-                        certStatus === 'in_progress' && 'bg-primary/20',
-                        certStatus === 'eligible' && 'bg-muted',
-                        certStatus === 'locked' && 'bg-muted'
+                        certification?.isCertified ? 'bg-accent/20' : 'bg-primary/20',
                       )}
                     >
-                      {certStatus === 'completed' && (
+                      {certification?.isCertified ? (
                         <Award className="h-5 w-5 text-accent" />
-                      )}
-                      {certStatus === 'in_progress' && (
+                      ) : (
                         <Activity className="h-5 w-5 text-primary" />
-                      )}
-                      {certStatus === 'eligible' && (
-                        <Star className="h-5 w-5 text-muted-foreground" />
-                      )}
-                      {certStatus === 'locked' && (
-                        <FileText className="h-5 w-5 text-muted-foreground" />
                       )}
                     </div>
                     <div>
                       <p className="font-medium text-foreground">
-                        {cert.name}
+                        TGN Certified Mentor
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {cert.description}
+                        Foundation certification for aspiring mentors
                       </p>
                     </div>
                   </div>
                   <span
                     className={cn(
                       'text-xs px-2 py-1 rounded-full',
-                      certStatus === 'completed' &&
-                        'bg-accent/20 text-accent',
-                      certStatus === 'in_progress' &&
-                        'bg-primary/20 text-primary',
-                      certStatus === 'eligible' &&
-                        'bg-muted text-muted-foreground',
-                      certStatus === 'locked' &&
-                        'bg-muted text-muted-foreground'
+                       certification?.isCertified
+                        ? 'bg-accent/20 text-accent'
+                        : 'bg-primary/20 text-primary'
                     )}
                   >
-                    {certStatus === 'in_progress' && 'In Progress'}
-                    {certStatus === 'completed' && 'Completed'}
-                    {certStatus === 'eligible' && 'Eligible'}
-                    {certStatus === 'locked' && 'Locked'}
+                    {certification?.isCertified ? 'Completed' : 'In Progress'}
                   </span>
                 </div>
 
-                {certStatus === 'in_progress' && (
+                {!certification?.isCertified ? (
                   <div className="mt-3">
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-muted-foreground">Progress</span>
                       <span className="text-primary font-medium">
-                        {certProgress}%
+                        {overallProgress}%
                       </span>
                     </div>
                     <div className="h-2 bg-muted rounded-full">
                       <div
                         className="h-full bg-primary rounded-full transition-all"
-                        style={{ width: `${certProgress}%` }}
+                        style={{ width: `${overallProgress}%` }}
                       />
                     </div>
                   </div>
-                )}
-
-                {certStatus === 'completed' && (
+                ) : (
                   <div className="mt-3 flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">
-                      Earned: {earnedDate ? new Date(earnedDate).toLocaleDateString() : 'N/A'}
+                      Earned: {certification?.certificationDate ? new Date(certification.certificationDate).toLocaleDateString() : 'N/A'}
                     </span>
                     <Button variant="outline" size="sm">
                       <Download className="h-4 w-4 mr-1" /> Download
                     </Button>
                   </div>
                 )}
-
-                {certStatus === 'eligible' && (
-                  <div className="mt-3">
-                    <Button variant="accent" size="sm" className="w-full">
-                      Start Certification{' '}
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </div>
-                )}
               </div>
-            )})}
+            
           </CardContent>
         </Card>
       </div>
@@ -424,5 +357,3 @@ const CertificationPage = () => {
 };
 
 export default CertificationPage;
-
-    

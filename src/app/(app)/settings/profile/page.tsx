@@ -20,7 +20,7 @@ import type { TGNMember } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import placeholderImages from '@/lib/placeholder-images.json';
-import { countries, savedCards } from '@/lib/data';
+import { countries } from '@/lib/data';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
@@ -449,20 +449,9 @@ const SettingsPage = () => {
                 <CardTitle>Payment Methods</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {savedCards.map((card) => (
-                    <div key={card.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
-                    <div className="flex items-center gap-3">
-                        <div className="h-10 w-14 bg-muted rounded flex items-center justify-center text-xs font-bold">
-                        {card.brand.toUpperCase()}
-                        </div>
-                        <div>
-                        <p className="font-medium text-foreground">•••• •••• •••• {card.last4}</p>
-                        <p className="text-sm text-muted-foreground">Expires {card.expiryMonth}/{card.expiryYear}</p>
-                        </div>
-                    </div>
-                    {card.isDefault && <span className="text-xs px-2 py-1 bg-accent/20 text-accent rounded-full">Default</span>}
-                    </div>
-                ))}
+                <div className="text-center text-muted-foreground py-10">
+                    <p>Your saved payment methods will appear here.</p>
+                </div>
                 <Button variant="outline" className="w-full">
                   Add Payment Method
                 </Button>

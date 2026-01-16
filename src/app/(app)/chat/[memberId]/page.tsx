@@ -14,6 +14,7 @@ import {
   Paperclip,
   Smile,
   Send,
+  MessageSquare,
 } from 'lucide-react';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
@@ -32,14 +33,6 @@ const getNameFromEmail = (email?: string) => {
     if (!email) return 'User';
     return email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
-
-// Mock messages for display purposes until a real chat system is built
-const mockMessages: Omit<ChatMessage, 'id' | 'senderId'>[] = [
-    { text: `Hey! Thanks for connecting. Let me know if you have any questions.`, timestamp: '10:30 AM', isCurrentUser: false },
-    { text: `Hi there! Great to connect with you too. I was looking at your profile, very impressive background!`, timestamp: '10:32 AM', isCurrentUser: true },
-    { text: `Thanks! Happy to help if I can. What are you currently working on?`, timestamp: '10:33 AM', isCurrentUser: false },
-];
-
 
 export default function ChatPage() {
   const router = useRouter();
@@ -82,10 +75,8 @@ export default function ChatPage() {
   }
   
   const otherMemberName = getNameFromEmail(otherMember.email);
-  const currentUserName = getNameFromEmail(currentUserProfile?.email);
   
   const otherMemberImage = getImage(otherMember.imageId);
-  const currentUserImage = getImage(currentUserProfile?.imageId);
 
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -128,37 +119,12 @@ export default function ChatPage() {
       </CardHeader>
 
       {/* Messages Area */}
-      <CardContent className="flex-1 p-4 overflow-y-auto space-y-6">
-        {mockMessages.map((msg, index) => {
-          const senderName = msg.isCurrentUser ? currentUserName : otherMemberName;
-          const senderImage = msg.isCurrentUser ? currentUserImage : otherMemberImage;
-          
-          return (
-            <div
-              key={index}
-              className={cn(
-                'flex items-end gap-3',
-                msg.isCurrentUser ? 'flex-row-reverse' : 'flex-row',
-              )}
-            >
-              <Avatar className='h-8 w-8'>
-                <AvatarImage src={senderImage?.imageUrl} />
-                <AvatarFallback>{senderName.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div
-                className={cn(
-                  'max-w-xs lg:max-w-md p-3 rounded-2xl',
-                  msg.isCurrentUser
-                    ? 'bg-primary text-primary-foreground rounded-br-none'
-                    : 'bg-muted rounded-bl-none'
-                )}
-              >
-                <p className="text-sm">{msg.text}</p>
-              </div>
-               <p className="text-xs text-muted-foreground self-end">{msg.timestamp}</p>
-            </div>
-          );
-        })}
+      <CardContent className="flex-1 p-4 overflow-y-auto flex flex-col items-center justify-center text-center">
+        <MessageSquare className="h-16 w-16 text-muted-foreground" />
+        <h3 className="mt-4 text-lg font-medium">Start a Conversation</h3>
+        <p className="text-sm text-muted-foreground">
+          Send a message to connect with {otherMemberName}.
+        </p>
       </CardContent>
 
       {/* Message Input */}

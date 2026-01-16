@@ -65,31 +65,6 @@ const communityNavItems = [
   { label: 'Marketplace', icon: ShoppingBag, path: '/marketplace' },
 ];
 
-const pagesYouLike = [
-  { name: 'Football FC', initial: 'FF', color: 'bg-red-500', notifications: 120 },
-  { name: 'Badminton Club', initial: 'BC', color: 'bg-blue-500' },
-  { name: 'UI/UX Community', initial: 'UI', color: 'bg-purple-500' },
-  { name: 'Web Designer', initial: 'WD', color: 'bg-green-500' },
-];
-
-const reels = [
-  { author: 'Sarah Chen', imageId: 'product-2', views: '1.2M' },
-  { author: 'David Okonkwo', imageId: 'product-4', views: '890K' },
-  { author: 'Elena Rodriguez', imageId: 'program-global-business', views: '540K' },
-  { author: 'James Chen', imageId: 'program-business-strategy', views: '320K' },
-];
-
-const stories = [
-    { name: 'Your Story', imageId: 'user-5', isCurrentUser: true },
-    { name: 'Sarah Chen', imageId: 'user-1' },
-    { name: 'David Okonkwo', imageId: 'user-2' },
-    { name: 'Elena Rodriguez', imageId: 'user-3' },
-    { name: 'Kenji Tanaka', imageId: 'user-4' },
-    { name: 'Chloe Kim', imageId: 'user-5' },
-    { name: 'Alex Rodriguez', imageId: 'user-6' },
-    { name: 'Emily White', imageId: 'user-7' },
-];
-
 const getImage = (imageId: string) => {
   return placeholderImages.placeholderImages.find(p => p.id === imageId);
 };
@@ -364,7 +339,6 @@ function PostCard({ post }: { post: Post }) {
 export default function CommunityPage() {
   const { profile } = useMemberProfile();
   const [isCreatePostOpen, setCreatePostOpen] = useState(false);
-  const [selectedReel, setSelectedReel] = useState<(typeof reels)[0] | null>(null);
   const firestore = useFirestore();
 
   const postsQuery = useMemoFirebase(() =>
@@ -414,51 +388,6 @@ export default function CommunityPage() {
     <>
       <CreatePostDialog open={isCreatePostOpen} onOpenChange={setCreatePostOpen} />
 
-      <Dialog open={!!selectedReel} onOpenChange={(isOpen) => !isOpen && setSelectedReel(null)}>
-        <DialogContent className="p-0 border-0 bg-black text-white max-w-md w-[90vw] sm:w-full h-full sm:h-[95vh] sm:max-h-[800px] flex flex-col focus:outline-none rounded-none sm:rounded-lg">
-            {selectedReel && (() => {
-                const img = getImage(selectedReel.imageId);
-                return (
-                    <>
-                        <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/60 to-transparent flex justify-between items-center z-20">
-                            <div className="flex items-center gap-2">
-                                <Avatar className="h-9 w-9">
-                                    <AvatarImage src={img?.imageUrl} />
-                                    <AvatarFallback>{selectedReel.author.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <p className="font-semibold text-sm">{selectedReel.author}</p>
-                            </div>
-                            <DialogClose asChild>
-                                <Button variant="ghost" size="icon" className="text-white hover:text-white hover:bg-white/20">
-                                    <X className="h-5 w-5"/>
-                                </Button>
-                            </DialogClose>
-                        </div>
-
-                        <div className="relative flex-1 w-full h-full">
-                            {img && <Image src={img.imageUrl} alt={`Reel by ${selectedReel.author}`} fill className="object-contain" data-ai-hint={img.imageHint}/>}
-                        </div>
-                        
-                        <div className="absolute bottom-0 right-0 p-4 flex flex-col items-center gap-4 z-20">
-                            <Button variant="ghost" size="icon" className="text-white hover:text-white h-auto flex-col gap-1">
-                                <Heart className="h-7 w-7" />
-                                <span className="text-xs">12.3k</span>
-                            </Button>
-                            <Button variant="ghost" size="icon" className="text-white hover:text-white h-auto flex-col gap-1">
-                                <MessageSquare className="h-7 w-7" />
-                                <span className="text-xs">1.1k</span>
-                            </Button>
-                             <Button variant="ghost" size="icon" className="text-white hover:text-white h-auto flex-col gap-1">
-                                <Share2 className="h-7 w-7" />
-                                <span className="text-xs">Share</span>
-                            </Button>
-                        </div>
-                    </>
-                )
-            })()}
-        </DialogContent>
-      </Dialog>
-
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Sidebar */}
         <aside className="lg:col-span-3 space-y-6 hidden lg:block">
@@ -495,62 +424,10 @@ export default function CommunityPage() {
               </nav>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-semibold">Pages You Like</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {pagesYouLike.map(page => (
-                <div key={page.name} className="flex items-center gap-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className={`${page.color} text-white text-xs font-bold`}>
-                      {page.initial}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium flex-1">{page.name}</span>
-                  {page.notifications && <Badge variant="destructive">{page.notifications}</Badge>}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
         </aside>
 
         {/* Main Feed */}
-        <main className="lg:col-span-6 space-y-6">
-          <Card>
-            <CardHeader>
-                <CardTitle className="text-sm">Stories</CardTitle>
-            </CardHeader>
-            <CardContent className="pb-4">
-                <ScrollArea className="w-full whitespace-nowrap -mx-4 px-4">
-                    <div className="flex gap-4">
-                        {stories.map((story, i) => {
-                            const img = getImage(story.imageId);
-                            return (
-                                <div key={i} className="flex flex-col items-center gap-2 cursor-pointer w-20">
-                                    <div className={cn("h-16 w-16 rounded-full p-1", !story.isCurrentUser && "bg-gradient-to-tr from-accent to-primary")}>
-                                        <div className="h-full w-full rounded-full bg-background p-0.5">
-                                            <Avatar className="h-full w-full">
-                                                {img && <AvatarImage src={img.imageUrl} />}
-                                                <AvatarFallback>{story.name.charAt(0)}</AvatarFallback>
-                                                {story.isCurrentUser && (
-                                                    <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full h-5 w-5 flex items-center justify-center border-2 border-background">
-                                                        <Plus className="h-3 w-3" />
-                                                    </div>
-                                                )}
-                                            </Avatar>
-                                        </div>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground truncate w-full text-center">{story.name}</p>
-                                </div>
-                            )
-                        })}
-                    </div>
-                    <ScrollBar orientation="horizontal" className="h-2 mt-2"/>
-                </ScrollArea>
-            </CardContent>
-          </Card>
-
+        <main className="lg:col-span-9 space-y-6">
           <Card>
              <CardContent className="p-4 flex items-center gap-3 border-b">
                 <Avatar>
@@ -593,37 +470,6 @@ export default function CommunityPage() {
             </TabsContent>
           </Tabs>
         </main>
-
-        {/* Right Sidebar */}
-        <aside className="lg:col-span-3 space-y-6 hidden lg:block">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-semibold">Reels and Short Videos</CardTitle>
-              <Button variant="ghost" size="sm">See All</Button>
-            </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-2">
-              {reels.map(reel => {
-                const img = getImage(reel.imageId);
-                return (
-                  <div 
-                    key={reel.author}
-                    className="relative aspect-[9/16] rounded-lg overflow-hidden group cursor-pointer"
-                    onClick={() => setSelectedReel(reel)}
-                  >
-                    {img && <Image src={img.imageUrl} alt={`Reel by ${reel.author}`} fill style={{ objectFit: 'cover' }} data-ai-hint={img.imageHint} />}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                    <div className="absolute bottom-2 left-2 text-white">
-                      <div className="flex items-center gap-1.5">
-                        <PlayCircle className="h-4 w-4" />
-                        <span className="text-xs font-bold">{reel.views}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-        </aside>
       </div>
     </>
   );

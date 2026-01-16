@@ -4,18 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
-import placeholderImages from '@/lib/placeholder-images.json';
 import { ClipboardCopy, DollarSign, Users, TrendingUp, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import type { AffiliateReferral } from '@/lib/types';
-
-
-const getImage = (imageId: string) => {
-  return placeholderImages.placeholderImages.find((p) => p.id === imageId);
-};
 
 const commissionLevels = [
     { level: 1, rate: '5%' },
@@ -67,8 +61,8 @@ const ReferralsPage = () => {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">$1,250.00</div>
-                <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                <div className="text-2xl font-bold">$0.00</div>
+                <p className="text-xs text-muted-foreground">Updated in real-time</p>
             </CardContent>
         </Card>
         <Card>
@@ -87,7 +81,7 @@ const ReferralsPage = () => {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">$185.50</div>
+                <div className="text-2xl font-bold">$0.00</div>
                 <p className="text-xs text-muted-foreground">Awaiting clearance</p>
             </CardContent>
         </Card>

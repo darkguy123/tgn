@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useWallet } from '@/hooks/useWallet';
-import { transactions, userWallet as mockWallet, savedCards, chartData } from '@/lib/data';
 import { 
     ArrowDownLeft, ArrowUpRight, DollarSign, Upload, CreditCard, Plus, MoreHorizontal, 
     Send, TrendingUp, TrendingDown, ClipboardCopy, Loader2, PartyPopper, Gift, Heart, User, Building, Landmark, ShieldCheck
@@ -17,28 +16,17 @@ import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import type { TGNMember, Transaction, SavedCard } from '@/lib/types';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
+import type { TGNMember, Transaction } from '@/lib/types';
 
 
 const WalletPage = () => {
+    const { user } = useUser();
     const { wallet, isLoading: isWalletLoading } = useWallet();
     const { profile, isLoading: isProfileLoading } = useMemberProfile();
     const { toast } = useToast();
@@ -46,6 +34,13 @@ const WalletPage = () => {
 
     const usersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
     const { data: allMembers, isLoading: membersLoading } = useCollection<TGNMember>(usersRef);
+    
+    const transactionsQuery = useMemoFirebase(
+        () => user ? query(collection(firestore, 'users', user.uid, 'transactions'), orderBy('createdAt', 'desc')) : null,
+        [user, firestore]
+    );
+
+    const { data: transactions, isLoading: isTransactionsLoading } = useCollection<Transaction>(transactionsQuery);
 
     // Send Money Dialog State
     const [isSendOpen, setSendOpen] = useState(false);
@@ -62,8 +57,7 @@ const WalletPage = () => {
     const [bankName, setBankName] = useState('');
     const [accountNumber, setAccountNumber] = useState('');
 
-    const displayWallet = wallet || mockWallet;
-    const isLoading = isWalletLoading || isProfileLoading || membersLoading;
+    const isLoading = isWalletLoading || isProfileLoading || membersLoading || isTransactionsLoading;
 
     // Debounce for recipient search
     useEffect(() => {
@@ -84,7 +78,7 @@ const WalletPage = () => {
         setTimeout(() => {
             const foundMember = allMembers?.find(m => m.tgnMemberId.toLowerCase() === debouncedRecipientId.toLowerCase());
             if (foundMember) {
-                setRecipient({ ...foundMember, name: getNameFromEmail(foundMember.email) });
+                setRecipient({ ...foundMember, name: foundMember.name || getNameFromEmail(foundMember.email) });
             } else {
                 setRecipient('not_found');
             }
@@ -125,11 +119,11 @@ const WalletPage = () => {
     
     const handleWithdrawRequest = () => {
         const amountNum = parseFloat(withdrawAmount);
-        if (!amountNum || amountNum <= 0) {
+        if (!wallet || !amountNum || amountNum <= 0) {
             toast({ variant: 'destructive', title: 'Invalid Amount', description: 'Please enter a valid amount to withdraw.' });
             return;
         }
-        if (amountNum > displayWallet.balance) {
+        if (amountNum > wallet.balance) {
             toast({ variant: 'destructive', title: 'Insufficient Funds', description: 'Your withdrawal amount exceeds your available balance.' });
             return;
         }
@@ -164,17 +158,12 @@ const WalletPage = () => {
              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                     <Skeleton className="h-8 w-1/3" />
-                    <div className="grid md:grid-cols-2 gap-6">
-                        <Skeleton className="h-32 w-full" />
-                        <Skeleton className="h-32 w-full" />
-                    </div>
                     <Skeleton className="h-64 w-full" />
                     <Skeleton className="h-48 w-full" />
                 </div>
                 <div className="lg:col-span-1 space-y-6">
                     <Skeleton className="h-32 w-full" />
                     <Skeleton className="h-48 w-full" />
-                    <Skeleton className="h-32 w-full" />
                 </div>
             </div>
         )
@@ -185,75 +174,10 @@ const WalletPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             <div className="lg:col-span-2 space-y-6">
                  <header>
-                    <h1 className="text-2xl font-bold tracking-tight">Overview</h1>
-                    <p className="text-muted-foreground">Good morning, {profile?.email.split('@')[0]}!</p>
+                    <h1 className="text-3xl font-bold tracking-tight">My Wallet</h1>
+                    <p className="text-muted-foreground">Manage your funds and view your transaction history.</p>
                 </header>
                 
-                <div className="grid md:grid-cols-2 gap-6">
-                    <Card>
-                         <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium">Earnings</CardTitle>
-                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">$21,500.00</div>
-                            <p className="text-xs text-muted-foreground text-green-500">+12% from last month</p>
-                        </CardContent>
-                    </Card>
-                     <Card>
-                         <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium">Spending</CardTitle>
-                            <TrendingDown className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">$5,392.00</div>
-                            <p className="text-xs text-muted-foreground text-red-500">+8% from last month</p>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Statistic</CardTitle>
-                        <Tabs defaultValue="weekly" className="w-[300px]">
-                            <TabsList>
-                                <TabsTrigger value="weekly">Weekly</TabsTrigger>
-                                <TabsTrigger value="monthly">Monthly</TabsTrigger>
-                                <TabsTrigger value="last-year">Last Year</TabsTrigger>
-                            </TabsList>
-                        </Tabs>
-                    </CardHeader>
-                    <CardContent className="pl-2">
-                        <ResponsiveContainer width="100%" height={250}>
-                            <LineChart data={chartData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'hsl(var(--muted-foreground))', fontSize: 12}} />
-                                <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `$${value}`} tick={{fill: 'hsl(var(--muted-foreground))', fontSize: 12}} />
-                                <Tooltip
-                                    cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1, strokeDasharray: '3 3' }}
-                                    content={({ active, payload, label }) =>
-                                    active && payload && payload.length ? (
-                                        <div className="rounded-lg border bg-background p-2 shadow-sm">
-                                            <div className="grid grid-cols-1 gap-1">
-                                                <div className="flex flex-col">
-                                                <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                                    {label}
-                                                </span>
-                                                <span className="font-bold text-foreground">
-                                                    {formatCurrency(payload[0].value as number)}
-                                                </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : null
-                                    }
-                                />
-                                <Line type="monotone" dataKey="amount" stroke="hsl(var(--primary))" strokeWidth={2} dot={{r: 4, fill: 'hsl(var(--primary))'}} activeDot={{ r: 6 }} />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-
                  <Card>
                     <CardHeader>
                         <CardTitle>Recent History</CardTitle>
@@ -270,7 +194,13 @@ const WalletPage = () => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {transactions.slice(0, 4).map(tx => (
+                                {isTransactionsLoading && (
+                                    <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
+                                )}
+                                {!isTransactionsLoading && transactions?.length === 0 && (
+                                    <TableRow><TableCell colSpan={4} className="text-center h-24 text-muted-foreground">No transactions yet.</TableCell></TableRow>
+                                )}
+                                {transactions?.map(tx => (
                                     <TableRow key={tx.id}>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
@@ -284,7 +214,7 @@ const WalletPage = () => {
                                         </TableCell>
                                         <TableCell>
                                             <p className="font-medium text-foreground">{tx.description}</p>
-                                            <p className="text-xs text-muted-foreground">{new Date(tx.createdAt).toLocaleString()}</p>
+                                            <p className="text-xs text-muted-foreground">{tx.createdAt?.toDate ? tx.createdAt.toDate().toLocaleString() : ''}</p>
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant={
@@ -334,8 +264,7 @@ const WalletPage = () => {
                         <CardTitle>Total Balance</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-4xl font-bold">{formatCurrency(displayWallet.balance, displayWallet.currency)}</p>
-                        <p className="text-xs text-green-500 flex items-center gap-1 mt-1"><TrendingUp className="h-3 w-3" /> 12.81% this month</p>
+                        <p className="text-4xl font-bold">{formatCurrency(wallet?.balance || 0, wallet?.currency || 'USD')}</p>
                     </CardContent>
                     <CardFooter className="flex gap-2">
                         <Dialog open={isSendOpen} onOpenChange={open => !open && resetSendFlow()}>
@@ -440,57 +369,6 @@ const WalletPage = () => {
                     </CardFooter>
                 </Card>
 
-                 <Card>
-                    <CardHeader className="flex flex-row justify-between items-center">
-                        <CardTitle className="text-sm font-medium">Your Card</CardTitle>
-                        <Button variant="ghost" size="sm">
-                            <Plus className="mr-1 h-4 w-4" />
-                            Add Card
-                        </Button>
-                    </CardHeader>
-                    <CardContent>
-                        <Carousel>
-                            <CarouselContent>
-                                {savedCards.map(card => (
-                                    <CarouselItem key={card.id}>
-                                         <div className="p-6 rounded-2xl bg-gradient-to-br from-primary to-blue-800 text-primary-foreground relative aspect-[16/9] flex flex-col justify-between">
-                                            <div>
-                                                <p className="text-sm opacity-80">Card Balance</p>
-                                                <p className="text-2xl font-bold">{formatCurrency(displayWallet.balance)}</p>
-                                            </div>
-                                            <div className="flex justify-between items-end">
-                                                <p className="font-mono tracking-widest text-lg">**** **** **** {card.last4}</p>
-                                                <p className="font-mono">{card.expiryMonth}/{card.expiryYear}</p>
-                                            </div>
-                                            <div className="absolute top-4 right-4 h-8 w-12 bg-white/20 rounded-md flex items-center justify-center">
-                                                <p className="font-bold text-xs">{card.brand.toUpperCase()}</p>
-                                            </div>
-                                        </div>
-                                    </CarouselItem>
-                                ))}
-                            </CarouselContent>
-                            <CarouselPrevious className="absolute -left-4 top-1/2 -translate-y-1/2" />
-                            <CarouselNext className="absolute -right-4 top-1/2 -translate-y-1/2" />
-                        </Carousel>
-                    </CardContent>
-                </Card>
-                
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="text-sm font-medium">Gifting & Donations</CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-2 gap-3">
-                       <Button variant="outline" className="flex-col h-20">
-                            <Gift className="h-6 w-6 mb-1" />
-                            <span>Send a Gift</span>
-                        </Button>
-                        <Button variant="outline" className="flex-col h-20">
-                            <Heart className="h-6 w-6 mb-1" />
-                           <span>Donate</span>
-                        </Button>
-                    </CardContent>
-                </Card>
-
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-sm font-medium">Withdraw</CardTitle>
@@ -523,7 +401,7 @@ const WalletPage = () => {
                                                     onChange={(e) => setWithdrawAmount(e.target.value)}
                                                 />
                                                 <p className="text-xs text-muted-foreground">
-                                                    Available balance: {formatCurrency(displayWallet.balance)}
+                                                    Available balance: {formatCurrency(wallet?.balance || 0)}
                                                 </p>
                                             </div>
                                             <div className="space-y-2">
