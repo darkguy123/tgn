@@ -77,6 +77,13 @@ export type Program = {
   deactivatedAt?: any;
 };
 
+export interface EnrolledProgram {
+  id: string; // The document ID will be the program ID
+  programId: string;
+  enrolledAt: any; // Firestore Timestamp
+  progress: number;
+}
+
 export type Post = {
   id: string;
   authorId: string;

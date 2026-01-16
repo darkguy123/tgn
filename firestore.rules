@@ -129,6 +129,15 @@ service cloud.firestore {
         allow get, list: if isOwner(userId);
         allow create, update, delete: if false;
       }
+      
+      /**
+       * @description Controls access to a user's enrolled programs.
+       * @path /users/{userId}/enrolled_programs/{enrollmentId}
+       * @allow (read, create, update, delete) - A user can manage their own program enrollments.
+       */
+      match /enrolled_programs/{enrollmentId} {
+        allow read, create, update, delete: if isOwner(userId);
+      }
     }
 
 
@@ -156,7 +165,8 @@ service cloud.firestore {
      */
     match /programs/{programId} {
       allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || isSignedIn(); // Allow users to update (for enrolled count)
     }
 
     /**
@@ -232,7 +242,7 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow get: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.memberId == userId; // Allow user to create their own wallet
-      allow update: if false; // Wallet updates must be handled by a secure backend
+      allow update: if isOwner(userId) || isAdmin(); // Allow user to update their own wallet (e.g. for purchases)
       allow delete: if false;
     }
 

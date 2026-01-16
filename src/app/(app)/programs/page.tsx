@@ -9,14 +9,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Clock, Users, Award,
   ChevronRight, Star, Calendar, ArrowLeft,
-  BookCheck, Circle, CheckCircle, GraduationCap, Video, Book
+  BookCheck, Circle, CheckCircle, GraduationCap, Video, Book, Wallet, Loader2, PartyPopper
 } from "lucide-react";
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, where, doc, runTransaction, serverTimestamp, increment, addDoc } from 'firebase/firestore';
 import placeholderImages from "@/lib/placeholder-images.json";
 import type { Program } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { useWallet } from "@/hooks/useWallet";
+import { useToast } from "@/hooks/use-toast";
 
 const getImage = (imageId: string) => {
   return placeholderImages.placeholderImages.find((p) => p.id === imageId);
@@ -25,9 +28,16 @@ const getImage = (imageId: string) => {
 const ProgramsPage = () => {
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [isEnrollDialogOpen, setEnrollDialogOpen] = useState(false);
+  const [enrollmentStep, setEnrollmentStep] = useState<'confirm' | 'success'>('confirm');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const router = useRouter();
-
   const firestore = useFirestore();
+  const { user } = useUser();
+  const { wallet, isLoading: isWalletLoading } = useWallet();
+  const { toast } = useToast();
+
   const programsCollectionRef = useMemoFirebase(() => query(collection(firestore, 'programs'), where('deactivatedAt', '==', null)), [firestore]);
   const { data: allPrograms, isLoading, error } = useCollection<Program>(programsCollectionRef);
 
@@ -43,6 +53,75 @@ const ProgramsPage = () => {
       return acc;
     }, { free: [], paid: [], executive: [] } as Record<'free' | 'paid' | 'executive', Program[]>);
   }, [allPrograms]);
+
+  const handleEnrollClick = () => {
+    if (!user) {
+      router.push('/signin?redirect=/programs');
+      return;
+    }
+    setEnrollmentStep('confirm');
+    setEnrollDialogOpen(true);
+  }
+
+  const handleConfirmEnrollment = async () => {
+    if (!user || !selectedProgram || !firestore) return;
+    
+    const price = selectedProgram.price || 0;
+    if (price > 0 && (!wallet || wallet.balance < price)) {
+        toast({ variant: 'destructive', title: 'Insufficient Funds', description: 'Your wallet balance is too low.' });
+        return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const programRef = doc(firestore, "programs", selectedProgram.id);
+            const enrollmentRef = doc(firestore, "users", user.uid, "enrolled_programs", selectedProgram.id);
+            
+            const enrollmentDoc = await transaction.get(enrollmentRef);
+            if (enrollmentDoc.exists()) {
+                throw new Error("You are already enrolled in this program.");
+            }
+
+            // Create enrollment document
+            transaction.set(enrollmentRef, {
+                programId: selectedProgram.id,
+                enrolledAt: serverTimestamp(),
+                progress: 0,
+            });
+
+            // Increment enrolled count on program
+            transaction.update(programRef, { enrolled: increment(1) });
+
+            // Handle payment if it's a paid program
+            if (price > 0 && wallet) {
+                const walletRef = doc(firestore, "wallets", user.uid);
+                const newBalance = wallet.balance - price;
+                transaction.update(walletRef, { balance: newBalance });
+
+                const transactionRef = collection(firestore, "users", user.uid, "transactions");
+                transaction.set(doc(transactionRef), {
+                    type: 'purchase',
+                    status: 'completed',
+                    amount: -price,
+                    currency: 'USD',
+                    description: `Enrollment: ${selectedProgram.title}`,
+                    createdAt: serverTimestamp(),
+                });
+            }
+        });
+
+        toast({ title: "Enrollment Successful!", description: `Welcome to ${selectedProgram.title}.` });
+        setEnrollmentStep('success');
+
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: "Enrollment Failed", description: e.message || "An unexpected error occurred." });
+        console.error(e);
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
 
 
   if (selectedProgram) {
@@ -180,7 +259,7 @@ const ProgramsPage = () => {
                     <p className="text-3xl font-bold text-accent">FREE</p>
                   </div>
                 )}
-                <Button variant="accent" className="w-full mb-3" size="lg">
+                <Button variant="accent" className="w-full mb-3" size="lg" onClick={handleEnrollClick}>
                   Enroll Now
                 </Button>
                 {(selectedProgram.format === 'Live' || selectedProgram.format === 'Hybrid') && selectedProgram.googleMeetUrl && (
@@ -201,6 +280,64 @@ const ProgramsPage = () => {
             </Card>
           </div>
         </div>
+        <Dialog open={isEnrollDialogOpen} onOpenChange={setEnrollDialogOpen}>
+            <DialogContent>
+                {enrollmentStep === 'confirm' ? (
+                <>
+                    <DialogHeader>
+                        <DialogTitle>Confirm Enrollment</DialogTitle>
+                        <DialogDescription>You are about to enroll in &quot;{selectedProgram.title}&quot;.</DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                        {selectedProgram.price && selectedProgram.price > 0 && (
+                            <>
+                                <div className="p-4 border rounded-lg flex justify-between items-center">
+                                    <span className="font-medium">Program Price</span>
+                                    <span className="font-bold text-lg">${selectedProgram.price.toFixed(2)}</span>
+                                </div>
+                                <div className="p-4 border rounded-lg flex justify-between items-center bg-muted/50">
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                        <Wallet className="h-5 w-5" />
+                                        <span>Your Wallet Balance</span>
+                                    </div>
+                                    <span className="font-semibold">{isWalletLoading ? <Skeleton className="h-5 w-20" /> : `$${wallet?.balance.toFixed(2)}`}</span>
+                                </div>
+                            </>
+                        )}
+                        {selectedProgram.price && selectedProgram.price > 0 && wallet && wallet.balance < selectedProgram.price && (
+                             <p className="text-sm text-destructive text-center">You have insufficient funds to enroll.</p>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEnrollDialogOpen(false)}>Cancel</Button>
+                        <Button
+                            variant="accent"
+                            onClick={handleConfirmEnrollment}
+                            disabled={isSubmitting || (selectedProgram.price > 0 && (!wallet || wallet.balance < selectedProgram.price))}
+                        >
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {isSubmitting ? 'Enrolling...' : 'Confirm and Enroll'}
+                        </Button>
+                    </DialogFooter>
+                </>
+                ) : (
+                <>
+                    <DialogHeader className="items-center text-center">
+                         <div className="h-14 w-14 rounded-full bg-green-100 flex items-center justify-center mb-2">
+                            <PartyPopper className="h-8 w-8 text-green-600" />
+                        </div>
+                        <DialogTitle>Enrollment Successful!</DialogTitle>
+                        <DialogDescription>
+                            You have successfully enrolled in &quot;{selectedProgram.title}&quot;.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="sm:justify-center pt-4">
+                        <Button onClick={() => { setEnrollDialogOpen(false); router.push('/cohorts'); }}>Go to My Cohorts</Button>
+                    </DialogFooter>
+                </>
+                )}
+            </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -331,16 +468,19 @@ const ProgramsPage = () => {
         </TabsContent>
 
         <TabsContent value="my-learning">
-            <Card className="flex flex-col items-center justify-center text-center py-20">
+             <Card className="flex flex-col items-center justify-center text-center py-20">
                 <CardHeader>
                     <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
                         <Book className="h-10 w-10 text-primary" />
                     </div>
-                    <CardTitle>Coming Soon</CardTitle>
+                    <CardTitle>Redirecting...</CardTitle>
                     <CardDescription>
-                        Your enrolled programs and learning progress will appear here.
+                        Taking you to your enrolled programs.
                     </CardDescription>
                 </CardHeader>
+                 <CardContent>
+                     <Button onClick={() => router.push('/cohorts')}>View My Cohorts</Button>
+                </CardContent>
             </Card>
         </TabsContent>
 

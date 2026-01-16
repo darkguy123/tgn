@@ -392,6 +392,27 @@
         "createdAt"
       ]
     },
+    "EnrolledProgram": {
+      "title": "Enrolled Program",
+      "type": "object",
+      "description": "Represents a program a member is enrolled in.",
+      "properties": {
+        "programId": {
+          "type": "string",
+          "description": "The ID of the program."
+        },
+        "enrolledAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the member enrolled."
+        },
+        "progress": {
+            "type": "number",
+            "description": "The member's progress in the program (0-100)."
+        }
+      },
+      "required": ["programId", "enrolledAt", "progress"]
+    },
     "AffiliateReferral": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AffiliateReferral",
@@ -1009,6 +1030,11 @@
         "path": "/programs/{programId}",
         "entity": "Program",
         "description": "Stores all available learning and mentorship programs. Publicly readable."
+      },
+      {
+        "path": "/users/{userId}/enrolled_programs/{enrollmentId}",
+        "entity": "EnrolledProgram",
+        "description": "Stores programs a member is enrolled in. The document ID should be the program ID. Owned by the user."
       },
       {
         "path": "/affiliate_referrals/{referralId}",
