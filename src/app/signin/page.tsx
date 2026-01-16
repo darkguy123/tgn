@@ -78,7 +78,7 @@ const AuthPage = () => {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground font-body">
       <main className="flex-1 flex items-center justify-center p-4 my-10">
-        <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 bg-card text-card-foreground rounded-2xl overflow-hidden shadow-2xl">
+        <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 bg-transparent text-card-foreground rounded-2xl overflow-hidden shadow-2xl border border-white/20">
           {/* Left Side: Form */}
           <div className="p-8 md:p-12">
              <div className="flex justify-start mb-8">
@@ -106,7 +106,7 @@ const AuthPage = () => {
                     <div className="w-full border-t border-border"></div>
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">or</span>
+                    <span className="bg-background px-2 text-muted-foreground">or</span>
                   </div>
                 </div>
 
