@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -20,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { continents, countries } from "@/lib/data";
+import { continents, countries, regions } from "@/lib/data";
 import { ArrowLeft, Check } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/icons";
@@ -118,7 +117,7 @@ export default function OnboardingPage() {
                         <SelectValue placeholder="Select your continent..." />
                     </SelectTrigger>
                     <SelectContent>
-                        {continents.map(c => <SelectItem key={c} value={c.toLowerCase()}>{c}</SelectItem>)}
+                        {continents.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                     </SelectContent>
                     </Select>
                 </div>
@@ -129,14 +128,21 @@ export default function OnboardingPage() {
                         <SelectValue placeholder="Select your country..." />
                     </SelectTrigger>
                     <SelectContent>
-                        {countries.map(c => <SelectItem key={c} value={c.toLowerCase()}>{c}</SelectItem>)}
+                        {countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                     </SelectContent>
                     </Select>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="region">Region</Label>
-                <Input id="region" name="region" placeholder="e.g., California" />
+                <Select name="region">
+                  <SelectTrigger id="region">
+                      <SelectValue placeholder="Select your region..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                      {regions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}
