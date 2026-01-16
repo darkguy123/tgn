@@ -6,13 +6,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth, useUser } from '@/firebase';
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
-} from 'firebase/auth';
+import { useAuth, useUser, initiateEmailSignUp, initiateEmailSignIn, initiateSocialSignIn } from '@/firebase';
 import { Chrome, Mail } from 'lucide-react';
 import { Logo } from '@/components/icons';
 
@@ -32,36 +26,24 @@ const AuthPage = () => {
       router.push('/onboarding');
     }
   }, [user, isUserLoading, router]);
+  
+  const handleAuthError = (error: any) => {
+    setError(error.message);
+  }
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    try {
-      if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-      }
-    } catch (error: any) {
-      setError(error.message);
+    if (isSignUp) {
+      initiateEmailSignUp(auth, email, password, handleAuthError);
+    } else {
+      initiateEmailSignIn(auth, email, password, handleAuthError);
     }
   };
 
-  const handleSocialLogin = async (providerName: 'google') => {
+  const handleSocialLogin = (providerName: 'google') => {
     setError(null);
-    let provider;
-    if (providerName === 'google') {
-      provider = new GoogleAuthProvider();
-    } else {
-      setError('Unknown provider.');
-      return;
-    }
-    
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (error: any) {
-      setError(error.message);
-    }
+    initiateSocialSignIn(auth, providerName, handleAuthError);
   };
 
   if (isUserLoading || user) {
