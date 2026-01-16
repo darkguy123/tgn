@@ -52,7 +52,7 @@ const Dashboard = () => {
                 </p>
                 <p className="text-2xl font-bold">★ 3</p>
               </div>
-              <Star className="h-8 w-8 text-yellow-300" />
+              <Star className="h-8 w-8 text-accent" />
             </div>
           </CardContent>
         </Card>
@@ -88,7 +88,7 @@ const Dashboard = () => {
                 <p className="text-muted-foreground text-sm">Wallet</p>
                 <p className="text-2xl font-bold text-foreground">$250</p>
               </div>
-              <Wallet className="h-8 w-8 text-purple-400" />
+              <Wallet className="h-8 w-8 text-accent" />
             </div>
           </CardContent>
         </Card>
@@ -142,12 +142,12 @@ const Dashboard = () => {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-purple-500">
+                      <p className="text-sm font-medium text-accent">
                         {course.progress}%
                       </p>
                       <div className="w-16 h-1.5 bg-muted rounded-full mt-1">
                         <div
-                          className="h-full bg-purple-500 rounded-full transition-all"
+                          className="h-full bg-accent rounded-full transition-all"
                           style={{ width: `${course.progress}%` }}
                         />
                       </div>
@@ -196,8 +196,8 @@ const Dashboard = () => {
                     className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                        <Calendar className="h-5 w-5 text-purple-500" />
+                      <div className="h-10 w-10 rounded-lg bg-accent/20 flex items-center justify-center">
+                        <Calendar className="h-5 w-5 text-accent" />
                       </div>
                       <div>
                         <p className="font-medium text-foreground">
@@ -269,7 +269,7 @@ const Dashboard = () => {
                     </div>
                     <p className="text-foreground mb-3">{post.content}</p>
                     <div className="flex items-center gap-4 text-muted-foreground text-sm">
-                      <button className="flex items-center gap-1 hover:text-purple-500 transition-colors">
+                      <button className="flex items-center gap-1 hover:text-accent transition-colors">
                         <Heart className="h-4 w-4" /> {post.likes}
                       </button>
                       <button className="flex items-center gap-1 hover:text-primary transition-colors">
@@ -320,7 +320,7 @@ const Dashboard = () => {
                       {item.type}
                     </p>
                   </div>
-                  <span className="text-xs font-medium text-purple-500">
+                  <span className="text-xs font-medium text-accent">
                     {item.match}
                   </span>
                 </div>
@@ -343,7 +343,7 @@ const Dashboard = () => {
                   <span className="font-medium text-foreground">65%</span>
                 </div>
                 <div className="h-2 bg-muted rounded-full">
-                  <div className="h-full w-[65%] bg-purple-500 rounded-full" />
+                  <div className="h-full w-[65%] bg-accent rounded-full" />
                 </div>
                 <div className="space-y-2 pt-2">
                   {[
@@ -365,7 +365,7 @@ const Dashboard = () => {
                       <span
                         className={cn(
                           "font-medium",
-                          item.done ? "text-purple-500" : "text-foreground"
+                          item.done ? "text-accent" : "text-foreground"
                         )}
                       >
                         {item.value}
@@ -394,11 +394,11 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-center py-4">
-                <p className="text-3xl font-bold text-purple-500">$125</p>
+                <p className="text-3xl font-bold text-accent">$125</p>
                 <p className="text-sm text-muted-foreground">Total earnings</p>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                <TrendingUp className="h-4 w-4 text-purple-500" />
+                <TrendingUp className="h-4 w-4 text-accent" />
                 <span>7-level referral preview</span>
               </div>
               <Button variant="outline" className="w-full">
@@ -407,10 +407,10 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-purple-500/30 bg-purple-500/5">
+          <Card className="border-accent/30 bg-accent/5">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
-                <Bell className="h-5 w-5 text-purple-500" />
+                <Bell className="h-5 w-5 text-accent" />
                 Announcements
               </CardTitle>
             </CardHeader>
