@@ -1,7 +1,11 @@
+
 "use server";
 
 import { generateMatchExplanation } from "@/ai/flows/mentor-mentee-match-explanations";
+import { generateRecommendations, GenerateRecommendationsInputSchema, GenerateRecommendationsOutput, MatchmakingRecommendation as AIMatchmakingRecommendation } from "@/ai/flows/generate-recommendations";
 import { z } from "zod";
+import { TGNMember, Program } from '@/lib/types';
+
 
 const explanationState = z.object({
   explanation: z.string().optional(),
@@ -46,5 +50,83 @@ export async function getMatchExplanation(
   } catch (error) {
     console.error(error);
     return { error: "An unexpected error occurred. Please try again." };
+  }
+}
+
+export type RecommendationDetails = AIMatchmakingRecommendation & {
+    id: string;
+    name: string;
+    type: "Mentor" | "Program" | "Community";
+};
+
+export type RecommendationResult = {
+    recommendations: RecommendationDetails[];
+};
+
+export async function getRecommendations(
+  member: TGNMember, 
+  allMembers: TGNMember[], 
+  allPrograms: Program[]
+): Promise<RecommendationResult | { error: string }> {
+  
+  const input = {
+    memberProfile: {
+      role: member.role,
+      purpose: member.purpose,
+      sectorPreferences: member.sectorPreferences,
+      identityProfile: member.identityProfile,
+    },
+    allMentors: allMembers.filter(m => m.role.includes('mentor')).map(m => ({
+        id: m.id,
+        role: m.role,
+        purpose: m.purpose,
+        sectorPreferences: m.sectorPreferences,
+    })),
+    allPrograms: allPrograms.map(p => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+    })),
+  };
+
+  const validatedInput = GenerateRecommendationsInputSchema.safeParse(input);
+
+  if (!validatedInput.success) {
+    console.error("Invalid input for generateRecommendations:", validatedInput.error.format());
+    return { error: "Invalid input for recommendations." };
+  }
+
+  try {
+    const result = await generateRecommendations(validatedInput.data);
+    
+    // Enrich recommendations with details for display
+    const recommendationDetails = result.recommendations.map(rec => {
+        if (rec.recommendedType === 'Mentor') {
+            const mentor = allMembers.find(m => m.id === rec.recommendedId);
+            return {
+                id: rec.recommendedId,
+                name: mentor?.email ?? 'Unknown Mentor', // Using email as name
+                type: rec.recommendedType,
+                ...rec
+            };
+        }
+        if (rec.recommendedType === 'Program') {
+            const program = allPrograms.find(p => p.id === rec.recommendedId);
+            return {
+                id: rec.recommendedId,
+                name: program?.title ?? 'Unknown Program',
+                type: rec.recommendedType,
+                ...rec
+            };
+        }
+        return null;
+    }).filter(Boolean) as RecommendationDetails[];
+
+
+    return { recommendations: recommendationDetails };
+
+  } catch (error) {
+    console.error("Error generating recommendations:", error);
+    return { error: "Failed to generate recommendations." };
   }
 }

@@ -1,6 +1,7 @@
 
+
 "use client";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -25,16 +26,20 @@ import {
   GraduationCap,
   MessageSquare,
   Shield,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { useUser } from "@/firebase";
+import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { useMemberProfile } from "@/hooks/useMemberProfile";
 import { useMentorCertification } from "@/hooks/useMentorCertification";
 import { Skeleton } from "@/components/ui/skeleton";
 import { members } from "@/lib/data";
 import placeholderImages from "@/lib/placeholder-images.json";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { collection } from 'firebase/firestore';
+import type { TGNMember, Program } from "@/lib/types";
+import { getRecommendations, RecommendationResult } from "@/app/actions";
 
 const getImage = (imageId: string) => {
     return placeholderImages.placeholderImages.find((p) => p.id === imageId);
@@ -46,6 +51,26 @@ const Dashboard = () => {
   const { certification, isLoading: isCertLoading } = useMentorCertification();
   const userName = user?.displayName?.split(" ")[0] || "Member";
   const router = useRouter();
+  const firestore = useFirestore();
+
+  const programsCollectionRef = useMemoFirebase(() => collection(firestore, 'programs'), [firestore]);
+  const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+
+  const { data: allPrograms, isLoading: programsLoading } = useCollection<Program>(programsCollectionRef);
+  const { data: allMembers, isLoading: membersLoading } = useCollection<TGNMember>(usersCollectionRef);
+
+  const [recommendations, setRecommendations] = useState<RecommendationResult | { error: string } | null>(null);
+  const [isLoadingRecs, setIsLoadingRecs] = useState(false);
+
+  useEffect(() => {
+    if (profile && allPrograms && allMembers && !recommendations && !isLoadingRecs) {
+      setIsLoadingRecs(true);
+      getRecommendations(profile, allMembers, allPrograms)
+        .then(setRecommendations)
+        .finally(() => setIsLoadingRecs(false));
+    }
+  }, [profile, allPrograms, allMembers, recommendations, isLoadingRecs]);
+
 
   const defaultProgress = {
     paidProgramsCompleted: 0,
@@ -380,18 +405,24 @@ const Dashboard = () => {
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Recommended for You</CardTitle>
               <CardDescription>
-                Mentors • Programs • Opportunities
+                AI-powered matches to accelerate your growth.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {[
-                { name: "Dr. James Okafor", type: "Mentor", match: "98%" },
-                { name: "Executive Leadership", type: "Program", match: "95%" },
-                { name: "Tech Innovators Hub", type: "Community", match: "92%" },
-              ].map((item, i) => (
+              {isLoadingRecs && (
+                 <div className="flex items-center justify-center p-4">
+                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                   <p className="ml-2 text-muted-foreground">Generating recommendations...</p>
+                 </div>
+              )}
+               {recommendations && "error" in recommendations && (
+                <p className="text-destructive text-sm">{recommendations.error}</p>
+              )}
+              {recommendations && "recommendations" in recommendations && recommendations.recommendations.map((item, i) => (
                 <div
                   key={i}
                   className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
+                  onClick={() => router.push(item.type === 'Mentor' ? `/profile/${item.id}` : `/programs`)}
                 >
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                     {item.type === "Mentor" && (
@@ -400,12 +431,9 @@ const Dashboard = () => {
                     {item.type === "Program" && (
                       <GraduationCap className="h-5 w-5 text-primary" />
                     )}
-                    {item.type === "Community" && (
-                      <Users className="h-5 w-5 text-primary" />
-                    )}
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-foreground text-sm">
+                    <p className="font-medium text-foreground text-sm truncate">
                       {item.name}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -413,10 +441,15 @@ const Dashboard = () => {
                     </p>
                   </div>
                   <span className="text-xs font-medium text-accent">
-                    {item.match}
+                    {item.matchScore}%
                   </span>
                 </div>
               ))}
+              {!recommendations && !isLoadingRecs && (
+                <div className="text-sm text-center text-muted-foreground p-4">
+                  <p>Your personalized recommendations will appear here.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -556,3 +589,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
