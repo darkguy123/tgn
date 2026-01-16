@@ -17,7 +17,7 @@ import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import type { Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, PlusCircle, PackageSearch, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, PlusCircle, PackageSearch, MoreVertical, Edit, Trash2, Megaphone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -105,6 +105,11 @@ export default function MyProductsPage() {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                            {product.approvalStatus === 'approved' && (
+                                <DropdownMenuItem onClick={() => router.push(`/ads/new?productId=${product.id}`)}>
+                                    <Megaphone className="mr-2 h-4 w-4" /> Promote
+                                </DropdownMenuItem>
+                            )}
                             {product.approvalStatus === 'rejected' && (
                                 <DropdownMenuItem onClick={() => router.push(`/marketplace/my-products/${product.id}/edit`)}>
                                     <Edit className="mr-2 h-4 w-4" /> Edit & Resubmit

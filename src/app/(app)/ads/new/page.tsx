@@ -1,9 +1,10 @@
 'use client';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import {
   Card,
   CardContent,
@@ -16,8 +17,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase } from '@/firebase';
+import { addDoc, collection, serverTimestamp, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { useWallet } from '@/hooks/useWallet';
@@ -25,6 +26,7 @@ import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FileUpload } from '@/components/ui/file-upload';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { Product } from '@/lib/types';
 
 const adSchema = z.object({
   name: z.string().min(5, 'Campaign name must be at least 5 characters'),
@@ -43,7 +45,16 @@ type AdFormData = z.infer<typeof adSchema>;
 
 export default function NewAdPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const productId = searchParams.get('productId');
   const firestore = useFirestore();
+
+  const productRef = useMemoFirebase(
+    () => (firestore && productId ? doc(firestore, 'products', productId) : null),
+    [firestore, productId]
+  );
+  const { data: product } = useDoc<Product>(productRef);
+
   const { profile } = useMemberProfile();
   const { wallet } = useWallet();
   const { toast } = useToast();
@@ -54,9 +65,27 @@ export default function NewAdPage() {
     handleSubmit,
     control,
     formState: { errors, isSubmitting },
+    reset,
+    watch,
   } = useForm<AdFormData>({
     resolver: zodResolver(adSchema),
   });
+
+  const budget = watch('budget');
+
+  useEffect(() => {
+    if (product) {
+      reset({
+        name: `Promo: ${product.name}`,
+        headline: product.name,
+        bodyText: product.description.substring(0, 200),
+        callToActionUrl: `/marketplace`,
+        callToActionText: 'View Product',
+        budget: 10,
+      });
+      setImageUrl(product.imageUrl);
+    }
+  }, [product, reset]);
 
   const onSubmit = async (data: AdFormData) => {
     if (!profile || !firestore) {
@@ -82,6 +111,7 @@ export default function NewAdPage() {
       status: 'pending' as const,
       amountSpent: 0,
       createdAt: serverTimestamp(),
+      promotedProductId: productId || undefined,
     };
 
     addDoc(adsCollection, dataToSave)
@@ -219,9 +249,15 @@ export default function NewAdPage() {
                             {errors.budget && <p className="text-sm text-destructive">{errors.budget.message}</p>}
                         </div>
                         {wallet && (
-                             <Alert variant="default" className="mt-4">
+                             <Alert variant={budget > wallet.balance ? "destructive" : "default"} className="mt-4">
+                                <AlertTriangle className="h-4 w-4" />
                                 <AlertDescription>
-                                    Your wallet balance is <strong>${wallet.balance.toFixed(2)}</strong>. This amount will be reserved from your wallet upon submission.
+                                    Your wallet balance is <strong>${wallet.balance.toFixed(2)}</strong>.
+                                    {budget > wallet.balance ? (
+                                        <span> You have insufficient funds for this budget. <Link href="/wallet" className="font-semibold underline">Top up now</Link>.</span>
+                                    ) : (
+                                        ' This amount will be reserved from your wallet upon submission.'
+                                    )}
                                 </AlertDescription>
                             </Alert>
                         )}

@@ -220,6 +220,8 @@ export interface AdCampaign {
     createdAt: any; // Firestore Timestamp
     rejectionReason?: string;
     adSize: '350x350' | '128x90' | 'skyscraper';
+    promotedProductId?: string;
+    promotedProgramId?: string;
 }
 
 export interface AffiliateReferral {
