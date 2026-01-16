@@ -50,6 +50,15 @@ const stories = [
     { name: "Minnie Armstrong", imageId: "user-3" },
     { name: "Russell Hicks", imageId: "user-6" },
     { name: "Lettie Christensen", imageId: "user-7" },
+    { name: "Sarah Williams", imageId: "user-5" },
+    { name: "David Okonkwo", imageId: "user-4" },
+]
+
+const reels = [
+    { author: 'Sarah Chen', imageId: 'product-2', views: '1.2M' },
+    { author: 'David Okonkwo', imageId: 'product-4', views: '890K' },
+    { author: 'Elena Rodriguez', imageId: 'program-global-business', views: '540K' },
+    { author: 'James Chen', imageId: 'program-business-strategy', views: '320K' },
 ]
 
 const posts = [
@@ -138,6 +147,30 @@ export default function CommunityPage() {
 
       {/* Main Feed */}
       <main className="lg:col-span-6 space-y-6">
+        <div className="flex space-x-4 p-4 bg-card rounded-lg overflow-x-auto">
+            <div className="flex flex-col items-center space-y-1 flex-shrink-0 w-20 text-center">
+                <button className="h-16 w-16 rounded-full bg-muted flex items-center justify-center border-2 border-dashed border-primary">
+                    <PlusCircle className="h-8 w-8 text-primary" />
+                </button>
+                <p className="text-xs font-medium truncate w-full">Create Story</p>
+            </div>
+            {stories.map(story => {
+                const img = getImage(story.imageId);
+                return (
+                    <div key={story.name} className="flex flex-col items-center space-y-1 flex-shrink-0 w-20 text-center">
+                        <div className="p-0.5 border-2 border-primary rounded-full">
+                            <Avatar className="h-16 w-16">
+                                {img && <AvatarImage src={img.imageUrl} />}
+                                <AvatarFallback>{story.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                        </div>
+                        <p className="text-xs font-medium text-muted-foreground truncate w-full">{story.name}</p>
+                    </div>
+                )
+            })}
+        </div>
+
+
         <Card>
             <CardContent className="p-4 flex items-center gap-3">
                  <Avatar className="h-10 w-10">
@@ -231,35 +264,25 @@ export default function CommunityPage() {
       <aside className="lg:col-span-3 space-y-6 hidden lg:block">
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-sm font-semibold">Stories</CardTitle>
-                 <Button variant="ghost" size="sm">See All</Button>
+                <CardTitle className="text-sm font-semibold">Reels and Short Videos</CardTitle>
+                <Button variant="ghost" size="sm">See All</Button>
             </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="flex items-center gap-3">
-                    <button className="h-12 w-12 rounded-full bg-muted flex items-center justify-center border-2 border-dashed border-primary">
-                        <PlusCircle className="h-6 w-6 text-primary" />
-                    </button>
-                    <div>
-                        <p className="font-medium text-sm">Create Your Story</p>
-                        <p className="text-xs text-muted-foreground">Click button beside to create yours.</p>
-                    </div>
-                </div>
-                 {stories.map(story => {
-                     const storyAuthor = members.find(m => m.name.includes(story.name.split(' ')[0]));
-                     const img = getImage(story.imageId);
-                     return (
-                        <div key={story.name} className="flex items-center gap-3">
-                            <Avatar className="h-12 w-12 border-2 border-primary">
-                                <AvatarImage src={img?.imageUrl} />
-                                <AvatarFallback>{story.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                             <div>
-                                <p className="font-medium text-sm">{story.name}</p>
-                                <p className="text-xs text-muted-foreground">12 April at 09:28 PM</p>
+            <CardContent className="grid grid-cols-2 gap-2">
+                {reels.map(reel => {
+                    const img = getImage(reel.imageId);
+                    return (
+                        <div key={reel.author} className="relative aspect-[9/16] rounded-lg overflow-hidden group">
+                            {img && <Image src={img.imageUrl} alt={`Reel by ${reel.author}`} fill style={{objectFit: 'cover'}} data-ai-hint={img.imageHint} />}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                            <div className="absolute bottom-2 left-2 text-white">
+                                <div className="flex items-center gap-1.5">
+                                   <PlayCircle className="h-4 w-4" />
+                                   <span className="text-xs font-bold">{reel.views}</span>
+                                </div>
                             </div>
                         </div>
-                     )
-                 })}
+                    )
+                })}
             </CardContent>
         </Card>
         <Card>
