@@ -76,7 +76,8 @@
         "signInType",
         "email",
         "locationContinent",
-        "locationCountry"
+        "locationCountry",
+        "createdAt"
       ]
     },
     "Sector": {
@@ -113,9 +114,9 @@
           "type": "string",
           "description": "Unique identifier for the program."
         },
-        "name": {
+        "title": {
           "type": "string",
-          "description": "Name of the program."
+          "description": "Title of the program."
         },
         "description": {
           "type": "string",
@@ -140,13 +141,33 @@
             "Hybrid"
           ]
         },
-        "mentorId": {
+        "mentor": {
           "type": "string",
-          "description": "Reference to the TGN Member who is the primary mentor for this program."
+          "description": "The name of the primary mentor for this program."
         },
         "price": {
           "type": "number",
           "description": "Price of the program (if applicable)."
+        },
+        "enrolled": {
+          "type": "number",
+          "description": "Number of members enrolled in the program."
+        },
+        "rating": {
+          "type": "number",
+          "description": "Average user rating for the program (1-5)."
+        },
+        "duration": {
+          "type": "string",
+          "description": "Estimated duration of the program (e.g., '4 weeks')."
+        },
+        "imageId": {
+          "type": "string",
+          "description": "Reference to an image in placeholder-images.json."
+        },
+        "certified": {
+          "type": "boolean",
+          "description": "Indicates if the program offers a certification upon completion."
         },
         "createdAt": {
           "type": "string",
@@ -166,11 +187,12 @@
       },
       "required": [
         "id",
-        "name",
+        "title",
         "description",
         "type",
         "format",
-        "mentorId"
+        "mentor",
+        "createdAt"
       ]
     },
     "AffiliateReferral": {

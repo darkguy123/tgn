@@ -53,7 +53,7 @@ export type Program = {
   description: string;
   format: 'Live' | 'Pre-recorded' | 'Self-paced' | 'Hybrid';
   type: 'Free' | 'Paid' | 'Executive';
-  createdAt?: string;
+  createdAt: string;
   updatedAt?: string;
   deactivatedAt?: string;
 };

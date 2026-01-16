@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import {
   Card,
   CardContent,
@@ -15,7 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { programs as PROGRAMS_BY_TYPE } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import {
@@ -25,10 +25,20 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-
-const allPrograms = Object.values(PROGRAMS_BY_TYPE).flat();
+import { useCollection, useFirestore } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import type { Program } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminProgramsPage() {
+  const firestore = useFirestore();
+  const programsRef = collection(firestore, 'programs');
+  const {
+    data: programs,
+    isLoading,
+    error,
+  } = useCollection<Program>(programsRef);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -40,9 +50,11 @@ export default function AdminProgramsPage() {
             Create, edit, and manage all learning programs.
           </p>
         </div>
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Create Program
+        <Button asChild>
+          <Link href="/admin/programs/new">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Create Program
+          </Link>
         </Button>
       </div>
 
@@ -68,7 +80,44 @@ export default function AdminProgramsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allPrograms.map(program => (
+              {isLoading &&
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell>
+                      <Skeleton className="h-4 w-32" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-20" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-24" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-16" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-12" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-8 w-8" />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              {error && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-destructive">
+                    Failed to load programs.
+                  </TableCell>
+                </TableRow>
+              )}
+              {!isLoading && programs?.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    No programs found.
+                  </TableCell>
+                </TableRow>
+              )}
+              {programs?.map(program => (
                 <TableRow key={program.id}>
                   <TableCell className="font-medium">{program.title}</TableCell>
                   <TableCell>
@@ -88,7 +137,7 @@ export default function AdminProgramsPage() {
                   <TableCell>
                     {program.price ? `$${program.price}` : 'Free'}
                   </TableCell>
-                  <TableCell>{program.enrolled}</TableCell>
+                  <TableCell>{program.enrolled || 0}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -103,7 +152,9 @@ export default function AdminProgramsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                           <Link href={`/admin/programs/${program.id}/edit`}>Edit</Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem>Deactivate</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive">
                           Delete
