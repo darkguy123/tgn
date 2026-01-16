@@ -119,7 +119,7 @@ export type ChatMessage = {
 
 export interface Chat {
   id: string;
-  participantIds: string[];
+  members: string[];
   lastMessage?: {
     text: string;
     senderId: string;

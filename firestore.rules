@@ -346,44 +346,17 @@ service cloud.firestore {
     // Chat Data
     // ------------------------------------------------------------------------
 
-    function isChatParticipant() {
-      // This rule works in conjunction with a client-side query
-      // that includes `where('participantIds', 'array-contains', request.auth.uid)`.
-      // Firestore can then prove that any document returned by the query
-      // will satisfy this security rule.
-      return request.auth.uid in resource.data.participantIds;
-    }
-    
-    function isChatParticipantById(chatId) {
-      let chatDoc = get(/databases/$(database)/documents/chats/$(chatId)).data;
-      // This is a defensive check to ensure a malformed document doesn't grant access.
-      return 'participantIds' in chatDoc &&
-             chatDoc.participantIds is list &&
-             request.auth.uid in chatDoc.participantIds;
-    }
-
     match /chats/{chatId} {
-      // A user can create a chat if they are one of the participants.
-      allow create: if isOwner(request.auth.uid) && request.auth.uid in request.resource.data.participantIds;
-
-      // A user can read or update a chat if they are a participant.
-      // The `read` rule is used for both `get` and `list` operations.
-      // For `list`, the client query MUST include `where('participantIds', 'array-contains', request.auth.uid)`.
-      allow read, update: if isChatParticipant();
-      
-      allow delete: if false;
+      // A user can read or write to a chat if their UID is in the `members` array.
+      // This rule supports both `get` and `list` queries. For `list`, the client
+      // query MUST include `where('members', 'array-contains', request.auth.uid)`.
+      allow read, write: if isSignedIn() && request.auth.uid in resource.data.members;
 
       match /messages/{messageId} {
-        // A user can read messages in a chat they are a participant of.
-        // This requires a `get` call to the parent chat document.
-        allow read: if isChatParticipantById(chatId);
-
-        // A user can create a message in a chat they are a participant of,
-        // and they must be the sender.
-        allow create: if isChatParticipantById(chatId) && request.resource.data.senderId == request.auth.uid;
-                      
-        // A message can only be updated or deleted by its original sender or an admin.
-        allow update, delete: if (isChatParticipantById(chatId) && resource.data.senderId == request.auth.uid) || isAdmin();
+        // A user can read/write messages in a chat they are a member of.
+        // This requires a `get` call to the parent chat document to check the `members` array.
+        allow read, write: if isSignedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
       }
     }
 

@@ -118,13 +118,15 @@ export default function ChatPage() {
     
     // Create chat document if it doesn't exist
     if (!chatData) {
-        setDoc(chatDocRef, {
-            participantIds: [currentUser.uid, otherMemberId],
-        }).catch((e) => {
+        const dataToSave = {
+            members: [currentUser.uid, otherMemberId],
+            typing: {},
+        };
+        setDoc(chatDocRef, dataToSave).catch((e) => {
             const permissionError = new FirestorePermissionError({
                 path: chatDocRef.path,
                 operation: 'create',
-                requestResourceData: { participantIds: [currentUser.uid, otherMemberId] }
+                requestResourceData: dataToSave
             });
             errorEmitter.emit('permission-error', permissionError);
         });

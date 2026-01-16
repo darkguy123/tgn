@@ -16,8 +16,8 @@ function ChatListItem({ chat }: { chat: Chat }) {
   const firestore = useFirestore();
 
   const otherParticipantId = useMemo(() => {
-    return chat.participantIds.find(id => id !== currentUser?.uid);
-  }, [chat.participantIds, currentUser]);
+    return chat.members.find(id => id !== currentUser?.uid);
+  }, [chat.members, currentUser]);
 
   const otherUserRef = useMemoFirebase(
     () => (otherParticipantId ? doc(firestore, 'users', otherParticipantId) : null),
@@ -80,7 +80,7 @@ export default function ChatListPage() {
       user
         ? query(
             collection(firestore, 'chats'),
-            where('participantIds', 'array-contains', user.uid),
+            where('members', 'array-contains', user.uid),
             where('lastMessage.timestamp', '>', Timestamp.fromMillis(0)),
             orderBy('lastMessage.timestamp', 'desc')
           )

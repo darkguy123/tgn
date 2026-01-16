@@ -933,7 +933,7 @@
       "type": "object",
       "description": "Represents a private chat session between two or more members.",
       "properties": {
-        "participantIds": {
+        "members": {
           "type": "array",
           "items": { "type": "string" },
           "description": "Array of member UIDs who are part of the chat."
@@ -954,7 +954,7 @@
             }
         }
       },
-      "required": ["participantIds"]
+      "required": ["members"]
     },
     "ChatMessage": {
       "title": "ChatMessage",
@@ -1099,7 +1099,7 @@
       {
         "path": "/chats/{chatId}",
         "entity": "Chat",
-        "description": "Stores metadata for private chat sessions between members. The chatId is a composite key of participant UIDs."
+        "description": "Stores metadata for private chat sessions between members. Access is controlled by the 'members' array."
       },
       {
         "path": "/chats/{chatId}/messages/{messageId}",
