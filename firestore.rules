@@ -346,26 +346,23 @@ service cloud.firestore {
     // Chat Data
     // ------------------------------------------------------------------------
     match /chats/{chatId} {
-      // Chat document can be created by a participant.
-      // participantIds array must contain the requesting user's UID.
+      // A user can create a chat if they are one of the participants.
       allow create: if request.auth.uid in request.resource.data.participantIds;
 
-      // Chat metadata can be read or updated by participants.
-      // For list queries, this rule requires a query with `where('participantIds', 'array-contains', request.auth.uid)`
-      allow read, update: if 'participantIds' in resource.data &&
-                          resource.data.participantIds is list &&
-                          request.auth.uid in resource.data.participantIds;
+      // A user can read or update a chat's metadata (like typing indicators)
+      // if they are a participant.
+      // This rule requires the client to query using:
+      // where('participantIds', 'array-contains', request.auth.uid)
+      allow read, update: if request.auth.uid in resource.data.participantIds;
 
       match /messages/{messageId} {
-        // Messages can be read by any participant of the chat.
-        allow read: if 'participantIds' in get(/databases/$(database)/documents/chats/$(chatId)).data &&
-                      get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds is list &&
-                      request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds;
+        // A user can read messages in a chat they are a participant of.
+        // This performs a document read, which is efficient for securing subcollections.
+        allow read: if request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds;
 
-        // A participant can create a message and must be the sender.
-        allow create: if ('participantIds' in get(/databases/$(database)/documents/chats/$(chatId)).data &&
-                       get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds is list &&
-                       request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds)
+        // A user can create a message in a chat they are a participant of,
+        // and they must be the sender.
+        allow create: if request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds
                       && request.resource.data.senderId == request.auth.uid;
                       
         // A message can only be updated or deleted by its original sender or an admin.
