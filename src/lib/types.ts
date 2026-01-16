@@ -39,11 +39,15 @@ export type Product = {
 
 export type Program = {
   id: string;
-  name: string;
-  description: string;
+  title: string;
   mentor: string;
-  type: 'Free' | 'Paid' | 'Executive';
-  format: 'Live' | 'Pre-recorded' | 'Self-paced' | 'Hybrid';
+  duration: string;
+  enrolled: number;
+  rating: number;
+  certified: boolean;
   price?: number;
   imageId: string;
+  description: string;
+  format: 'Live' | 'Pre-recorded' | 'Self-paced' | 'Hybrid';
+  type: 'Free' | 'Paid' | 'Executive';
 };

@@ -73,34 +73,58 @@
       "imageHint": "team meeting"
     },
     {
-      "id": "auth-background",
-      "description": "Abstract background for authentication page",
+      "id": "auth-background-futuristic",
+      "description": "Abstract futuristic background for authentication page",
       "imageUrl": "https://images.unsplash.com/photo-1535223289827-42f1e9919769?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxhYnN0cmFjdCUyMHRlY2hub2xvZ3l8ZW58MHx8fHwxNzE3Nzc0NTU4fDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "abstract technology"
     },
     {
-      "id": "program-leadership",
-      "description": "Program image for Executive Leadership Circle",
-      "imageUrl": "https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80",
-      "imageHint": "leadership meeting"
-    },
-    {
-      "id": "program-startup",
-      "description": "Program image for Startup Founder 101",
-      "imageUrl": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2232&q=80",
-      "imageHint": "startup team"
-    },
-    {
       "id": "program-mentorship",
       "description": "Program image for Introduction to Mentorship",
-      "imageUrl": "https://images.unsplash.com/photo-1516321497487-e288fb19713f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80",
+      "imageUrl": "https://images.unsplash.com/photo-1516321497487-e288fb19713f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80",
       "imageHint": "people collaborating"
     },
     {
-      "id": "program-agritech",
-      "description": "Program image for Agri-Tech Innovation",
-      "imageUrl": "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80",
-      "imageHint": "agriculture technology"
+      "id": "program-personal-branding",
+      "description": "Program image for Personal Branding Basics",
+      "imageUrl": "https://images.unsplash.com/photo-1589998059171-988d887df646?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80",
+      "imageHint": "personal brand"
+    },
+    {
+      "id": "program-goal-setting",
+      "description": "Program image for Goal Setting Masterclass",
+      "imageUrl": "https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80",
+      "imageHint": "team goals"
+    },
+    {
+      "id": "program-leadership",
+      "description": "Program image for Leadership Fundamentals",
+      "imageUrl": "https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80",
+      "imageHint": "leadership meeting"
+    },
+    {
+      "id": "program-business-strategy",
+      "description": "Program image for Business Strategy 101",
+      "imageUrl": "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80",
+      "imageHint": "business chart"
+    },
+    {
+      "id": "program-executive-communication",
+      "description": "Program image for Executive Communication",
+      "imageUrl": "https://images.unsplash.com/photo-1543269865-cbf427effbad?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80",
+      "imageHint": "public speaking"
+    },
+    {
+      "id": "program-c-suite",
+      "description": "Program image for C-Suite Leadership Program",
+      "imageUrl": "https://images.unsplash.com/photo-1521791136064-7986c2920216?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80",
+      "imageHint": "boardroom meeting"
+    },
+    {
+      "id": "program-global-business",
+      "description": "Program image for Global Business Transformation",
+      "imageUrl": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80",
+      "imageHint": "global team"
     }
   ]
 }
