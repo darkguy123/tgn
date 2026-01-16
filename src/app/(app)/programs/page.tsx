@@ -111,6 +111,18 @@ const ProgramsPage = () => {
                   </TabsList>
 
                   <TabsContent value="overview" className="space-y-4">
+                    {selectedProgram.preRecordedVideoUrl && (selectedProgram.format === 'Pre-recorded' || selectedProgram.format === 'Hybrid') && (
+                        <div className="aspect-video w-full rounded-lg overflow-hidden border bg-muted">
+                            <iframe
+                                className="w-full h-full"
+                                src={selectedProgram.preRecordedVideoUrl.replace("watch?v=", "embed/")}
+                                title="Program Video"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            ></iframe>
+                        </div>
+                    )}
                     <p className="text-muted-foreground">
                       {selectedProgram.description}
                     </p>

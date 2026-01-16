@@ -70,6 +70,7 @@ export type Program = {
   format: 'Live' | 'Pre-recorded' | 'Self-paced' | 'Hybrid';
   type: 'Free' | 'Paid' | 'Executive';
   googleMeetUrl?: string;
+  preRecordedVideoUrl?: string;
   createdAt: any;
   updatedAt?: any;
   deactivatedAt?: any;

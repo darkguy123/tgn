@@ -273,6 +273,11 @@
           "format": "uri",
           "description": "URL for the Google Meet live session."
         },
+        "preRecordedVideoUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the pre-recorded video for the program."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",

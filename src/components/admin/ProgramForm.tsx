@@ -47,6 +47,7 @@ const programSchema = z.object({
   certified: z.boolean().default(false),
   imageId: z.string().min(1, 'Image ID is required'),
   googleMeetUrl: z.string().url("Please enter a valid URL.").optional().or(z.literal('')),
+  preRecordedVideoUrl: z.string().url("Please enter a valid URL.").optional().or(z.literal('')),
 });
 
 type ProgramFormData = z.infer<typeof programSchema>;
@@ -69,6 +70,7 @@ export function ProgramForm({ initialData, onSave }: ProgramFormProps) {
       ...initialData,
       price: initialData?.price ?? undefined,
       googleMeetUrl: initialData?.googleMeetUrl ?? '',
+      preRecordedVideoUrl: initialData?.preRecordedVideoUrl ?? '',
     },
   });
 
@@ -212,6 +214,19 @@ export function ProgramForm({ initialData, onSave }: ProgramFormProps) {
             )}
           </div>
 
+          <div className="md:col-span-2 space-y-2">
+            <Label htmlFor="preRecordedVideoUrl">Pre-recorded Video URL</Label>
+            <Input
+              id="preRecordedVideoUrl"
+              type="url"
+              {...register('preRecordedVideoUrl')}
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
+            {errors.preRecordedVideoUrl && (
+              <p className="text-sm text-destructive">{errors.preRecordedVideoUrl.message}</p>
+            )}
+          </div>
+
           <div className="flex items-center space-x-2 pt-4">
              <Controller
               name="certified"
@@ -243,5 +258,3 @@ export function ProgramForm({ initialData, onSave }: ProgramFormProps) {
     </form>
   );
 }
-
-    
