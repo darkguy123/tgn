@@ -57,6 +57,7 @@ const NAV_ITEMS = [
   { id: 'certification', label: 'Certification', icon: Award, path: '/certification' },
   { id: 'referrals', label: 'Referrals', icon: Share2, path: '/referrals' },
   { id: 'wallet', label: 'Wallet', icon: Wallet, path: '/wallet' },
+  { id: 'settings', label: 'Settings', icon: Settings, path: '/settings/profile' },
 ];
 
 interface DashboardLayoutProps {
