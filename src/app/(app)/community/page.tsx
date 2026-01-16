@@ -46,6 +46,7 @@ import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { Separator } from '@/components/ui/separator';
 import type { Story, ChatConversation } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const communityNavItems = [
   { label: 'Feed', icon: LayoutGrid, path: '/community' },
@@ -499,130 +500,275 @@ export default function CommunityPage() {
             </div>
           </Card>
 
-          {posts.map(post => {
-            if (!post.author) return null;
-            const authorImage = getImage(post.author.imageId);
-            return (
-              <Card key={post.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-start gap-3">
-                      <Avatar>
-                        {authorImage && (
-                          <AvatarImage src={authorImage.imageUrl} />
-                        )}
-                        <AvatarFallback>
-                          {post.author.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <Link href={`/profile/${post.author.id}`}>
-                          <h4 className="font-semibold hover:underline">
-                            {post.author.name}
-                          </h4>
-                        </Link>
-                        <p className="text-xs text-muted-foreground">
-                          {post.timestamp}
-                        </p>
+          <Tabs defaultValue="all" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-muted/80">
+              <TabsTrigger value="all">All Members</TabsTrigger>
+              <TabsTrigger value="mentors">Mentors Only</TabsTrigger>
+            </TabsList>
+            <TabsContent value="all" className="mt-6 space-y-6">
+              {posts.map(post => {
+                if (!post.author) return null;
+                const authorImage = getImage(post.author.imageId);
+                return (
+                  <Card key={post.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-start gap-3">
+                          <Avatar>
+                            {authorImage && (
+                              <AvatarImage src={authorImage.imageUrl} />
+                            )}
+                            <AvatarFallback>
+                              {post.author.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <Link href={`/profile/${post.author.id}`}>
+                              <h4 className="font-semibold hover:underline">
+                                {post.author.name}
+                              </h4>
+                            </Link>
+                            <p className="text-xs text-muted-foreground">
+                              {post.timestamp}
+                            </p>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-5 w-5" />
+                        </Button>
                       </div>
-                    </div>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-5 w-5" />
-                    </Button>
-                  </div>
 
-                  <p className="text-sm mb-4">{post.content}</p>
+                      <p className="text-sm mb-4">{post.content}</p>
 
-                  {post.images && post.images.length > 0 && (
-                    <div
-                      className={`grid gap-2 grid-cols-${
-                        post.images.length > 1 ? 2 : 1
-                      } mb-4`}
-                    >
-                      {post.images.map(imgId => {
-                        const img = getImage(imgId);
-                        return img ? (
-                          <Image
-                            key={imgId}
-                            src={img.imageUrl}
-                            alt="Post image"
-                            width={400}
-                            height={300}
-                            className="rounded-lg object-cover w-full aspect-[4/3]"
-                            data-ai-hint={img.imageHint}
+                      {post.images && post.images.length > 0 && (
+                        <div
+                          className={`grid gap-2 grid-cols-${
+                            post.images.length > 1 ? 2 : 1
+                          } mb-4`}
+                        >
+                          {post.images.map(imgId => {
+                            const img = getImage(imgId);
+                            return img ? (
+                              <Image
+                                key={imgId}
+                                src={img.imageUrl}
+                                alt="Post image"
+                                width={400}
+                                height={300}
+                                className="rounded-lg object-cover w-full aspect-[4/3]"
+                                data-ai-hint={img.imageHint}
+                              />
+                            ) : null;
+                          })}
+                        </div>
+                      )}
+
+                      <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                        <div className="flex gap-4">
+                          <span>{post.comments} Comments</span>
+                          <span>
+                            {Intl.NumberFormat('en-US', {
+                              notation: 'compact',
+                              maximumFractionDigits: 1,
+                            }).format(post.likes)}{' '}
+                            Likes
+                          </span>
+                          <span>{post.shares} Share</span>
+                        </div>
+                        <span>{post.saves} Saved</span>
+                      </div>
+
+                      <Separator className="mb-2" />
+
+                      <div className="flex justify-around">
+                        <Button
+                          variant="ghost"
+                          className="flex-1 flex items-center gap-2 text-muted-foreground"
+                        >
+                          <MessageSquare className="h-5 w-5" /> Comment
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="flex-1 flex items-center gap-2 text-muted-foreground"
+                        >
+                          <ThumbsUp className="h-5 w-5" /> Like
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="flex-1 flex items-center gap-2 text-muted-foreground"
+                        >
+                          <Share2 className="h-5 w-5" /> Share
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="flex-1 flex items-center gap-2 text-muted-foreground"
+                        >
+                          <Bookmark className="h-5 w-5" /> Save
+                        </Button>
+                      </div>
+                      <Separator className="mt-2" />
+                      <div className="mt-4 flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage
+                            src={
+                              getImage(
+                                members.find(m => m.tgnId === profile?.tgnMemberId)
+                                  ?.imageId ?? 'user-1'
+                              )?.imageUrl
+                            }
                           />
-                        ) : null;
-                      })}
-                    </div>
-                  )}
+                          <AvatarFallback>
+                            {profile?.email.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <Input
+                          placeholder="Write your comment..."
+                          className="h-10 rounded-full bg-muted border-none"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </TabsContent>
+            <TabsContent value="mentors" className="mt-6 space-y-6">
+              {posts
+                .filter(post => post.author?.role.includes('Mentor'))
+                .map(post => {
+                if (!post.author) return null;
+                const authorImage = getImage(post.author.imageId);
+                return (
+                  <Card key={post.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-start gap-3">
+                          <Avatar>
+                            {authorImage && (
+                              <AvatarImage src={authorImage.imageUrl} />
+                            )}
+                            <AvatarFallback>
+                              {post.author.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <Link href={`/profile/${post.author.id}`}>
+                              <h4 className="font-semibold hover:underline">
+                                {post.author.name}
+                              </h4>
+                            </Link>
+                            <p className="text-xs text-muted-foreground">
+                              {post.timestamp}
+                            </p>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-5 w-5" />
+                        </Button>
+                      </div>
 
-                  <div className="flex justify-between text-sm text-muted-foreground mb-2">
-                    <div className="flex gap-4">
-                      <span>{post.comments} Comments</span>
-                      <span>
-                        {Intl.NumberFormat('en-US', {
-                          notation: 'compact',
-                          maximumFractionDigits: 1,
-                        }).format(post.likes)}{' '}
-                        Likes
-                      </span>
-                      <span>{post.shares} Share</span>
-                    </div>
-                    <span>{post.saves} Saved</span>
-                  </div>
+                      <p className="text-sm mb-4">{post.content}</p>
 
-                  <Separator className="mb-2" />
+                      {post.images && post.images.length > 0 && (
+                        <div
+                          className={`grid gap-2 grid-cols-${
+                            post.images.length > 1 ? 2 : 1
+                          } mb-4`}
+                        >
+                          {post.images.map(imgId => {
+                            const img = getImage(imgId);
+                            return img ? (
+                              <Image
+                                key={imgId}
+                                src={img.imageUrl}
+                                alt="Post image"
+                                width={400}
+                                height={300}
+                                className="rounded-lg object-cover w-full aspect-[4/3]"
+                                data-ai-hint={img.imageHint}
+                              />
+                            ) : null;
+                          })}
+                        </div>
+                      )}
 
-                  <div className="flex justify-around">
-                    <Button
-                      variant="ghost"
-                      className="flex-1 flex items-center gap-2 text-muted-foreground"
-                    >
-                      <MessageSquare className="h-5 w-5" /> Comment
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="flex-1 flex items-center gap-2 text-muted-foreground"
-                    >
-                      <ThumbsUp className="h-5 w-5" /> Like
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="flex-1 flex items-center gap-2 text-muted-foreground"
-                    >
-                      <Share2 className="h-5 w-5" /> Share
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="flex-1 flex items-center gap-2 text-muted-foreground"
-                    >
-                      <Bookmark className="h-5 w-5" /> Save
-                    </Button>
-                  </div>
-                  <Separator className="mt-2" />
-                  <div className="mt-4 flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage
-                        src={
-                          getImage(
-                            members.find(m => m.tgnId === profile?.tgnMemberId)
-                              ?.imageId ?? 'user-1'
-                          )?.imageUrl
-                        }
-                      />
-                      <AvatarFallback>
-                        {profile?.email.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <Input
-                      placeholder="Write your comment..."
-                      className="h-10 rounded-full bg-muted border-none"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                      <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                        <div className="flex gap-4">
+                          <span>{post.comments} Comments</span>
+                          <span>
+                            {Intl.NumberFormat('en-US', {
+                              notation: 'compact',
+                              maximumFractionDigits: 1,
+                            }).format(post.likes)}{' '}
+                            Likes
+                          </span>
+                          <span>{post.shares} Share</span>
+                        </div>
+                        <span>{post.saves} Saved</span>
+                      </div>
+
+                      <Separator className="mb-2" />
+
+                      <div className="flex justify-around">
+                        <Button
+                          variant="ghost"
+                          className="flex-1 flex items-center gap-2 text-muted-foreground"
+                        >
+                          <MessageSquare className="h-5 w-5" /> Comment
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="flex-1 flex items-center gap-2 text-muted-foreground"
+                        >
+                          <ThumbsUp className="h-5 w-5" /> Like
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="flex-1 flex items-center gap-2 text-muted-foreground"
+                        >
+                          <Share2 className="h-5 w-5" /> Share
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="flex-1 flex items-center gap-2 text-muted-foreground"
+                        >
+                          <Bookmark className="h-5 w-5" /> Save
+                        </Button>
+                      </div>
+                      <Separator className="mt-2" />
+                      <div className="mt-4 flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage
+                            src={
+                              getImage(
+                                members.find(m => m.tgnId === profile?.tgnMemberId)
+                                  ?.imageId ?? 'user-1'
+                              )?.imageUrl
+                            }
+                          />
+                          <AvatarFallback>
+                            {profile?.email.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <Input
+                          placeholder="Write your comment..."
+                          className="h-10 rounded-full bg-muted border-none"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+              {posts.filter(p => p.author?.role.includes('Mentor')).length === 0 && (
+                <Card>
+                  <CardContent className="p-10 text-center text-muted-foreground">
+                    <p>This feed is exclusively for mentors.</p>
+                    <p>No posts from mentors to show right now.</p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
+
         </main>
 
         {/* Right Sidebar */}
