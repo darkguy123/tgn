@@ -8,6 +8,12 @@ import {
   Users, Calendar, CheckSquare, Video, MessageSquare,
   Clock, Play, FileText, Award
 } from "lucide-react";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, limit, query } from "firebase/firestore";
+import type { TGNMember } from "@/lib/types";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import placeholderImages from "@/lib/placeholder-images.json";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const COHORT_SESSIONS = [
   { id: 1, title: "Week 4: Leadership Essentials", date: "Today, 3:00 PM", type: "Live", status: "upcoming" },
@@ -23,13 +29,6 @@ const TASKS = [
   { id: 4, title: "Weekly reflection journal", due: "Jan 6", completed: true },
 ];
 
-const ACCOUNTABILITY_GROUP = [
-  { name: "Maria Santos", role: "Accountability Partner", avatar: "M" },
-  { name: "David Kim", role: "Group Member", avatar: "D" },
-  { name: "Elena Rodriguez", role: "Group Member", avatar: "E" },
-  { name: "James Chen", role: "Group Member", avatar: "J" },
-];
-
 const BREAKOUT_ROOMS = [
   { id: 1, name: "Strategy Discussion", participants: 4, active: true },
   { id: 2, name: "Case Study Review", participants: 3, active: true },
@@ -38,12 +37,27 @@ const BREAKOUT_ROOMS = [
 
 const CohortsPage = () => {
   const [tasks, setTasks] = useState(TASKS);
+  const firestore = useFirestore();
+
+  // Let's fetch some users to act as the accountability group
+  const membersQuery = useMemoFirebase(() => query(collection(firestore, 'users'), limit(4)), [firestore]);
+  const { data: accountabilityGroup, isLoading: isGroupLoading } = useCollection<TGNMember>(membersQuery);
+
 
   const toggleTask = (taskId: number) => {
     setTasks(tasks.map(task => 
       task.id === taskId ? { ...task, completed: !task.completed } : task
     ));
   };
+
+  const getImage = (imageId?: string) => {
+    if (!imageId) return null;
+    return placeholderImages.placeholderImages.find((p) => p.id === imageId);
+  };
+  
+  const getName = (member: TGNMember) => {
+    return member.name || member.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  }
 
   return (
     <>
@@ -207,24 +221,42 @@ const CohortsPage = () => {
               <CardDescription>Your support network</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-2 gap-4">
-                {ACCOUNTABILITY_GROUP.map((member, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
-                        {member.avatar}
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">{member.name}</p>
-                        <p className="text-sm text-muted-foreground">{member.role}</p>
+              {isGroupLoading ? (
+                 <div className="grid md:grid-cols-2 gap-4">
+                  {Array.from({length: 4}).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+                      <Skeleton className="h-12 w-12 rounded-full" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-16" />
                       </div>
                     </div>
-                    <Button variant="outline" size="sm">
-                      <MessageSquare className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 gap-4">
+                  {accountabilityGroup?.map((member, i) => {
+                    const name = getName(member);
+                    const avatarImg = getImage(member.imageId);
+                    return (
+                    <div key={member.id} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                         <Avatar className="h-12 w-12">
+                            <AvatarImage src={avatarImg?.imageUrl} />
+                            <AvatarFallback className="bg-primary text-primary-foreground font-bold">{name.charAt(0)}</AvatarFallback>
+                         </Avatar>
+                        <div>
+                          <p className="font-medium text-foreground">{name}</p>
+                          <p className="text-sm text-muted-foreground">{i === 0 ? 'Accountability Partner' : 'Group Member'}</p>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )})}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
