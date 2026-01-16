@@ -3,9 +3,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -19,6 +21,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Search,
   Filter,
@@ -161,8 +169,8 @@ const DirectoryPage = () => {
                     <SelectContent>
                       <SelectItem value="All Sectors">All Sectors</SelectItem>
                       {sectors.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
+                        <SelectItem key={s.name} value={s.name}>
+                          {s.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -231,25 +239,46 @@ const DirectoryPage = () => {
             <Globe className="h-5 w-5 text-primary" />
             Global Activity Map
           </CardTitle>
+          <CardDescription>
+            Visualizing our member hubs and activity clusters across the globe.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            Showing hubs and active regions.
-          </p>
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-            {globalRegions.map((region) => (
-              <div
-                key={region.name}
-                className="p-4 bg-muted/50 rounded-lg text-center"
-              >
-                <p className="font-semibold text-foreground">{region.name}</p>
-                <p className="text-2xl font-bold text-primary">
-                  {(region.members / 1000).toFixed(1)}K
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {region.hubs} hubs
-                </p>
-              </div>
+          <div className="relative aspect-[16/8] w-full rounded-lg overflow-hidden bg-muted">
+            <Image
+              src={getImage("world-map-dots")?.imageUrl ?? ""}
+              alt="World map with activity clusters"
+              fill
+              className="object-cover"
+              data-ai-hint="world map"
+            />
+            <div className="absolute inset-0 bg-black/20" />
+
+            {/* Region Data Points */}
+            {[
+              { region: globalRegions[0], pos: "top-[55%] left-[50%]" }, // Africa
+              { region: globalRegions[1], pos: "top-[30%] left-[20%]" }, // North America
+              { region: globalRegions[2], pos: "top-[25%] left-[48%]" }, // Europe
+              { region: globalRegions[3], pos: "top-[40%] left-[75%]" }, // Asia Pacific
+              { region: globalRegions[4], pos: "top-[70%] left-[30%]" }, // Latin America
+            ].map(({ region, pos }) => (
+              <TooltipProvider key={region.name}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div
+                      className={cn(
+                        "absolute -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-accent border-2 border-accent-foreground shadow-lg animate-pulse",
+                        pos
+                      )}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="font-bold">{region.name}</p>
+                    <p>{region.members.toLocaleString()} members</p>
+                    <p>{region.hubs} hubs</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             ))}
           </div>
         </CardContent>

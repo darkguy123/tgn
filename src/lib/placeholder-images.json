@@ -197,6 +197,12 @@
       "description": "Default avatar for female users",
       "imageUrl": "https://storage.googleapis.com/studioprod-52143.appspot.com/f3a0f5a7-0a79-4e9c-85c7-1d1619a8f260.png",
       "imageHint": "3d woman avatar"
+    },
+    {
+      "id": "world-map-dots",
+      "description": "World map with glowing dots representing activity",
+      "imageUrl": "https://images.unsplash.com/photo-1564501049412-61c2a3083791?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx3b3JsZCUyMG1hcCUyMGRvdHN8ZW58MHx8fHwxNzIzNTYyMjYyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "world map"
     }
   ]
 }
