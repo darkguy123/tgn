@@ -46,11 +46,11 @@ const Onboarding = () => {
   }, [profile, isProfileLoading, router]);
 
 
-  const toggleSector = (sector: string) => {
-    if (selectedSectors.includes(sector)) {
-      setSelectedSectors(selectedSectors.filter(s => s !== sector));
+  const toggleSector = (sectorName: string) => {
+    if (selectedSectors.includes(sectorName)) {
+      setSelectedSectors(selectedSectors.filter(s => s !== sectorName));
     } else if (selectedSectors.length < 3) {
-      setSelectedSectors([...selectedSectors, sector]);
+      setSelectedSectors([...selectedSectors, sectorName]);
     }
   };
 
@@ -238,16 +238,16 @@ const Onboarding = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {SECTORS.map((sector) => (
                     <button
-                      key={sector}
-                      onClick={() => toggleSector(sector)}
+                      key={sector.id}
+                      onClick={() => toggleSector(sector.name)}
                       className={cn(
                         "p-3 rounded-lg border text-sm font-medium transition-all duration-200",
-                        selectedSectors.includes(sector)
+                        selectedSectors.includes(sector.name)
                           ? "bg-primary text-primary-foreground border-primary shadow-soft"
                           : "bg-card border-border hover:border-primary/50 hover:bg-muted"
                       )}
                     >
-                      {sector}
+                      {sector.name}
                     </button>
                   ))}
                 </div>
