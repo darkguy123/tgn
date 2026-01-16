@@ -199,7 +199,7 @@ service cloud.firestore {
      */
     match /affiliate_referrals/{referralId} {
       allow get: if isSignedIn() && (isOwner(resource.data.referrerMemberId) || isOwner(resource.data.referredMemberId));
-      allow list: if isSignedIn() && isOwner(resource.data.referrerMemberId);
+      allow list: if isSignedIn() && request.query.where[0][0] == "referrerMemberId" && request.query.where[0][2] == request.auth.uid;
       allow create: if isSignedIn() && request.resource.data.referrerMemberId == request.auth.uid;
       allow update: if false;
       allow delete: if false;
@@ -275,6 +275,19 @@ service cloud.firestore {
       allow create: if isOwner(request.resource.data.authorId);
       allow update: if isOwner(resource.data.authorId) || isAdmin(); // Simplified for now.
       allow delete: if isOwner(resource.data.authorId) || isAdmin();
+      
+      /**
+       * @description Controls access to comments on a post.
+       * @path /posts/{postId}/comments/{commentId}
+       * @allow (read) - Any authenticated user can read comments.
+       * @allow (create) - A user can create their own comment.
+       * @allow (update, delete) - The comment author or an admin can modify/delete.
+       */
+      match /comments/{commentId} {
+        allow read: if isSignedIn();
+        allow create: if isOwner(request.resource.data.authorId);
+        allow update, delete: if isOwner(resource.data.authorId) || isAdmin();
+      }
     }
 
     /**

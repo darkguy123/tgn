@@ -766,6 +766,39 @@
         "content",
         "createdAt"
       ]
+    },
+    "Comment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Comment",
+      "description": "Represents a comment on a post.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the comment."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "The UID of the TGN Member who wrote the comment."
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Denormalized name of the author for display."
+        },
+        "authorImageId": {
+          "type": "string",
+          "description": "Denormalized image ID of the author for display."
+        },
+        "content": {
+          "type": "string",
+          "description": "The text content of the comment."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["authorId", "authorName", "authorImageId", "content", "createdAt"]
     }
   },
   "auth": {
@@ -845,6 +878,11 @@
         "path": "/posts/{postId}",
         "entity": "Post",
         "description": "Stores all community feed posts. Readable by all authenticated members."
+      },
+      {
+        "path": "/posts/{postId}/comments/{commentId}",
+        "entity": "Comment",
+        "description": "Stores comments for a specific post. Readable by all authenticated members."
       }
     ]
   }

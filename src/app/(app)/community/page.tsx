@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -39,7 +39,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { Separator } from '@/components/ui/separator';
-import type { Post } from '@/lib/types';
+import type { Post, Comment as CommentType } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, updateDoc, doc } from 'firebase/firestore';
@@ -47,11 +47,16 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 const communityNavItems = [
   { label: 'Feed', icon: LayoutGrid, path: '/community' },
   { label: 'Friends', icon: Users, path: '#' },
-  { label: 'Event', icon: Calendar, path: '#' },
+  { label: 'Event', icon: Calendar, path: '/community/events' },
   { label: 'Watch Videos', icon: PlayCircle, path: '#' },
   { label: 'Photos', icon: ImageIcon, path: '#' },
   { label: 'Files', icon: FileText, path: '#' },
@@ -100,7 +105,7 @@ function CreatePostDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
       await addDoc(collection(firestore, 'posts'), {
         content: data.content,
         authorId: profile.id,
-        authorName: profile.email.split('@')[0], // a better name would be stored in the profile
+        authorName: profile.name || profile.email.split('@')[0],
         authorImageId: profile.imageId || 'default-male-avatar',
         authorRole: profile.role,
         likes: 0,
@@ -160,6 +165,188 @@ function CreatePostDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
   );
 }
 
+function PostComments({ post }: { post: Post }) {
+  const { profile } = useMemberProfile();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+
+  const commentsQuery = useMemoFirebase(
+    () => firestore ? query(collection(firestore, 'posts', post.id, 'comments'), orderBy('createdAt', 'asc')) : null,
+    [firestore, post.id]
+  );
+  const { data: comments, isLoading: commentsLoading } = useCollection<CommentType>(commentsQuery);
+
+  const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm<{ content: string }>();
+
+  const handleCommentSubmit = async (data: { content: string }) => {
+    if (!profile || !firestore) return;
+
+    try {
+        const commentsColRef = collection(firestore, 'posts', post.id, 'comments');
+        await addDoc(commentsColRef, {
+            content: data.content,
+            authorId: profile.id,
+            authorName: profile.name || profile.email.split('@')[0],
+            authorImageId: profile.imageId || 'default-male-avatar',
+            createdAt: serverTimestamp(),
+        });
+
+        const postRef = doc(firestore, 'posts', post.id);
+        await updateDoc(postRef, {
+            commentsCount: (post.commentsCount || 0) + 1,
+        });
+
+        reset();
+    } catch (e) {
+        console.error("Error submitting comment: ", e);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not post your comment.'})
+    }
+  };
+
+  return (
+    <div className="pt-4 mt-4 border-t">
+      <form onSubmit={handleSubmit(handleCommentSubmit)} className="flex items-start gap-3 mb-6">
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={getImage(profile?.imageId ?? 'user-1')?.imageUrl} />
+          <AvatarFallback>{profile?.email.charAt(0)}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 space-y-2">
+            <Textarea 
+                placeholder="Write a comment..." 
+                className="bg-muted border-none min-h-[40px]"
+                {...register('content', { required: true })}
+            />
+            <Button type="submit" size="sm" disabled={isSubmitting}>
+              {isSubmitting ? 'Posting...' : 'Post Comment'}
+            </Button>
+        </div>
+      </form>
+
+      <div className="space-y-4">
+        {commentsLoading && <p className="text-sm text-muted-foreground">Loading comments...</p>}
+        {comments?.map(comment => (
+           <div key={comment.id} className="flex items-start gap-3">
+             <Avatar className="h-8 w-8">
+                <AvatarImage src={getImage(comment.authorImageId)?.imageUrl} />
+                <AvatarFallback>{comment.authorName.charAt(0)}</AvatarFallback>
+             </Avatar>
+             <div className="bg-muted p-3 rounded-lg flex-1">
+                <div className="flex items-center justify-between">
+                    <p className="font-semibold text-sm">{comment.authorName}</p>
+                    <p className="text-xs text-muted-foreground">
+                        {comment.createdAt ? formatDistanceToNow(comment.createdAt.toDate(), { addSuffix: true }) : 'just now'}
+                    </p>
+                </div>
+                <p className="text-sm mt-1 whitespace-pre-wrap">{comment.content}</p>
+             </div>
+           </div>
+        ))}
+        {!commentsLoading && comments?.length === 0 && (
+          <p className="text-sm text-center text-muted-foreground py-4">Be the first to comment.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PostCard({ post }: { post: Post }) {
+  const firestore = useFirestore();
+
+  const handleLike = async () => {
+    if (!firestore) return;
+    const postRef = doc(firestore, 'posts', post.id);
+    try {
+      await updateDoc(postRef, {
+        likes: (post.likes || 0) + 1,
+      });
+    } catch (error) {
+      console.error("Error liking post: ", error)
+    }
+  };
+
+  const authorImage = getImage(post.authorImageId);
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-start gap-3">
+            <Avatar>
+              {authorImage && <AvatarImage src={authorImage.imageUrl} />}
+              <AvatarFallback>{post.authorName.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div>
+              <Link href={`/profile/${post.authorId}`}>
+                <h4 className="font-semibold hover:underline">{post.authorName}</h4>
+              </Link>
+              <p className="text-xs text-muted-foreground">
+                {post.createdAt ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : 'just now'}
+              </p>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon">
+            <MoreHorizontal className="h-5 w-5" />
+          </Button>
+        </div>
+        <p className="text-sm mb-4 whitespace-pre-wrap">{post.content}</p>
+        {post.images && post.images.length > 0 && (
+          <div className={`grid gap-2 grid-cols-${post.images.length > 1 ? 2 : 1} mb-4`}>
+            {post.images.map(imgId => {
+              const img = getImage(imgId);
+              return img ? (
+                <Image
+                  key={imgId}
+                  src={img.imageUrl}
+                  alt="Post image"
+                  width={400}
+                  height={300}
+                  className="rounded-lg object-cover w-full aspect-[4/3]"
+                  data-ai-hint={img.imageHint}
+                />
+              ) : null;
+            })}
+          </div>
+        )}
+        <Collapsible>
+            <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
+                <div className="flex items-center gap-1">
+                    {post.likes > 0 && (
+                        <>
+                        <ThumbsUp className="h-4 w-4 text-blue-500" />
+                        <span>{Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(post.likes || 0)}</span>
+                        </>
+                    )}
+                </div>
+                 <CollapsibleTrigger asChild>
+                    <button className="hover:underline">{(post.commentsCount || 0)} Comments</button>
+                 </CollapsibleTrigger>
+            </div>
+            <Separator className="mb-2" />
+            <div className="flex justify-around">
+                 <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground" onClick={handleLike}>
+                    <ThumbsUp className="h-5 w-5" /> Like
+                </Button>
+                <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground">
+                        <MessageSquare className="h-5 w-5" /> Comment
+                    </Button>
+                </CollapsibleTrigger>
+                <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground">
+                    <Share2 className="h-5 w-5" /> Share
+                </Button>
+                <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground">
+                    <Bookmark className="h-5 w-5" /> Save
+                </Button>
+            </div>
+            <CollapsibleContent>
+                <PostComments post={post} />
+            </CollapsibleContent>
+        </Collapsible>
+      </CardContent>
+    </Card>
+  );
+}
+
 
 export default function CommunityPage() {
   const { profile } = useMemberProfile();
@@ -173,18 +360,6 @@ export default function CommunityPage() {
   
   const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
-  const handleLike = async (post: Post) => {
-    if (!firestore) return;
-    const postRef = doc(firestore, 'posts', post.id);
-    try {
-      await updateDoc(postRef, {
-        likes: (post.likes || 0) + 1,
-      });
-    } catch (error) {
-      console.error("Error liking post: ", error)
-    }
-  }
-  
   const renderPosts = (postList: Post[] | null) => {
     if (postsLoading) {
       return Array.from({ length: 2 }).map((_, i) => (
@@ -216,84 +391,7 @@ export default function CommunityPage() {
       );
     }
 
-    return postList.map(post => {
-      const authorImage = getImage(post.authorImageId);
-      return (
-        <Card key={post.id}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-start gap-3">
-                <Avatar>
-                  {authorImage && <AvatarImage src={authorImage.imageUrl} />}
-                  <AvatarFallback>{post.authorName.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <Link href={`#`}>
-                    <h4 className="font-semibold hover:underline">{post.authorName}</h4>
-                  </Link>
-                  <p className="text-xs text-muted-foreground">
-                    {post.createdAt ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : 'just now'}
-                  </p>
-                </div>
-              </div>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-5 w-5" />
-              </Button>
-            </div>
-            <p className="text-sm mb-4 whitespace-pre-wrap">{post.content}</p>
-            {post.images && post.images.length > 0 && (
-              <div className={`grid gap-2 grid-cols-${post.images.length > 1 ? 2 : 1} mb-4`}>
-                {post.images.map(imgId => {
-                  const img = getImage(imgId);
-                  return img ? (
-                    <Image
-                      key={imgId}
-                      src={img.imageUrl}
-                      alt="Post image"
-                      width={400}
-                      height={300}
-                      className="rounded-lg object-cover w-full aspect-[4/3]"
-                      data-ai-hint={img.imageHint}
-                    />
-                  ) : null;
-                })}
-              </div>
-            )}
-            <div className="flex justify-between text-sm text-muted-foreground mb-2">
-              <div className="flex gap-4">
-                <span>{post.commentsCount || 0} Comments</span>
-                <span>
-                  {Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(post.likes || 0)} Likes
-                </span>
-              </div>
-            </div>
-            <Separator className="mb-2" />
-            <div className="flex justify-around">
-              <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground">
-                <MessageSquare className="h-5 w-5" /> Comment
-              </Button>
-              <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground" onClick={() => handleLike(post)}>
-                <ThumbsUp className="h-5 w-5" /> Like
-              </Button>
-              <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground">
-                <Share2 className="h-5 w-5" /> Share
-              </Button>
-              <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground">
-                <Bookmark className="h-5 w-5" /> Save
-              </Button>
-            </div>
-            <Separator className="mt-2" />
-            <div className="mt-4 flex items-center gap-3">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={getImage(profile?.imageId ?? 'user-1')?.imageUrl} />
-                <AvatarFallback>{profile?.email.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <Input placeholder="Write your comment..." className="h-10 rounded-full bg-muted border-none" />
-            </div>
-          </CardContent>
-        </Card>
-      );
-    });
+    return postList.map(post => <PostCard key={post.id} post={post} />);
   };
 
   const mentorsOnlyPosts = posts?.filter(post => post.authorRole.includes('mentor'));
@@ -311,9 +409,9 @@ export default function CommunityPage() {
                 <>
                   <Avatar className="h-16 w-16 mx-auto mb-2">
                     <AvatarImage src={getImage(profile.imageId || 'default-male-avatar')?.imageUrl} />
-                    <AvatarFallback>{profile.email.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{profile.name ? profile.name.charAt(0) : profile.email.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <h3 className="font-semibold">{profile.email.split('@')[0]}</h3>
+                  <h3 className="font-semibold">{profile.name || profile.email.split('@')[0]}</h3>
                   <p className="text-sm text-muted-foreground">@{profile.tgnMemberId}</p>
                 </>
               )}

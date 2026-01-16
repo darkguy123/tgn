@@ -89,6 +89,15 @@ export type Post = {
   createdAt: any; // Firestore Timestamp
 };
 
+export interface Comment {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorImageId: string;
+  content: string;
+  createdAt: any; // Firestore Timestamp
+}
+
 export type ChatMessage = {
   id: string;
   senderId: string;
@@ -151,7 +160,7 @@ export interface Transaction {
     amount: number;
     currency: string;
     description: string;
-    createdAt: string;
+    createdAt: any; // Firestore Timestamp
 }
 
 export interface SavedCard {
@@ -183,5 +192,3 @@ export interface AffiliateReferral {
     level: number;
     commissionPercentage: number;
 }
-
-    
