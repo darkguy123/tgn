@@ -154,10 +154,7 @@ const AuthPage = () => {
               data-ai-hint={authBgImage.imageHint}
             />}
             <div className="relative z-20 flex flex-col justify-end h-full p-12 text-white">
-              <h2 className="text-4xl font-bold">Effortless AI Solutions Tailored for Enterprises</h2>
-              <p className="mt-4 text-gray-300">
-                Transform the way your business operates with seamless AI integration—designed to automate workflows, accelerate decision-making, without the technical complexity.
-              </p>
+              
             </div>
           </div>
         </div>
