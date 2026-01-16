@@ -46,6 +46,7 @@ import {
 } from '@/components/ui/select';
 import { Search, Wallet, CheckCircle, XCircle, ShoppingBag, List, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { AdPlacement } from '@/components/AdPlacement';
 
 export default function MarketplacePage() {
   const firestore = useFirestore();
@@ -195,140 +196,145 @@ export default function MarketplacePage() {
   };
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Marketplace</h1>
-          <p className="text-muted-foreground">
-            Books, courses, and tools from our expert members.
-          </p>
-        </div>
-        <div className="flex gap-2">
-            <Button asChild variant="outline">
-                <Link href="/marketplace/my-products">
-                    <List className="mr-2 h-4 w-4" />
-                    My Products
-                </Link>
-            </Button>
-            <Button asChild>
-                <Link href="/marketplace/new">Sell Your Product</Link>
-            </Button>
-        </div>
-      </header>
-
-      <Card>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative md:col-span-2">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search products..." className="pl-10" />
-            </div>
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+      <div className="lg:col-span-3 space-y-6">
+        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="book">Books</SelectItem>
-                  <SelectItem value="course">Courses</SelectItem>
-                  <SelectItem value="tool">Tools</SelectItem>
-                  <SelectItem value="digital-asset">Digital Assets</SelectItem>
-                </SelectContent>
-              </Select>
+            <h1 className="text-3xl font-bold tracking-tight">Marketplace</h1>
+            <p className="text-muted-foreground">
+                Books, courses, and tools from our expert members.
+            </p>
             </div>
-            <div>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest</SelectItem>
-                  <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                  <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {isLoading && (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-96 w-full" />
-          ))}
-        </div>
-      )}
-
-      {error && <p className="text-destructive">Failed to load products.</p>}
-
-      {!isLoading && products?.length === 0 && (
-        <Card className="py-20 text-center">
-            <CardContent>
-                <ShoppingBag className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-medium">Marketplace is Empty</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                    Be the first one to sell a product on the platform.
-                </p>
-                <Button className="mt-6" asChild>
-                    <Link href="/marketplace/new">Sell a Product</Link>
+            <div className="flex gap-2">
+                <Button asChild variant="outline">
+                    <Link href="/marketplace/my-products">
+                        <List className="mr-2 h-4 w-4" />
+                        My Products
+                    </Link>
                 </Button>
+                <Button asChild>
+                    <Link href="/marketplace/new">Sell Your Product</Link>
+                </Button>
+            </div>
+        </header>
+
+        <Card>
+            <CardContent className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="relative md:col-span-2">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input placeholder="Search products..." className="pl-10" />
+                </div>
+                <div>
+                <Select>
+                    <SelectTrigger>
+                    <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="book">Books</SelectItem>
+                    <SelectItem value="course">Courses</SelectItem>
+                    <SelectItem value="tool">Tools</SelectItem>
+                    <SelectItem value="digital-asset">Digital Assets</SelectItem>
+                    </SelectContent>
+                </Select>
+                </div>
+                <div>
+                <Select>
+                    <SelectTrigger>
+                    <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="newest">Newest</SelectItem>
+                    <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                    <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                    </SelectContent>
+                </Select>
+                </div>
+            </div>
             </CardContent>
         </Card>
-      )}
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {products?.map(product => {
-          return (
-            <Card key={product.id} className="flex flex-col overflow-hidden group">
-              <CardHeader className="p-0 relative">
-                <Link href="#">
-                  <Image
-                    src={product.imageUrl || 'https://placehold.co/600x400'}
-                    alt={product.name}
-                    width={600}
-                    height={400}
-                    className="aspect-[3/2] w-full object-cover transition-transform group-hover:scale-105"
-                  />
-                </Link>
-                <Badge
-                  className="absolute top-3 right-3"
-                  variant={
-                    product.type === 'Book' || product.type === 'Tool'
-                      ? 'secondary'
-                      : 'default'
-                  }
-                >
-                  {product.type}
-                </Badge>
-              </CardHeader>
-              <CardContent className="p-4 flex-1 flex flex-col">
-                <CardTitle className="text-lg mb-2 leading-tight">
-                  <Link href="#" className="hover:text-primary transition-colors">{product.name}</Link>
-                </CardTitle>
-                
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                    <Avatar className="h-6 w-6">
-                        <AvatarImage src={product.sellerAvatarUrl} />
-                        <AvatarFallback>{product.sellerName.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <span>{product.sellerName}</span>
-                </div>
+        {isLoading && (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-96 w-full" />
+            ))}
+            </div>
+        )}
 
-                <p className="text-2xl font-semibold mt-auto">
-                  ${product.price.toFixed(2)}
-                </p>
-              </CardContent>
-              <CardFooter className="p-4 pt-0">
-                <Button className="w-full" onClick={() => handleBuyClick(product)}>
-                  Buy Now
-                </Button>
-              </CardFooter>
+        {error && <p className="text-destructive">Failed to load products.</p>}
+
+        {!isLoading && products?.length === 0 && (
+            <Card className="py-20 text-center">
+                <CardContent>
+                    <ShoppingBag className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-4 text-lg font-medium">Marketplace is Empty</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Be the first one to sell a product on the platform.
+                    </p>
+                    <Button className="mt-6" asChild>
+                        <Link href="/marketplace/new">Sell a Product</Link>
+                    </Button>
+                </CardContent>
             </Card>
-          );
-        })}
+        )}
+
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {products?.map(product => {
+            return (
+                <Card key={product.id} className="flex flex-col overflow-hidden group">
+                <CardHeader className="p-0 relative">
+                    <Link href="#">
+                    <Image
+                        src={product.imageUrl || 'https://placehold.co/600x400'}
+                        alt={product.name}
+                        width={600}
+                        height={400}
+                        className="aspect-[3/2] w-full object-cover transition-transform group-hover:scale-105"
+                    />
+                    </Link>
+                    <Badge
+                    className="absolute top-3 right-3"
+                    variant={
+                        product.type === 'Book' || product.type === 'Tool'
+                        ? 'secondary'
+                        : 'default'
+                    }
+                    >
+                    {product.type}
+                    </Badge>
+                </CardHeader>
+                <CardContent className="p-4 flex-1 flex flex-col">
+                    <CardTitle className="text-lg mb-2 leading-tight">
+                    <Link href="#" className="hover:text-primary transition-colors">{product.name}</Link>
+                    </CardTitle>
+                    
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                        <Avatar className="h-6 w-6">
+                            <AvatarImage src={product.sellerAvatarUrl} />
+                            <AvatarFallback>{product.sellerName.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <span>{product.sellerName}</span>
+                    </div>
+
+                    <p className="text-2xl font-semibold mt-auto">
+                    ${product.price.toFixed(2)}
+                    </p>
+                </CardContent>
+                <CardFooter className="p-4 pt-0">
+                    <Button className="w-full" onClick={() => handleBuyClick(product)}>
+                    Buy Now
+                    </Button>
+                </CardFooter>
+                </Card>
+            );
+            })}
+        </div>
       </div>
+      <aside className="lg:col-span-1 space-y-6 hidden lg:block sticky top-24">
+        <AdPlacement size="skyscraper" />
+      </aside>
 
       <Dialog open={isBuyDialogOpen} onOpenChange={setBuyDialogOpen}>
         <DialogContent>
