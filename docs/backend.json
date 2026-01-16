@@ -438,14 +438,19 @@
         "commissionPercentage": {
           "type": "number",
           "description": "The commission percentage for this referral (capped at 15%)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the referral was created."
         }
       },
       "required": [
-        "id",
         "referrerMemberId",
         "referredMemberId",
         "level",
-        "commissionPercentage"
+        "commissionPercentage",
+        "createdAt"
       ]
     },
     "MentorCertification": {

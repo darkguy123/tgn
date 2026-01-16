@@ -35,7 +35,7 @@ const ReferralsPage = () => {
   const { data: downline, isLoading: isDownlineLoading } = useCollection<AffiliateReferral>(referralsQuery);
 
 
-  const referralLink = profile ? `https://app.transcendworld.com/join?ref=${profile.tgnMemberId}` : '';
+  const referralLink = profile ? `https://app.transcendworld.com/signin?ref=${profile.id}` : '';
 
   const copyToClipboard = () => {
     if(!referralLink) return;

@@ -227,6 +227,7 @@ export interface AffiliateReferral {
     referredMemberId: string;
     level: number;
     commissionPercentage: number;
+    createdAt: any;
 }
 
 export interface FriendRequest {

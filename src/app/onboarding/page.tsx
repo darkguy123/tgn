@@ -14,7 +14,7 @@ import { MapPin, Briefcase, User, Target, Check, PartyPopper } from "lucide-reac
 import { cn } from "@/lib/utils";
 import { continents, countries, sectors as SECTORS, roles as ROLES, goals as GOALS } from "@/lib/data";
 import { useUser, useFirestore } from "@/firebase";
-import { doc, serverTimestamp } from "firebase/firestore";
+import { doc, serverTimestamp, addDoc, collection } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useMemberProfile } from "@/hooks/useMemberProfile";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -85,6 +85,24 @@ const Onboarding = () => {
         const userDocRef = doc(firestore, "users", user.uid);
         setDocumentNonBlocking(userDocRef, dataToSave, { merge: true });
         setTgnMemberId(newId);
+
+        const referrerUid = localStorage.getItem('tgn_referrer_uid');
+        if (referrerUid) {
+          const referralsCollection = collection(firestore, 'affiliate_referrals');
+          const referralData = {
+              referrerMemberId: referrerUid,
+              referredMemberId: user.uid,
+              level: 1,
+              commissionPercentage: 5,
+              createdAt: serverTimestamp(),
+          };
+          addDoc(referralsCollection, referralData).then(() => {
+              localStorage.removeItem('tgn_referrer_uid');
+          }).catch(error => {
+              console.error("Failed to create referral document:", error);
+          });
+        }
+        
         setCompleted(true);
       }
     }
