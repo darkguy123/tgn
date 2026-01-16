@@ -96,13 +96,18 @@ service cloud.firestore {
     match /users/{userId} {
       allow get, list: if isSignedIn();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if (isOwner(userId)
-                          // User can't change their own role, verification status, or immutable IDs
-                          && request.resource.data.role == resource.data.role
-                          && request.resource.data.isVerifiedMentor == resource.data.isVerifiedMentor
-                          && request.resource.data.id == resource.data.id
-                          && request.resource.data.tgnMemberId == resource.data.tgnMemberId)
-                        || isAdmin();
+      allow update: if isAdmin() ||
+                    // A user can update their own profile, but not change protected fields.
+                    (isOwner(userId) &&
+                     request.resource.data.role == resource.data.role &&
+                     request.resource.data.isVerifiedMentor == resource.data.isVerifiedMentor &&
+                     request.resource.data.id == resource.data.id &&
+                     request.resource.data.tgnMemberId == resource.data.tgnMemberId
+                    ) ||
+                    // Allow anyone to update ONLY the connections array of another user.
+                    // This is required for the two-way connection logic to work from the client.
+                    (isSignedIn() && !isOwner(userId) &&
+                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['connections']));
       allow delete: if isAdmin();
 
       /**
@@ -241,15 +246,21 @@ service cloud.firestore {
      * @description Controls access to user wallets. Extremely restricted.
      * @path /wallets/{userId}
      * @allow (read) - Admins and the owner can read a wallet.
-     * @allow (create) - A signed-in user can create a wallet for another user (for receiving funds), if the memberId is correct.
-     * @allow (update) - A signed-in user can update a wallet's balance (for P2P transfers). Admins can update anything.
-     * @principle Secures sensitive financial data but allows for P2P transfers between clients.
+     * @allow (create) - A signed-in user can create a wallet for themselves.
+     * @allow (update) - Allows for secure P2P transfers between clients.
+     * @principle Secures sensitive financial data by only allowing balance decrements by the owner, or increments by others.
      */
     match /wallets/{userId} {
       allow read: if isOwner(userId) || isAdmin();
-      allow create: if isSignedIn() && request.resource.data.memberId == userId;
-      allow update: if (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance'])) || isAdmin();
-      allow delete: if false;
+      allow create: if isOwner(userId) && request.resource.data.memberId == userId;
+      allow update: if isAdmin() ||
+                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance']) && (
+                        // Allow user to DECREASE their own balance (sending)
+                        (isOwner(userId) && request.resource.data.balance < resource.data.balance) ||
+                        // Allow other users to INCREASE this user's balance (receiving)
+                        (!isOwner(userId) && request.resource.data.balance > resource.data.balance)
+                    ));
+      allow delete: if false; // Wallets should never be deleted
     }
 
     /**
@@ -350,13 +361,12 @@ service cloud.firestore {
       // A user can read or write to a chat if their UID is in the `members` array.
       // This rule supports both `get` and `list` queries. For `list`, the client
       // query MUST include `where('members', 'array-contains', request.auth.uid)`.
-      allow read, write: if isSignedIn() && request.auth.uid in resource.data.members;
+      allow read, write: if request.auth.uid in resource.data.members;
 
       match /messages/{messageId} {
         // A user can read/write messages in a chat they are a member of.
         // This requires a `get` call to the parent chat document to check the `members` array.
-        allow read, write: if isSignedIn()
-          && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+        allow read, write: if request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
       }
     }
 
