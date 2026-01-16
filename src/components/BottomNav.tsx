@@ -8,7 +8,7 @@ import { useMemberProfile } from '@/hooks/useMemberProfile';
 
 const navItems = [
   { href: '/dashboard', icon: Home, label: 'Home' },
-  { href: '/community', icon: MessageSquare, label: 'Community' },
+  { href: '/chat', icon: MessageSquare, label: 'Chat' },
   { href: '/programs', icon: GraduationCap, label: 'Programs' },
   { href: '/wallet', icon: Wallet, label: 'Wallet' },
 ];

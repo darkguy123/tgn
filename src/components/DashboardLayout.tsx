@@ -22,6 +22,7 @@ import {
   BarChart3,
   Megaphone,
   Shield,
+  LayoutGrid,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -45,8 +46,9 @@ import type { FriendRequest } from '@/lib/types';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
+  { id: 'chat', label: 'Messages', icon: MessageSquare, path: '/chat' },
+  { id: 'community', label: 'Community Feed', icon: LayoutGrid, path: '/community' },
   { id: 'directory', label: 'Member Directory', icon: Users, path: '/directory' },
-  { id: 'community', label: 'Community Feed', icon: MessageSquare, path: '/community' },
   { id: 'events', label: 'Events', icon: Calendar, path: '/community/events' },
   { id: 'causes', label: 'Causes', icon: Heart, path: '/community/causes' },
   { id: 'matchmaking', label: 'Matchmaking', icon: Sparkles, path: '/matchmaking' },

@@ -12,7 +12,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import type { TGNMember, ChatMessage, Chat } from '@/lib/types';
-import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { doc, collection, query, orderBy, addDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
@@ -69,12 +69,26 @@ export default function ChatPage() {
     const isTyping = newMessage.length > 0;
     
     // Set typing status immediately
-    updateDoc(chatDocRef, { [`typing.${currentUser.uid}`]: isTyping });
+    updateDoc(chatDocRef, { [`typing.${currentUser.uid}`]: isTyping }).catch((e) => {
+        const permissionError = new FirestorePermissionError({
+          path: chatDocRef.path,
+          operation: 'update',
+          requestResourceData: { [`typing.${currentUser.uid}`]: isTyping }
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
 
     // If user stops typing, set status to false after a delay
     if (!isTyping) {
         typingTimeoutRef.current = setTimeout(() => {
-            updateDoc(chatDocRef, { [`typing.${currentUser.uid}`]: false });
+            updateDoc(chatDocRef, { [`typing.${currentUser.uid}`]: false }).catch((e) => {
+                const permissionError = new FirestorePermissionError({
+                    path: chatDocRef.path,
+                    operation: 'update',
+                    requestResourceData: { [`typing.${currentUser.uid}`]: false }
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            });
         }, 2000);
     }
     
@@ -104,19 +118,40 @@ export default function ChatPage() {
     
     // Create chat document if it doesn't exist
     if (!chatData) {
-        await setDoc(chatDocRef, {
+        setDoc(chatDocRef, {
             participantIds: [currentUser.uid, otherMemberId],
+        }).catch((e) => {
+            const permissionError = new FirestorePermissionError({
+                path: chatDocRef.path,
+                operation: 'create',
+                requestResourceData: { participantIds: [currentUser.uid, otherMemberId] }
+            });
+            errorEmitter.emit('permission-error', permissionError);
         });
     }
 
     // Add new message and update the last message on the chat doc
-    await addDoc(messagesColRef, messageData);
-    await updateDoc(chatDocRef, {
+    addDoc(messagesColRef, messageData).catch((e) => {
+        const permissionError = new FirestorePermissionError({
+            path: messagesColRef.path,
+            operation: 'create',
+            requestResourceData: messageData
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
+    updateDoc(chatDocRef, {
       lastMessage: {
         text: newMessage,
         senderId: currentUser.uid,
         timestamp: serverTimestamp(),
       }
+    }).catch((e) => {
+        const permissionError = new FirestorePermissionError({
+            path: chatDocRef.path,
+            operation: 'update',
+            requestResourceData: { lastMessage: { text: newMessage, senderId: currentUser.uid } }
+        });
+        errorEmitter.emit('permission-error', permissionError);
     });
   };
 
@@ -144,7 +179,7 @@ export default function ChatPage() {
     <div className="flex flex-col h-[calc(100vh-120px)] bg-card border rounded-lg">
       <CardHeader className="flex flex-row items-center justify-between p-3 border-b shrink-0">
         <div className="flex items-center gap-3 min-w-0">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => router.back()}>
+          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => router.push('/chat')}>
             <ArrowLeft />
           </Button>
           <Avatar className="h-10 w-10">
