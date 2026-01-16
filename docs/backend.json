@@ -27,6 +27,10 @@
           "description": "The member's email address.",
           "format": "email"
         },
+        "phone": {
+          "type": "string",
+          "description": "The member's phone number."
+        },
         "locationContinent": {
           "type": "string",
           "description": "Continent of the member's location."
@@ -38,6 +42,10 @@
         "locationRegion": {
           "type": "string",
           "description": "Region of the member's location."
+        },
+        "timezone": {
+          "type": "string",
+          "description": "The member's timezone (e.g., 'Africa/Lagos')."
         },
         "sectorPreferences": {
           "type": "array",
@@ -789,5 +797,3 @@
     ]
   }
 }
-
-    

@@ -4,9 +4,11 @@ export interface TGNMember {
     name?: string;
     signInType: string;
     email: string;
+    phone?: string;
     locationContinent: string;
     locationCountry: string;
     locationRegion?: string;
+    timezone?: string;
     sectorPreferences?: string[];
     role: 'mentee' | 'mentor-candidate' | 'associate-mentor' | 'collaborator' | 'sponsor' | 'country-manager' | 'volunteer' | 'media';
     purpose?: string;
@@ -166,5 +168,3 @@ export interface AffiliateReferral {
     level: number;
     commissionPercentage: number;
 }
-
-    
