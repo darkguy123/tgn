@@ -3,16 +3,60 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   BarChart3, TrendingUp, Users, Globe, Award, Star,
-  ArrowUp, ArrowDown, Calendar
+  DollarSign, Heart,
 } from "lucide-react";
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where, Timestamp } from 'firebase/firestore';
+import { subDays } from 'date-fns';
+import type { TGNMember, Cause } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ImpactPage = () => {
+  const firestore = useFirestore();
+
+  // --- QUERIES ---
+  const thirtyDaysAgo = subDays(new Date(), 30);
+  const thirtyDaysAgoTimestamp = Timestamp.fromDate(thirtyDaysAgo);
+
+  const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const newUsersQuery = useMemoFirebase(() => query(collection(firestore, 'users'), where('createdAt', '>=', thirtyDaysAgoTimestamp)), [firestore, thirtyDaysAgoTimestamp]);
+  const causesQuery = useMemoFirebase(() => query(collection(firestore, 'causes'), where('status', '==', 'approved')), [firestore]);
+
+  // --- DATA FETCHING ---
+  const { data: allUsers, isLoading: usersLoading } = useCollection<TGNMember>(usersQuery);
+  const { data: newUsers, isLoading: newUsersLoading } = useCollection<TGNMember>(newUsersQuery);
+  const { data: causes, isLoading: causesLoading } = useCollection<Cause>(causesQuery);
+
+  const isLoading = usersLoading || newUsersLoading || causesLoading;
+  
+  // --- CALCULATIONS ---
+  const totalMembers = allUsers?.length || 0;
+  const newMembersCount = newUsers?.length || 0;
+  const totalRaised = causes?.reduce((acc, cause) => acc + cause.currentAmount, 0) || 0;
+  const fundedCauses = causes?.filter(c => c.currentAmount >= c.goalAmount).length || 0;
+  
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      notation: 'compact',
+      maximumFractionDigits: 1
+    }).format(amount);
+  };
+  
+  const renderStatCard = (title: string, value: string | number, icon: React.ReactNode, loading: boolean) => (
+      <div className="p-4 bg-muted/50 rounded-lg">
+          <p className="text-sm text-muted-foreground mb-1 flex items-center gap-2">{icon} {title}</p>
+          {loading ? <Skeleton className="h-7 w-20" /> : <p className="text-2xl font-bold text-foreground">{value}</p>}
+      </div>
+  );
+
   return (
     <>
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Impact Overview</h1>
-        <p className="text-muted-foreground">Track your contribution and network growth.</p>
+        <p className="text-muted-foreground">Track our collective contribution and network growth.</p>
       </div>
 
       {/* Highlights */}
@@ -47,60 +91,48 @@ const ImpactPage = () => {
         </Card>
       </div>
 
-      {/* Monthly Report */}
+      {/* Network Statistics */}
       <Card className="mb-6">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
-                Network Monthly Report
+                <BarChart3 className="h-5 w-5 text-primary" />
+                Network Statistics
               </CardTitle>
-              <CardDescription>Data not yet available</CardDescription>
+              <CardDescription>An overview of our collective impact.</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-4 bg-muted/50 rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">New Members</p>
-                <p className="text-2xl font-bold text-foreground">N/A</p>
-            </div>
-             <div className="p-4 bg-muted/50 rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Sessions Held</p>
-                <p className="text-2xl font-bold text-foreground">N/A</p>
-            </div>
-             <div className="p-4 bg-muted/50 rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Programs Completed</p>
-                <p className="text-2xl font-bold text-foreground">N/A</p>
-            </div>
-             <div className="p-4 bg-muted/50 rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Causes Funded</p>
-                <p className="text-2xl font-bold text-foreground">N/A</p>
-            </div>
+            {renderStatCard("Total Members", totalMembers, <Users className="h-4 w-4" />, isLoading)}
+            {renderStatCard("New Members (30d)", newMembersCount, <TrendingUp className="h-4 w-4" />, isLoading)}
+            {renderStatCard("Total Raised", formatCurrency(totalRaised), <DollarSign className="h-4 w-4" />, isLoading)}
+            {renderStatCard("Causes Funded", fundedCauses, <Heart className="h-4 w-4" />, isLoading)}
           </div>
         </CardContent>
       </Card>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Your Ratings */}
+        {/* Your Personal Impact */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
+              <Star className="h-5 w-5 text-primary" />
               Your Personal Impact
             </CardTitle>
             <CardDescription>This data is specific to your activity.</CardDescription>
           </CardHeader>
           <CardContent>
              <div className="flex flex-col items-center justify-center text-center py-10">
-                <BarChart3 className="h-10 w-10 text-muted-foreground mb-4" />
+                <Star className="h-10 w-10 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">Your impact data is not yet available.</p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Sector Performance */}
+        {/* Network Performance */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

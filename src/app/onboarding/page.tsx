@@ -14,7 +14,7 @@ import { MapPin, Briefcase, User, Target, Check, PartyPopper } from "lucide-reac
 import { cn } from "@/lib/utils";
 import { continents, countries, sectors as SECTORS, roles as ROLES, goals as GOALS } from "@/lib/data";
 import { useUser, useFirestore } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { doc, serverTimestamp } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useMemberProfile } from "@/hooks/useMemberProfile";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -80,7 +80,7 @@ const Onboarding = () => {
             role: selectedRole,
             purpose: bio,
             identityProfile: JSON.stringify({ goals: selectedGoals, interests: interests }),
-            createdAt: new Date().toISOString(),
+            createdAt: serverTimestamp(),
         };
         const userDocRef = doc(firestore, "users", user.uid);
         setDocumentNonBlocking(userDocRef, dataToSave, { merge: true });
