@@ -1,5 +1,6 @@
 
 "use client";
+import { useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -29,13 +30,47 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/firebase";
 import { useMemberProfile } from "@/hooks/useMemberProfile";
+import { useMentorCertification } from "@/hooks/useMentorCertification";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard = () => {
   const { user } = useUser();
   const { profile, isLoading: isProfileLoading } = useMemberProfile();
+  const { certification, isLoading: isCertLoading } = useMentorCertification();
   const userName = user?.displayName?.split(" ")[0] || "Member";
   const router = useRouter();
+
+  const defaultProgress = {
+    paidProgramsCompleted: 0,
+    accountAgeInMonths: 0,
+    menteeBadgeLevel: 0,
+    curriculumCompleted: false,
+    evaluationPassed: false,
+  };
+
+  const currentProgress = certification || defaultProgress;
+
+  const certificationChecklist = useMemo(() => [
+    { completed: currentProgress.paidProgramsCompleted >= 3 },
+    { completed: currentProgress.accountAgeInMonths >= 3 },
+    { completed: currentProgress.menteeBadgeLevel >= 7 },
+    { completed: currentProgress.curriculumCompleted },
+    { completed: currentProgress.evaluationPassed },
+  ], [currentProgress]);
+
+  const overallProgress = useMemo(() => {
+    if(isCertLoading) return 0;
+    const completedCount = certificationChecklist.filter(item => item.completed).length;
+    return Math.round((completedCount / certificationChecklist.length) * 100);
+  }, [certificationChecklist, isCertLoading]);
+
+  const simplifiedChecklist = useMemo(() => [
+    { label: "Programs completed", value: `${currentProgress.paidProgramsCompleted}/3`, done: currentProgress.paidProgramsCompleted >= 3 },
+    { label: "Badge Level", value: `★ ${currentProgress.menteeBadgeLevel}/7`, done: currentProgress.menteeBadgeLevel >= 7 },
+    { label: "Evaluation Status", value: currentProgress.evaluationPassed ? 'Passed' : 'Pending', done: currentProgress.evaluationPassed },
+ ], [currentProgress]);
+
+ const isLoading = isProfileLoading || isCertLoading;
 
   return (
     <div className="space-y-6">
@@ -76,19 +111,28 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card className="bg-gradient-to-br from-primary to-blue-800 text-primary-foreground border-0">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-primary-foreground/80 text-sm">
-                  Badge Level
-                </p>
-                <p className="text-2xl font-bold">★ 3</p>
-              </div>
-              <Star className="h-8 w-8 text-accent" />
-            </div>
-          </CardContent>
-        </Card>
+        {isLoading ? (
+            <Card>
+                <CardContent className="p-4">
+                    <Skeleton className="h-8 w-1/2 mb-1" />
+                    <Skeleton className="h-6 w-1/4" />
+                </CardContent>
+            </Card>
+        ) : (
+            <Card className="bg-gradient-to-br from-primary to-blue-800 text-primary-foreground border-0">
+                <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-primary-foreground/80 text-sm">
+                        Badge Level
+                        </p>
+                        <p className="text-2xl font-bold">★ {currentProgress.menteeBadgeLevel || 0}</p>
+                    </div>
+                    <Star className="h-8 w-8 text-accent" />
+                    </div>
+                </CardContent>
+            </Card>
+        )}
 
         <Card>
           <CardContent className="p-4">
@@ -261,7 +305,7 @@ const Dashboard = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push("#")}
+                onClick={() => router.push("/community")}
               >
                 View all <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
@@ -361,6 +405,28 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
+          {isLoading ? (
+             <Card>
+                <CardHeader className="pb-2">
+                    <Skeleton className="h-6 w-3/4" />
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-3">
+                        <div className="flex justify-between">
+                            <Skeleton className="h-4 w-1/3" />
+                            <Skeleton className="h-4 w-1/4" />
+                        </div>
+                        <Skeleton className="h-2 w-full" />
+                        <div className="space-y-2 pt-2">
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-full" />
+                        </div>
+                        <Skeleton className="h-9 w-full mt-2" />
+                    </div>
+                </CardContent>
+            </Card>
+          ) : (
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">
@@ -373,21 +439,13 @@ const Dashboard = () => {
                   <span className="text-muted-foreground">
                     Overall Progress
                   </span>
-                  <span className="font-medium text-foreground">65%</span>
+                  <span className="font-medium text-foreground">{overallProgress}%</span>
                 </div>
                 <div className="h-2 bg-muted rounded-full">
-                  <div className="h-full w-[65%] bg-accent rounded-full" />
+                  <div className="h-full bg-accent rounded-full" style={{ width: `${overallProgress}%` }} />
                 </div>
                 <div className="space-y-2 pt-2">
-                  {[
-                    { label: "Programs completed", value: "3/5", done: true },
-                    { label: "Activity duration", value: "45 hrs", done: true },
-                    {
-                      label: "Assessment status",
-                      value: "Pending",
-                      done: false,
-                    },
-                  ].map((item, i) => (
+                  {simplifiedChecklist.map((item, i) => (
                     <div
                       key={i}
                       className="flex items-center justify-between text-sm"
@@ -417,6 +475,8 @@ const Dashboard = () => {
               </div>
             </CardContent>
           </Card>
+          )}
+
 
           <Card>
             <CardHeader className="pb-2">
@@ -481,5 +541,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
-    
