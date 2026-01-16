@@ -14,6 +14,7 @@ import type { TGNMember } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import placeholderImages from "@/lib/placeholder-images.json";
 import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
 
 const COHORT_SESSIONS = [
   { id: 1, title: "Week 4: Leadership Essentials", date: "Today, 3:00 PM", type: "Live", status: "upcoming" },
@@ -250,8 +251,11 @@ const CohortsPage = () => {
                           <p className="text-sm text-muted-foreground">{i === 0 ? 'Accountability Partner' : 'Group Member'}</p>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm">
-                        <MessageSquare className="h-4 w-4" />
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/chat/${member.id}`}>
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Message
+                        </Link>
                       </Button>
                     </div>
                   )})}
