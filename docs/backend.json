@@ -453,6 +453,23 @@
         "createdAt"
       ]
     },
+    "Commission": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Commission",
+      "type": "object",
+      "description": "Represents a commission earned from a referral's purchase.",
+      "properties": {
+        "id": { "type": "string" },
+        "referrerId": { "type": "string", "description": "The UID of the member who earned the commission." },
+        "buyerId": { "type": "string", "description": "The UID of the member who made the purchase." },
+        "productId": { "type": "string", "description": "The ID of the product that was purchased." },
+        "programId": { "type": "string", "description": "The ID of the program that was purchased." },
+        "saleAmount": { "type": "number", "description": "The total amount of the sale." },
+        "commissionAmount": { "type": "number", "description": "The amount of commission earned." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["referrerId", "buyerId", "saleAmount", "commissionAmount", "createdAt"]
+    },
     "MentorCertification": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MentorCertification",
@@ -1046,6 +1063,11 @@
         "path": "/affiliate_referrals/{referralId}",
         "entity": "AffiliateReferral",
         "description": "Stores affiliate referral data. Security rules will control access based on referrer and referred member IDs."
+      },
+      {
+        "path": "/commissions/{commissionId}",
+        "entity": "Commission",
+        "description": "Stores commission records earned from affiliate referrals. Writable by the buyer, readable by the referrer."
       },
       {
         "path": "/mentor_certifications/{userId}",

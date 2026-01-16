@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -12,9 +12,9 @@ import {
   BookCheck, Circle, CheckCircle, GraduationCap, Video, Book, Wallet, Loader2, PartyPopper
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, doc, runTransaction, serverTimestamp, increment, addDoc } from 'firebase/firestore';
+import { collection, query, where, doc, runTransaction, serverTimestamp, increment, addDoc, getDocs } from 'firebase/firestore';
 import placeholderImages from "@/lib/placeholder-images.json";
-import type { Program } from "@/lib/types";
+import type { Program, AffiliateReferral, Commission } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -37,6 +37,33 @@ const ProgramsPage = () => {
   const { user } = useUser();
   const { wallet, isLoading: isWalletLoading } = useWallet();
   const { toast } = useToast();
+  
+  const [referrer, setReferrer] = useState<AffiliateReferral | null>(null);
+  const [isFindingReferrer, setIsFindingReferrer] = useState(true);
+
+  // Effect to find the referrer for the current user
+  useEffect(() => {
+    if (!user || !firestore) {
+      setIsFindingReferrer(false);
+      return;
+    }
+    const findReferrer = async () => {
+      const referralsRef = collection(firestore, 'affiliate_referrals');
+      const q = query(referralsRef, where('referredMemberId', '==', user.uid), where('level', '==', 1));
+      try {
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const referrerDoc = querySnapshot.docs[0];
+          setReferrer({ id: referrerDoc.id, ...referrerDoc.data() } as AffiliateReferral);
+        }
+      } catch (error) {
+        console.error("Error finding referrer:", error);
+      } finally {
+        setIsFindingReferrer(false);
+      }
+    };
+    findReferrer();
+  }, [user, firestore]);
 
   const programsCollectionRef = useMemoFirebase(() => query(collection(firestore, 'programs'), where('deactivatedAt', '==', null)), [firestore]);
   const { data: allPrograms, isLoading, error } = useCollection<Program>(programsCollectionRef);
@@ -96,21 +123,53 @@ const ProgramsPage = () => {
 
             // Handle payment if it's a paid program
             if (price > 0 && wallet) {
-                const walletRef = doc(firestore, "wallets", user.uid);
+                const buyerWalletRef = doc(firestore, "wallets", user.uid);
+                const referrerWalletRef = referrer ? doc(firestore, 'wallets', referrer.referrerMemberId) : null;
+                
+                // Debit Buyer
                 const newBalance = wallet.balance - price;
-                transaction.update(walletRef, { balance: newBalance });
+                transaction.update(buyerWalletRef, { balance: newBalance });
 
-                const transactionRef = collection(firestore, "users", user.uid, "transactions");
-                transaction.set(doc(transactionRef), {
-                    type: 'purchase',
-                    status: 'completed',
-                    amount: -price,
-                    currency: 'USD',
-                    description: `Enrollment: ${selectedProgram.title}`,
-                    createdAt: serverTimestamp(),
-                });
+                // Credit Referrer
+                if (referrer && referrerWalletRef) {
+                    const commissionRate = 0.05;
+                    const commissionAmount = price * commissionRate;
+
+                    const referrerWalletDoc = await transaction.get(referrerWalletRef);
+                    const referrerBalance = referrerWalletDoc.exists() ? referrerWalletDoc.data().balance : 0;
+                    const newReferrerBalance = referrerBalance + commissionAmount;
+                    
+                    transaction.set(referrerWalletRef, { balance: newReferrerBalance, memberId: referrer.referrerMemberId, currency: 'USD' }, { merge: true });
+                }
             }
         });
+
+        // Log transactions after atomic update
+        if (price > 0) {
+            const buyerTransactionsRef = collection(firestore, "users", user.uid, "transactions");
+            await addDoc(buyerTransactionsRef, {
+                type: 'purchase',
+                status: 'completed',
+                amount: -price,
+                currency: 'USD',
+                description: `Enrollment: ${selectedProgram.title}`,
+                createdAt: serverTimestamp(),
+            });
+
+            if (referrer) {
+                const commissionRate = 0.05;
+                const commissionAmount = price * commissionRate;
+                const commissionsRef = collection(firestore, 'commissions');
+                await addDoc(commissionsRef, {
+                    referrerId: referrer.referrerMemberId,
+                    buyerId: user.uid,
+                    programId: selectedProgram.id,
+                    saleAmount: price,
+                    commissionAmount: commissionAmount,
+                    createdAt: serverTimestamp(),
+                } as Omit<Commission, 'id'>);
+            }
+        }
 
         toast({ title: "Enrollment Successful!", description: `Welcome to ${selectedProgram.title}.` });
         setEnrollmentStep('success');

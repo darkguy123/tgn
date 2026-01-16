@@ -222,6 +222,19 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.referrerMemberId == request.auth.uid;
       allow update, delete: if false;
     }
+    
+    /**
+     * @description Controls access to commission records.
+     * @path /commissions/{commissionId}
+     * @allow (read) - A user can read their own commission records.
+     * @allow (create) - A buyer can create a commission record for their referrer at the time of purchase.
+     * @principle Secures commission data by linking creation to the buyer and reading to the referrer.
+     */
+    match /commissions/{commissionId} {
+        allow read: if isSignedIn() && request.auth.uid == resource.data.referrerId;
+        allow create: if isSignedIn() && request.auth.uid == request.resource.data.buyerId;
+        allow update, delete: if false;
+    }
 
     /**
      * @description Controls access to mentor certifications. A mentor can view their own certification status.

@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -19,9 +19,18 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
-import type { Product } from '@/lib/types';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import {
+  collection,
+  query,
+  where,
+  runTransaction,
+  doc,
+  serverTimestamp,
+  addDoc,
+  getDocs,
+} from 'firebase/firestore';
+import type { Product, AffiliateReferral, Commission } from '@/lib/types';
 import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -35,17 +44,45 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Wallet, CheckCircle, XCircle, ShoppingBag, List } from 'lucide-react';
+import { Search, Wallet, CheckCircle, XCircle, ShoppingBag, List, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function MarketplacePage() {
   const firestore = useFirestore();
   const router = useRouter();
-  const { wallet } = useWallet();
+  const { wallet, isLoading: walletLoading } = useWallet();
   const { toast } = useToast();
+  const { user: currentUser } = useUser();
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isBuyDialogOpen, setBuyDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [referrer, setReferrer] = useState<AffiliateReferral | null>(null);
+  const [isFindingReferrer, setIsFindingReferrer] = useState(true);
+
+  // Effect to find the referrer for the current user
+  useEffect(() => {
+    if (!currentUser || !firestore) {
+      setIsFindingReferrer(false);
+      return;
+    }
+    const findReferrer = async () => {
+      const referralsRef = collection(firestore, 'affiliate_referrals');
+      const q = query(referralsRef, where('referredMemberId', '==', currentUser.uid), where('level', '==', 1));
+      try {
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const referrerDoc = querySnapshot.docs[0];
+          setReferrer({ id: referrerDoc.id, ...referrerDoc.data() } as AffiliateReferral);
+        }
+      } catch (error) {
+        console.error("Error finding referrer:", error);
+      } finally {
+        setIsFindingReferrer(false);
+      }
+    };
+    findReferrer();
+  }, [currentUser, firestore]);
 
   const productsQuery = useMemoFirebase(
     () =>
@@ -66,8 +103,8 @@ export default function MarketplacePage() {
     setBuyDialogOpen(true);
   };
 
-  const handleConfirmPurchase = () => {
-    if (!selectedProduct || !wallet) return;
+  const handleConfirmPurchase = async () => {
+    if (!selectedProduct || !wallet || !currentUser || !firestore) return;
 
     if (wallet.balance < selectedProduct.price) {
       toast({
@@ -75,15 +112,86 @@ export default function MarketplacePage() {
         title: 'Insufficient Funds',
         description: 'You do not have enough money in your wallet.',
       });
-    } else {
-      // In a real app, this would trigger a backend function
+      return;
+    }
+    
+    setIsSubmitting(true);
+
+    try {
+      await runTransaction(firestore, async (transaction) => {
+        const buyerWalletRef = doc(firestore, 'wallets', currentUser.uid);
+        const sellerWalletRef = doc(firestore, 'wallets', selectedProduct.sellerMemberId);
+        const referrerWalletRef = referrer ? doc(firestore, 'wallets', referrer.referrerMemberId) : null;
+
+        const buyerWalletDoc = await transaction.get(buyerWalletRef);
+        if (!buyerWalletDoc.exists() || buyerWalletDoc.data().balance < selectedProduct.price) {
+          throw new Error("Insufficient funds.");
+        }
+
+        // --- Perform Balance Updates ---
+        // 1. Debit Buyer
+        const newBuyerBalance = buyerWalletDoc.data().balance - selectedProduct.price;
+        transaction.update(buyerWalletRef, { balance: newBuyerBalance });
+
+        // 2. Credit Seller
+        const sellerWalletDoc = await transaction.get(sellerWalletRef);
+        const sellerBalance = sellerWalletDoc.exists() ? sellerWalletDoc.data().balance : 0;
+        const newSellerBalance = sellerBalance + selectedProduct.price;
+        transaction.set(sellerWalletRef, { balance: newSellerBalance, memberId: selectedProduct.sellerMemberId, currency: 'USD' }, { merge: true });
+        
+        // 3. Credit Referrer (if exists)
+        if (referrer && referrerWalletRef) {
+            const commissionRate = 0.05; // Level 1 is 5%
+            const commissionAmount = selectedProduct.price * commissionRate;
+
+            const referrerWalletDoc = await transaction.get(referrerWalletRef);
+            const referrerBalance = referrerWalletDoc.exists() ? referrerWalletDoc.data().balance : 0;
+            const newReferrerBalance = referrerBalance + commissionAmount;
+            
+            transaction.set(referrerWalletRef, { balance: newReferrerBalance, memberId: referrer.referrerMemberId, currency: 'USD' }, { merge: true });
+        }
+      });
+      
+      // --- Log Transactions (post-atomic update) ---
+      // Log Buyer's Purchase
+      const buyerTransactionsRef = collection(firestore, 'users', currentUser.uid, 'transactions');
+      await addDoc(buyerTransactionsRef, {
+          type: 'purchase',
+          status: 'completed',
+          amount: -selectedProduct.price,
+          currency: 'USD',
+          description: `Purchase: ${selectedProduct.name}`,
+          createdAt: serverTimestamp(),
+      });
+      
+      // Log Referrer's Commission
+      if (referrer) {
+          const commissionRate = 0.05;
+          const commissionAmount = selectedProduct.price * commissionRate;
+          const commissionsRef = collection(firestore, 'commissions');
+          await addDoc(commissionsRef, {
+              referrerId: referrer.referrerMemberId,
+              buyerId: currentUser.uid,
+              productId: selectedProduct.id,
+              saleAmount: selectedProduct.price,
+              commissionAmount: commissionAmount,
+              createdAt: serverTimestamp(),
+          } as Omit<Commission, 'id'>);
+      }
+
       toast({
         title: 'Purchase Successful!',
         description: `You have purchased "${selectedProduct.name}".`,
       });
+
+    } catch (e: any) {
+        console.error("Purchase failed:", e);
+        toast({ variant: 'destructive', title: 'Purchase Failed', description: e.message || "An error occurred."});
+    } finally {
+        setIsSubmitting(false);
+        setBuyDialogOpen(false);
+        setSelectedProduct(null);
     }
-    setBuyDialogOpen(false);
-    setSelectedProduct(null);
   };
 
   return (
@@ -257,7 +365,8 @@ export default function MarketplacePage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBuyDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleConfirmPurchase} disabled={!wallet || !selectedProduct || wallet.balance < selectedProduct.price}>
+            <Button onClick={handleConfirmPurchase} disabled={isSubmitting || !wallet || !selectedProduct || wallet.balance < selectedProduct.price}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Confirm Purchase
             </Button>
           </DialogFooter>

@@ -230,6 +230,17 @@ export interface AffiliateReferral {
     createdAt: any;
 }
 
+export interface Commission {
+    id: string;
+    referrerId: string;
+    buyerId: string;
+    productId?: string;
+    programId?: string;
+    saleAmount: number;
+    commissionAmount: number;
+    createdAt: any;
+}
+
 export interface FriendRequest {
     id: string;
     senderId: string;

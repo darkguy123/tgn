@@ -9,7 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import type { AffiliateReferral } from '@/lib/types';
+import type { AffiliateReferral, Commission } from '@/lib/types';
+import { useMemo } from 'react';
 
 const commissionLevels = [
     { level: 1, rate: '5%' },
@@ -31,9 +32,18 @@ const ReferralsPage = () => {
     () => profile ? query(collection(firestore, 'affiliate_referrals'), where('referrerMemberId', '==', profile.id)) : null,
     [firestore, profile]
   );
-  
   const { data: downline, isLoading: isDownlineLoading } = useCollection<AffiliateReferral>(referralsQuery);
+  
+  const commissionsQuery = useMemoFirebase(
+    () => profile ? query(collection(firestore, 'commissions'), where('referrerId', '==', profile.id)) : null,
+    [firestore, profile]
+  );
+  const { data: commissions, isLoading: isCommissionsLoading } = useCollection<Commission>(commissionsQuery);
 
+  const totalEarnings = useMemo(() => {
+    if (!commissions) return 0;
+    return commissions.reduce((acc, commission) => acc + commission.commissionAmount, 0);
+  }, [commissions]);
 
   const referralLink = profile ? `https://app.transcendworld.com/signin?ref=${profile.id}` : '';
 
@@ -45,6 +55,8 @@ const ReferralsPage = () => {
       description: "Referral link copied to clipboard.",
     });
   };
+
+  const isLoading = isProfileLoading || isDownlineLoading || isCommissionsLoading;
 
   return (
     <div className="space-y-6">
@@ -61,7 +73,9 @@ const ReferralsPage = () => {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">$0.00</div>
+                <div className="text-2xl font-bold">
+                  {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : `$${totalEarnings.toFixed(2)}`}
+                </div>
                 <p className="text-xs text-muted-foreground">Updated in real-time</p>
             </CardContent>
         </Card>
