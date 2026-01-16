@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import Image from 'next/image';
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -21,15 +21,14 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { useWallet } from '@/hooks/useWallet';
-import { ArrowLeft, UploadCloud, AlertTriangle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FileUpload } from '@/components/ui/file-upload';
 
 const adSchema = z.object({
   name: z.string().min(5, 'Campaign name must be at least 5 characters'),
   headline: z.string().min(5, 'Headline must be at least 5 characters'),
   bodyText: z.string().min(10, 'Body text must be at least 10 characters'),
-  imageUrl: z.string().url('Please provide a valid image URL'),
   callToActionText: z.string().min(3, 'CTA text is required'),
   callToActionUrl: z.string().url('Please provide a valid CTA URL'),
   budget: z.preprocess(
@@ -46,17 +45,15 @@ export default function NewAdPage() {
   const { profile } = useMemberProfile();
   const { wallet } = useWallet();
   const { toast } = useToast();
+  const [imageUrl, setImageUrl] = useState('');
 
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<AdFormData>({
     resolver: zodResolver(adSchema),
   });
-
-  const imageUrl = watch('imageUrl');
 
   const onSubmit = async (data: AdFormData) => {
     if (!profile) {
@@ -67,13 +64,18 @@ export default function NewAdPage() {
         toast({ variant: 'destructive', title: 'Insufficient Funds', description: 'Your wallet balance is too low for this budget.' });
         return;
     }
+    if (!imageUrl) {
+        toast({ variant: 'destructive', title: 'Image Required', description: 'Please upload an image for your ad.' });
+        return;
+    }
 
     try {
       await addDoc(collection(firestore, 'ads'), {
         ...data,
+        imageUrl,
         creatorMemberId: profile.id,
         creatorName: profile.name || profile.email.split('@')[0],
-        creatorImageId: profile.imageId || 'default-avatar',
+        creatorAvatarUrl: profile.avatarUrl,
         status: 'pending',
         amountSpent: 0,
         createdAt: serverTimestamp(),
@@ -146,20 +148,9 @@ export default function NewAdPage() {
                             <Textarea id="bodyText" {...register('bodyText')} className="min-h-24" placeholder="Briefly describe what you're offering."/>
                             {errors.bodyText && <p className="text-sm text-destructive">{errors.bodyText.message}</p>}
                         </div>
-                        <div className={cn("aspect-video rounded-md border-2 border-dashed flex items-center justify-center overflow-hidden", errors.imageUrl && "border-destructive")}>
-                            {imageUrl ? (
-                                <Image src={imageUrl} alt="Ad preview" width={400} height={225} className="object-cover w-full h-full" />
-                            ) : (
-                                <div className="text-center text-muted-foreground p-4">
-                                    <UploadCloud className="h-10 w-10 mx-auto" />
-                                    <p className="mt-2 text-sm">Image preview will appear here.</p>
-                                </div>
-                            )}
-                        </div>
                         <div className="space-y-2">
-                            <Label htmlFor="imageUrl">Image URL</Label>
-                            <Input id="imageUrl" {...register('imageUrl')} placeholder="https://example.com/ad-image.png" />
-                            {errors.imageUrl && <p className="text-sm text-destructive">{errors.imageUrl.message}</p>}
+                            <Label>Image</Label>
+                            <FileUpload value={imageUrl} onUploadComplete={setImageUrl} />
                         </div>
                     </CardContent>
                 </Card>
@@ -219,5 +210,3 @@ export default function NewAdPage() {
     </div>
   );
 }
-
-    

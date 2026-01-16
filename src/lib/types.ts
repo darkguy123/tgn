@@ -13,7 +13,7 @@ export interface TGNMember {
     role: 'mentee' | 'mentor-candidate' | 'associate-mentor' | 'collaborator' | 'sponsor' | 'country-manager' | 'volunteer' | 'media';
     purpose?: string;
     identityProfile?: string;
-    imageId?: string;
+    avatarUrl?: string;
     isVerifiedMentor?: boolean;
     createdAt?: any;
     subscription?: {
@@ -50,7 +50,7 @@ export interface Product {
     
     sellerMemberId: string;
     sellerName: string; 
-    sellerImageId: string; 
+    sellerAvatarUrl: string; 
 
     approvalStatus: 'pending' | 'approved' | 'rejected';
     createdAt: any; 
@@ -80,10 +80,10 @@ export type Post = {
   id: string;
   authorId: string;
   authorName: string;
-  authorImageId: string;
+  authorAvatarUrl: string;
   authorRole: string;
   content: string;
-  images?: string[];
+  imageUrls?: string[];
   likes: number;
   commentsCount: number;
   createdAt: any; // Firestore Timestamp
@@ -93,7 +93,7 @@ export interface Comment {
   id: string;
   authorId: string;
   authorName: string;
-  authorImageId: string;
+  authorAvatarUrl: string;
   content: string;
   createdAt: any; // Firestore Timestamp
 }
@@ -185,7 +185,7 @@ export interface Cause {
     id: string;
     creatorMemberId: string;
     creatorName: string;
-    creatorImageId: string;
+    creatorAvatarUrl: string;
     title: string;
     description: string;
     goalAmount: number;
@@ -199,7 +199,7 @@ export interface AdCampaign {
     id: string;
     creatorMemberId: string;
     creatorName: string;
-    creatorImageId: string;
+    creatorAvatarUrl: string;
     name: string;
     status: 'pending' | 'active' | 'paused' | 'rejected';
     budget: number;

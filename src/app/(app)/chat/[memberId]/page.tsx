@@ -10,19 +10,12 @@ import {
   File, Video as VideoIcon, Image as ImageIcon, Loader2
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import placeholderImages from '@/lib/placeholder-images.json';
 import { cn } from '@/lib/utils';
 import type { TGNMember, ChatMessage, Chat } from '@/lib/types';
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc, collection, query, orderBy, addDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-
-// Helper to get image from placeholder data
-const getImage = (imageId?: string) => {
-  if (!imageId) return null;
-  return placeholderImages.placeholderImages.find((p) => p.id === imageId);
-};
 
 // Helper to generate a consistent chat ID
 const createChatId = (uid1: string, uid2: string) => [uid1, uid2].sort().join('_');
@@ -94,7 +87,6 @@ export default function ChatPage() {
   
   const otherUserIsTyping = chatData?.typing?.[otherMemberId] === true;
   const otherMemberName = otherMember?.name || otherMember?.email?.split('@')[0] || 'User';
-  const otherMemberImage = getImage(otherMember?.imageId);
   const isLoading = isOtherUserLoading || areMessagesLoading;
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -156,7 +148,7 @@ export default function ChatPage() {
             <ArrowLeft />
           </Button>
           <Avatar className="h-10 w-10">
-            <AvatarImage src={otherMemberImage?.imageUrl} />
+            <AvatarImage src={otherMember?.avatarUrl} />
             <AvatarFallback>{otherMemberName.charAt(0)}</AvatarFallback>
           </Avatar>
           <div className="min-w-0">

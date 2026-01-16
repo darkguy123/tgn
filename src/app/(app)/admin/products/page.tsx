@@ -24,13 +24,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import Image from 'next/image';
-import placeholderImages from '@/lib/placeholder-images.json';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
-
-const getImage = (imageId: string) => {
-  return placeholderImages.placeholderImages.find((p) => p.id === imageId);
-};
 
 
 export default function AdminProductsPage() {
@@ -70,7 +64,6 @@ export default function AdminProductsPage() {
       </TableHeader>
       <TableBody>
         {filteredProducts.map(product => {
-            const sellerImg = getImage(product.sellerImageId);
             return (
                 <TableRow key={product.id}>
                     <TableCell>
@@ -91,7 +84,7 @@ export default function AdminProductsPage() {
                     <TableCell>
                         <div className="flex items-center gap-2">
                             <Avatar className="h-8 w-8">
-                                <AvatarImage src={sellerImg?.imageUrl} />
+                                <AvatarImage src={product.sellerAvatarUrl} />
                                 <AvatarFallback>{product.sellerName.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <span>{product.sellerName}</span>
@@ -184,5 +177,3 @@ export default function AdminProductsPage() {
     </div>
   );
 }
-
-    

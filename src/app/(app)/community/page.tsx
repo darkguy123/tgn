@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -18,7 +18,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import placeholderImages from '@/lib/placeholder-images.json';
 import {
   LayoutGrid,
   Users,
@@ -56,10 +55,6 @@ const communityNavItems = [
   { label: 'Marketplace', icon: ShoppingBag, path: '/marketplace' },
 ];
 
-const getImage = (imageId: string) => {
-  return placeholderImages.placeholderImages.find(p => p.id === imageId);
-};
-
 const postSchema = z.object({
   content: z.string().min(1, 'Post content cannot be empty.').max(500, 'Post content is too long.'),
 });
@@ -85,7 +80,7 @@ function CreatePostDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
         content: data.content,
         authorId: profile.id,
         authorName: profile.name || profile.email.split('@')[0],
-        authorImageId: profile.imageId || 'default-male-avatar',
+        authorAvatarUrl: profile.avatarUrl,
         authorRole: profile.role,
         likes: 0,
         commentsCount: 0,
@@ -112,7 +107,7 @@ function CreatePostDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
           <div className="py-4 space-y-4">
             <div className="flex items-start gap-4">
               <Avatar>
-                <AvatarImage src={getImage(profile?.imageId || 'user-1')?.imageUrl} />
+                <AvatarImage src={profile?.avatarUrl} />
                 <AvatarFallback>{profile?.email.charAt(0)}</AvatarFallback>
               </Avatar>
               <div className="flex-1 space-y-2">
@@ -166,7 +161,7 @@ function PostComments({ post }: { post: Post }) {
             content: data.content,
             authorId: profile.id,
             authorName: profile.name || profile.email.split('@')[0],
-            authorImageId: profile.imageId || 'default-male-avatar',
+            authorAvatarUrl: profile.avatarUrl,
             createdAt: serverTimestamp(),
         });
 
@@ -186,7 +181,7 @@ function PostComments({ post }: { post: Post }) {
     <div className="pt-4 mt-4 border-t">
       <form onSubmit={handleSubmit(handleCommentSubmit)} className="flex items-start gap-3 mb-6">
         <Avatar className="h-8 w-8">
-          <AvatarImage src={getImage(profile?.imageId ?? 'user-1')?.imageUrl} />
+          <AvatarImage src={profile?.avatarUrl} />
           <AvatarFallback>{profile?.email.charAt(0)}</AvatarFallback>
         </Avatar>
         <div className="flex-1 space-y-2">
@@ -206,7 +201,7 @@ function PostComments({ post }: { post: Post }) {
         {comments?.map(comment => (
            <div key={comment.id} className="flex items-start gap-3">
              <Avatar className="h-8 w-8">
-                <AvatarImage src={getImage(comment.authorImageId)?.imageUrl} />
+                <AvatarImage src={comment.authorAvatarUrl} />
                 <AvatarFallback>{comment.authorName.charAt(0)}</AvatarFallback>
              </Avatar>
              <div className="bg-muted p-3 rounded-lg flex-1">
@@ -243,15 +238,13 @@ function PostCard({ post }: { post: Post }) {
     }
   };
 
-  const authorImage = getImage(post.authorImageId);
-
   return (
     <Card>
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-start gap-3">
             <Avatar>
-              {authorImage && <AvatarImage src={authorImage.imageUrl} />}
+              <AvatarImage src={post.authorAvatarUrl} />
               <AvatarFallback>{post.authorName.charAt(0)}</AvatarFallback>
             </Avatar>
             <div>
@@ -268,22 +261,18 @@ function PostCard({ post }: { post: Post }) {
           </Button>
         </div>
         <p className="text-sm mb-4 whitespace-pre-wrap">{post.content}</p>
-        {post.images && post.images.length > 0 && (
-          <div className={`grid gap-2 grid-cols-${post.images.length > 1 ? 2 : 1} mb-4`}>
-            {post.images.map(imgId => {
-              const img = getImage(imgId);
-              return img ? (
+        {post.imageUrls && post.imageUrls.length > 0 && (
+          <div className={`grid gap-2 grid-cols-${post.imageUrls.length > 1 ? 2 : 1} mb-4`}>
+            {post.imageUrls.map(imageUrl => (
                 <Image
-                  key={imgId}
-                  src={img.imageUrl}
+                  key={imageUrl}
+                  src={imageUrl}
                   alt="Post image"
                   width={400}
                   height={300}
                   className="rounded-lg object-cover w-full aspect-[4/3]"
-                  data-ai-hint={img.imageHint}
                 />
-              ) : null;
-            })}
+              ))}
           </div>
         )}
         <Collapsible>
@@ -387,7 +376,7 @@ export default function CommunityPage() {
               {profile && (
                 <>
                   <Avatar className="h-16 w-16 mx-auto mb-2">
-                    <AvatarImage src={getImage(profile.imageId || 'default-male-avatar')?.imageUrl} />
+                    <AvatarImage src={profile.avatarUrl} />
                     <AvatarFallback>{profile.name ? profile.name.charAt(0) : profile.email.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <h3 className="font-semibold">{profile.name || profile.email.split('@')[0]}</h3>
@@ -422,7 +411,7 @@ export default function CommunityPage() {
           <Card>
              <CardContent className="p-4 flex items-center gap-3 border-b">
                 <Avatar>
-                    <AvatarImage src={getImage(profile?.imageId ?? 'user-1')?.imageUrl} />
+                    <AvatarImage src={profile?.avatarUrl} />
                     <AvatarFallback>{profile?.email.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <button

@@ -23,30 +23,22 @@ import {
   ThumbsUp,
   MessageSquare
 } from 'lucide-react';
-import placeholderImages from '@/lib/placeholder-images.json';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useDoc, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, doc, query, where, orderBy } from 'firebase/firestore';
 import type { TGNMember, MentorCertification, Post } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Progress } from '@/components/ui/progress';
 import { formatDistanceToNow } from 'date-fns';
-
-const getImage = (imageId?: string) => {
-    if (!imageId) return null;
-    return placeholderImages.placeholderImages.find((p) => p.id === imageId);
-};
 
 // Simplified post card for profile page
 function ProfilePostCard({ post }: { post: Post }) {
-    const authorImage = getImage(post.authorImageId);
     return (
         <Card>
             <CardContent className="p-4">
                 <div className="flex items-start gap-3">
                     <Avatar>
-                      {authorImage && <AvatarImage src={authorImage.imageUrl} />}
+                      <AvatarImage src={post.authorAvatarUrl} />
                       <AvatarFallback>{post.authorName.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
@@ -135,27 +127,23 @@ export default function ProfilePage() {
   }
   
   const name = member.name || member.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  const avatarImg = getImage(member.imageId);
-  const bannerImg = getImage('profile-banner-default');
 
   return (
     <div className="space-y-6">
       <Card className="overflow-hidden">
         {/* Banner and Avatar */}
         <div className="relative">
-          {bannerImg && (
             <Image
-              src={bannerImg.imageUrl}
+              src="https://images.unsplash.com/photo-1557683316-9ca2a4f4e427?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxhYnN0cmFjdCUyMGJsdWV8ZW58MHx8fHwxNzE3Nzc4MDUwfDA&ixlib=rb-4.1.0&q=80&w=1080"
               alt="Profile banner"
               width={1200}
               height={300}
               className="h-48 w-full object-cover"
-              data-ai-hint={bannerImg.imageHint}
+              data-ai-hint="abstract blue"
             />
-          )}
           <div className="absolute -bottom-16 left-6">
             <Avatar className="h-32 w-32 rounded-full border-4 border-card">
-              <AvatarImage src={avatarImg?.imageUrl} alt={name} />
+              <AvatarImage src={member.avatarUrl} alt={name} />
               <AvatarFallback className="text-4xl">
                 {name.charAt(0)}
               </AvatarFallback>

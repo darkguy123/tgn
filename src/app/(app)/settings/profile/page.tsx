@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,21 +11,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Bell, Globe, Palette, CreditCard, Mail, Phone, MapPin, Camera, Save } from "lucide-react";
+import { User, Bell, Globe, Palette, CreditCard, Save } from "lucide-react";
 import { useFirestore, useUser } from '@/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
-import type { TGNMember } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import placeholderImages from '@/lib/placeholder-images.json';
 import { countries } from '@/lib/data';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
-import { differenceInDays, formatDistanceToNowStrict } from 'date-fns';
+import { FileUpload } from '@/components/ui/file-upload';
 
 const profileSettingsSchema = z.object({
   name: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -34,7 +29,6 @@ const profileSettingsSchema = z.object({
   purpose: z.string().min(10, 'Bio must be at least 10 characters.'),
   locationCountry: z.string().min(1, 'Country is required'),
   timezone: z.string().min(1, 'Timezone is required'),
-  imageId: z.string().url("Please enter a valid image URL.").optional().or(z.literal('')),
 });
 
 type ProfileSettingsFormData = z.infer<typeof profileSettingsSchema>;
@@ -46,49 +40,18 @@ const timezones = [
     { value: 'Asia/Kolkata', label: 'Asia/Kolkata (GMT+5:30)' },
 ];
 
-const getImage = (imageId?: string) => {
-  if (!imageId) return null;
-  if (imageId.startsWith('http')) {
-    return { imageUrl: imageId };
-  }
-  const image = placeholderImages.placeholderImages.find((p) => p.id === imageId);
-  if (!image) {
-      if (imageId?.includes('female')) {
-          return placeholderImages.placeholderImages.find(p => p.id === 'default-female-avatar');
-      }
-      return placeholderImages.placeholderImages.find(p => p.id === 'default-male-avatar');
-  }
-  return image;
-};
-
-
 const SettingsPage = () => {
-  const router = useRouter();
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const { profile, isLoading } = useMemberProfile();
-
-  const [notifications, setNotifications] = useState({
-    emailUpdates: true,
-    sessionReminders: true,
-    communityActivity: false,
-    marketingEmails: false,
-    pushNotifications: true,
-  });
-
-  const [theme, setTheme] = useState('Light');
-  const [language, setLanguage] = useState('en');
-  const [privacy, setPrivacy] = useState({
-    profileVisibility: 'members',
-    showOnlineStatus: true,
-  });
+  
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl || '');
 
   const {
     register,
     handleSubmit,
     control,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<ProfileSettingsFormData>({
     resolver: zodResolver(profileSettingsSchema),
@@ -99,12 +62,17 @@ const SettingsPage = () => {
         locationCountry: profile?.locationCountry || '',
         phone: profile?.phone || '',
         timezone: profile?.timezone || '',
-        imageId: profile?.imageId || '',
     },
     resetOptions: {
         keepDirtyValues: true,
     }
   });
+  
+  useState(() => {
+    if (profile?.avatarUrl) {
+      setAvatarUrl(profile.avatarUrl);
+    }
+  }, [profile]);
 
   const handleSave = async (data: ProfileSettingsFormData) => {
     if (!user) {
@@ -115,6 +83,7 @@ const SettingsPage = () => {
       const userDocRef = doc(firestore, 'users', user.uid);
       await updateDoc(userDocRef, {
         ...data,
+        avatarUrl: avatarUrl,
         updatedAt: serverTimestamp(),
       });
       toast({
@@ -131,35 +100,6 @@ const SettingsPage = () => {
     }
   };
   
-  const watchedImageId = watch('imageId');
-  const currentAvatar = getImage(watchedImageId || profile?.imageId || 'default-male-avatar');
-
-  const subscriptionInfo = useMemo(() => {
-    if (!profile?.subscription || !profile.createdAt) {
-      return {
-        daysRemaining: 0,
-        totalDays: 365,
-        progress: 0,
-        renewsAt: 'N/A',
-        planName: 'No Plan'
-      };
-    }
-    const renewalDate = profile.subscription.renewsAt.toDate();
-    const creationDate = profile.createdAt.toDate();
-    const totalDays = differenceInDays(renewalDate, creationDate);
-    const daysRemaining = differenceInDays(renewalDate, new Date());
-    const progress = Math.max(0, (daysRemaining / (totalDays || 1)) * 100);
-
-    return {
-      daysRemaining,
-      totalDays,
-      progress,
-      renewsAt: renewalDate.toLocaleDateString(),
-      planName: profile.subscription.planName || 'Pro Member',
-    };
-  }, [profile]);
-
-
   if (isLoading || !profile) {
     return (
         <div className="space-y-6">
@@ -183,9 +123,9 @@ const SettingsPage = () => {
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList className="flex-wrap h-auto justify-start">
           <TabsTrigger value="profile"><User className="mr-2"/>Profile</TabsTrigger>
-          <TabsTrigger value="notifications"><Bell className="mr-2"/>Notifications</TabsTrigger>
-          <TabsTrigger value="preferences"><Palette className="mr-2"/>Preferences</TabsTrigger>
-          <TabsTrigger value="billing"><CreditCard className="mr-2"/>Billing</TabsTrigger>
+          <TabsTrigger value="notifications" disabled><Bell className="mr-2"/>Notifications</TabsTrigger>
+          <TabsTrigger value="preferences" disabled><Palette className="mr-2"/>Preferences</TabsTrigger>
+          <TabsTrigger value="billing" disabled><CreditCard className="mr-2"/>Billing</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
@@ -196,17 +136,11 @@ const SettingsPage = () => {
                         <CardTitle>Profile Photo</CardTitle>
                     </CardHeader>
                     <CardContent className="flex flex-col items-center gap-4">
-                        <Avatar className="h-32 w-32">
-                           <AvatarImage src={currentAvatar?.imageUrl} alt={profile.name} />
-                           <AvatarFallback className="text-4xl">
-                                {profile.name ? profile.name.charAt(0) : profile.email.charAt(0)}
-                           </AvatarFallback>
-                        </Avatar>
-                        <div className="w-full space-y-2">
-                             <Label htmlFor="imageId">Profile Photo URL</Label>
-                             <Input id="imageId" {...register('imageId')} placeholder="https://example.com/photo.jpg"/>
-                             {errors.imageId && <p className="text-sm text-destructive">{errors.imageId.message}</p>}
-                        </div>
+                        <FileUpload 
+                            value={avatarUrl}
+                            onUploadComplete={setAvatarUrl}
+                            label="Upload Profile Photo"
+                        />
                     </CardContent>
                     </Card>
 
@@ -288,177 +222,7 @@ const SettingsPage = () => {
                 </div>
             </form>
         </TabsContent>
-
-        <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5 text-primary" />
-                Notification Preferences
-              </CardTitle>
-              <CardDescription>Choose how you want to be notified</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {[
-                { key: 'emailUpdates', label: 'Email Updates', desc: 'Receive important account updates via email' },
-                { key: 'sessionReminders', label: 'Session Reminders', desc: 'Get reminded about upcoming mentorship sessions' },
-                { key: 'communityActivity', label: 'Community Activity', desc: 'Notifications for likes, comments, and mentions' },
-                { key: 'marketingEmails', label: 'Marketing Emails', desc: 'Receive news about new programs and features' },
-                { key: 'pushNotifications', label: 'Push Notifications', desc: 'Browser notifications for real-time updates' },
-              ].map((item) => (
-                <div 
-                  key={item.key}
-                  className="flex items-center justify-between p-4 border border-border rounded-lg"
-                >
-                  <div>
-                    <p className="font-medium text-foreground">{item.label}</p>
-                    <p className="text-sm text-muted-foreground">{item.desc}</p>
-                  </div>
-                  <Switch
-                    checked={notifications[item.key as keyof typeof notifications]}
-                    onCheckedChange={(checked) => 
-                      setNotifications({ ...notifications, [item.key]: checked })
-                    }
-                  />
-                </div>
-              ))}
-              <Button variant="accent" className="mt-4">
-                <Save className="h-4 w-4 mr-2" /> Save Preferences
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="preferences">
-          <div className="grid lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Palette className="h-5 w-5 text-primary" />
-                  Appearance
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label className="mb-2 block">Theme</Label>
-                  <div className="flex gap-2">
-                    {['Light', 'Dark', 'System'].map((themeName) => (
-                      <Button
-                        key={themeName}
-                        variant={theme === themeName ? 'accent' : 'outline'}
-                        size="sm"
-                        onClick={() => setTheme(themeName)}
-                      >
-                        {themeName}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <Label className="mb-2 block">Language</Label>
-                   <Select value={language} onValueChange={setLanguage}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select Language" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="en">English</SelectItem>
-                        <SelectItem value="es">Español</SelectItem>
-                        <SelectItem value="fr">Français</SelectItem>
-                        <SelectItem value="pt">Português</SelectItem>
-                    </SelectContent>
-                    </Select>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="h-5 w-5 text-primary" />
-                  Privacy
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                  <div>
-                    <p className="font-medium text-foreground">Profile Visibility</p>
-                    <p className="text-sm text-muted-foreground">Who can see your profile</p>
-                  </div>
-                  <Select value={privacy.profileVisibility} onValueChange={(value) => setPrivacy({...privacy, profileVisibility: value})}>
-                    <SelectTrigger className="w-auto">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="public">Public</SelectItem>
-                        <SelectItem value="members">Members Only</SelectItem>
-                        <SelectItem value="private">Private</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                  <div>
-                    <p className="font-medium text-foreground">Show Online Status</p>
-                    <p className="text-sm text-muted-foreground">Let others see when you're online</p>
-                  </div>
-                  <Switch checked={privacy.showOnlineStatus} onCheckedChange={(checked) => setPrivacy({...privacy, showOnlineStatus: checked})} />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="billing">
-          <div className="grid lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-primary" />
-                  Current Plan
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="p-4 bg-accent/10 border border-accent/30 rounded-lg mb-4">
-                  <p className="text-lg font-bold text-foreground">{subscriptionInfo.planName}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {subscriptionInfo.planName === 'No Plan' ? 'No active subscription' : `Renews ${subscriptionInfo.renewsAt}`}
-                  </p>
-                </div>
-                {subscriptionInfo.planName !== 'No Plan' && (
-                  <div className="space-y-2 mt-4">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Days Remaining</span>
-                      <span>{subscriptionInfo.daysRemaining > 0 ? `${subscriptionInfo.daysRemaining} days` : 'Expired'}</span>
-                    </div>
-                     <Progress value={subscriptionInfo.progress} className={cn(subscriptionInfo.daysRemaining < 30 && '[&>div]:bg-destructive')}/>
-                  </div>
-                )}
-                <div className="space-y-2 text-sm text-muted-foreground mt-4">
-                  <p>✓ Unlimited program access</p>
-                  <p>✓ Priority mentor matching</p>
-                  <p>✓ Certification eligible</p>
-                  <p>✓ Community features</p>
-                </div>
-                <Button variant="outline" className="w-full mt-4">
-                  Manage Subscription
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Methods</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-center text-muted-foreground py-10">
-                    <p>Your saved payment methods will appear here.</p>
-                </div>
-                <Button variant="outline" className="w-full">
-                  Add Payment Method
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+        {/* Other tabs content can be added here */}
       </Tabs>
     </>
   );

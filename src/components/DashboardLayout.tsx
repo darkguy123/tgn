@@ -36,7 +36,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
-import placeholderImages from '@/lib/placeholder-images.json';
 import { BottomNav } from './BottomNav';
 
 
@@ -61,17 +60,6 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-const getImage = (imageId?: string) => {
-  if (!imageId) return null;
-  // If imageId is a full URL, return it directly
-  if (imageId.startsWith('http')) {
-    return { imageUrl: imageId };
-  }
-  // Otherwise, find it in the placeholder data
-  return placeholderImages.placeholderImages.find((p) => p.id === imageId);
-};
-
-
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -81,7 +69,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const userName = profile?.name || user?.displayName || 'Member';
   
   const profilePath = profile ? `/profile/${profile.id}` : '#';
-  const avatarImage = getImage(profile?.imageId || 'default-male-avatar');
 
   const handleLogout = () => {
     signOut(auth);
@@ -138,7 +125,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
                         <Avatar className="h-9 w-9">
-                            <AvatarImage src={avatarImage?.imageUrl ?? user?.photoURL ?? ""} alt={userName} />
+                            <AvatarImage src={profile?.avatarUrl ?? user?.photoURL ?? ""} alt={userName} />
                             <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
                                 {userName[0]}
                             </AvatarFallback>

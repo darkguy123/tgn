@@ -16,14 +16,12 @@ import { type MentorKYC } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState } from 'react';
 import { FacialScan } from '@/components/facial-scan';
+import { FileUpload } from '@/components/ui/file-upload';
 
 const kycSchema = z.object({
   nin: z.string().min(10, 'National Identification Number is required'),
   bvn: z.string().min(10, 'Bank Verification Number is required'),
   medicalLicenseNumber: z.string().optional(),
-  certificateUrl: z.string().url('Please enter a valid URL for your certificate'),
-  degreeUrl: z.string().url('Please enter a valid URL for your degree'),
-  avatarUrl: z.string().url('Please enter a valid URL for your avatar photo'),
 });
 
 type KycFormData = z.infer<typeof kycSchema>;
@@ -36,6 +34,10 @@ export default function KycPage() {
 
   const [isScanning, setIsScanning] = useState(false);
   const [scanCompleted, setScanCompleted] = useState(false);
+  
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [certificateUrl, setCertificateUrl] = useState('');
+  const [degreeUrl, setDegreeUrl] = useState('');
 
   const kycDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -62,10 +64,18 @@ export default function KycPage() {
         toast({ variant: 'destructive', title: 'Facial Scan Required', description: 'Please complete the facial scan before submitting.' });
         return;
     }
+    
+    if (!avatarUrl || !certificateUrl || !degreeUrl) {
+      toast({ variant: 'destructive', title: 'File Uploads Required', description: 'Please upload all required documents.' });
+      return;
+    }
 
     try {
       await setDoc(kycDocRef, {
         ...data,
+        avatarUrl,
+        certificateUrl,
+        degreeUrl,
         memberId: user.uid,
         status: 'pending',
         submittedAt: serverTimestamp(),
@@ -191,22 +201,19 @@ export default function KycPage() {
               <Label htmlFor="medicalLicenseNumber">Medical License Number (Optional)</Label>
               <Input id="medicalLicenseNumber" {...register('medicalLicenseNumber')} />
             </div>
-            <div className="md:col-span-2 space-y-2">
-              <Label htmlFor="avatarUrl">Your Avatar Photo URL</Label>
-              <Input id="avatarUrl" {...register('avatarUrl')} placeholder="https://example.com/your-photo.jpg" />
-              {errors.avatarUrl && <p className="text-sm text-destructive">{errors.avatarUrl.message}</p>}
-              <p className="text-xs text-muted-foreground">Please provide a clear, professional headshot.</p>
-            </div>
-            <div className="md:col-span-2 space-y-2">
-              <Label htmlFor="certificateUrl">Professional Certificate URL</Label>
-              <Input id="certificateUrl" {...register('certificateUrl')} placeholder="https://linkedin.com/in/me/details/certifications/..." />
-              {errors.certificateUrl && <p className="text-sm text-destructive">{errors.certificateUrl.message}</p>}
-              <p className="text-xs text-muted-foreground">Please upload your certificate to a service like Google Drive or Dropbox and paste the shareable link here.</p>
-            </div>
-            <div className="md:col-span-2 space-y-2">
-              <Label htmlFor="degreeUrl">Highest Degree URL</Label>
-              <Input id="degreeUrl" {...register('degreeUrl')} placeholder="https://example.com/my-degree.pdf" />
-              {errors.degreeUrl && <p className="text-sm text-destructive">{errors.degreeUrl.message}</p>}
+            <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                    <Label>Your Avatar Photo</Label>
+                    <FileUpload value={avatarUrl} onUploadComplete={setAvatarUrl} label="Upload headshot" />
+                </div>
+                <div className="space-y-2">
+                    <Label>Professional Certificate</Label>
+                    <FileUpload value={certificateUrl} onUploadComplete={setCertificateUrl} label="Upload certificate" accept={{ 'application/pdf': [], 'image/*': [] }} />
+                </div>
+                <div className="space-y-2">
+                    <Label>Highest Degree</Label>
+                    <FileUpload value={degreeUrl} onUploadComplete={setDegreeUrl} label="Upload degree" accept={{ 'application/pdf': [], 'image/*': [] }} />
+                </div>
             </div>
           </CardContent>
         </Card>

@@ -18,9 +18,10 @@
           "type": "string",
           "description": "Denormalized name of the creator for display."
         },
-        "creatorImageId": {
+        "creatorAvatarUrl": {
           "type": "string",
-          "description": "Denormalized image ID of the creator for display."
+          "format": "uri",
+          "description": "Denormalized avatar URL of the creator for display."
         },
         "name": {
           "type": "string",
@@ -149,9 +150,10 @@
           "type": "string",
           "description": "A JSON string containing the member's self-identified goals and interests."
         },
-        "imageId": {
+        "avatarUrl": {
           "type": "string",
-          "description": "Reference to an image in placeholder-images.json for the user's avatar."
+          "format": "uri",
+          "description": "URL to an image for the user's avatar."
         },
         "isVerifiedMentor": {
           "type": "boolean",
@@ -217,26 +219,32 @@
         },
         "certificateUrl": {
           "type": "string",
+          "format": "uri",
           "description": "URL to the uploaded professional certificate."
         },
         "degreeUrl": {
           "type": "string",
+          "format": "uri",
           "description": "URL to the uploaded degree."
         },
         "avatarUrl": {
           "type": "string",
+          "format": "uri",
           "description": "URL to the user's avatar photo for verification."
         },
         "faceScanFrontUrl": {
             "type": "string",
+            "format": "uri",
             "description": "URL to the captured front-facing facial scan image."
         },
         "faceScanLeftUrl": {
             "type": "string",
+            "format": "uri",
             "description": "URL to the captured left-facing facial scan image."
         },
         "faceScanRightUrl": {
             "type": "string",
+            "format": "uri",
             "description": "URL to the captured right-facing facial scan image."
         },
         "submittedAt": {
@@ -561,9 +569,10 @@
           "type": "string",
           "description": "Denormalized name of the seller for display purposes."
         },
-        "sellerImageId": {
+        "sellerAvatarUrl": {
           "type": "string",
-          "description": "Denormalized image ID of the seller for display purposes."
+          "format": "uri",
+          "description": "Denormalized avatar URL of the seller for display purposes."
         },
         "name": {
           "type": "string",
@@ -743,9 +752,10 @@
           "type": "string",
           "description": "Denormalized name of the creator for display purposes."
         },
-        "creatorImageId": {
+        "creatorAvatarUrl": {
           "type": "string",
-          "description": "Denormalized image ID of the creator for display purposes."
+          "format": "uri",
+          "description": "Denormalized avatar URL of the creator for display purposes."
         },
         "title": {
           "type": "string",
@@ -786,7 +796,7 @@
         "id",
         "creatorMemberId",
         "creatorName",
-        "creatorImageId",
+        "creatorAvatarUrl",
         "title",
         "description",
         "goalAmount",
@@ -813,9 +823,10 @@
           "type": "string",
           "description": "Denormalized name of the author for display."
         },
-        "authorImageId": {
+        "authorAvatarUrl": {
           "type": "string",
-          "description": "Denormalized image ID of the author for display."
+          "format": "uri",
+          "description": "Denormalized avatar URL of the author for display."
         },
         "authorRole": {
           "type": "string",
@@ -825,11 +836,12 @@
           "type": "string",
           "description": "The text content of the post."
         },
-        "images": {
+        "imageUrls": {
           "type": "array",
-          "description": "Array of image IDs from placeholder-images.json.",
+          "description": "Array of image URLs from Firebase Storage.",
           "items": {
-            "type": "string"
+            "type": "string",
+            "format": "uri"
           }
         },
         "likes": {
@@ -848,7 +860,7 @@
       "required": [
         "authorId",
         "authorName",
-        "authorImageId",
+        "authorAvatarUrl",
         "authorRole",
         "content",
         "createdAt"
@@ -872,9 +884,10 @@
           "type": "string",
           "description": "Denormalized name of the author for display."
         },
-        "authorImageId": {
+        "authorAvatarUrl": {
           "type": "string",
-          "description": "Denormalized image ID of the author for display."
+          "format": "uri",
+          "description": "Denormalized avatar URL of the author for display."
         },
         "content": {
           "type": "string",
@@ -885,7 +898,7 @@
           "format": "date-time"
         }
       },
-      "required": ["authorId", "authorName", "authorImageId", "content", "createdAt"]
+      "required": ["authorId", "authorName", "authorAvatarUrl", "content", "createdAt"]
     },
     "Chat": {
       "title": "Chat",

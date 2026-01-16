@@ -16,23 +16,12 @@ import type { Cause, TGNMember } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Heart, PlusCircle, PackageSearch, Users, Calendar, MapPin, Target } from 'lucide-react';
 import Link from 'next/link';
-import placeholderImages from '@/lib/placeholder-images.json';
 import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Wallet as WalletIcon, CreditCard, TrendingUp, ChevronRight, Loader2 } from 'lucide-react';
-
-const getImage = (imageId: string) => {
-  return placeholderImages.placeholderImages.find(p => p.id === imageId);
-};
-
-const PAYMENT_METHODS = [
-  { id: 'wallet', label: 'TGN Wallet', icon: WalletIcon },
-  { id: 'card', label: 'Credit/Debit Card', icon: CreditCard },
-  { id: 'usdt', label: 'USDT', icon: TrendingUp },
-];
 
 export default function CausesPage() {
   const firestore = useFirestore();
@@ -43,9 +32,6 @@ export default function CausesPage() {
   );
   const { data: causes, isLoading: causesLoading, error } = useCollection<Cause>(causesQuery);
   
-  const usersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
-  const { data: allUsers, isLoading: usersLoading } = useCollection<TGNMember>(usersRef);
-
   const { wallet, isLoading: walletLoading } = useWallet();
   const { toast } = useToast();
 
@@ -54,7 +40,7 @@ export default function CausesPage() {
   const [selectedPayment, setSelectedPayment] = useState("wallet");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isLoading = causesLoading || usersLoading;
+  const isLoading = causesLoading;
 
   const totalRaised = causes?.reduce((acc, cause) => acc + cause.currentAmount, 0) || 0;
   const totalBackers = causes?.reduce((acc, cause) => acc + (cause.backersCount || 0), 0) || 0;
@@ -239,24 +225,18 @@ export default function CausesPage() {
         )}
 
         <div className="grid md:grid-cols-2 gap-6">
-            {causes?.map(cause => {
-                const creator = allUsers?.find(u => u.id === cause.creatorMemberId);
-                const creatorImage = creator?.imageId ? getImage(creator.imageId) : null;
-                const creatorLocation = creator?.locationCountry || 'Global';
-                
-                return (
+            {causes?.map(cause => (
                     <Card key={cause.id} className="hover:shadow-card transition-all duration-300">
                     <CardHeader>
                     <div className="flex items-start gap-4">
                         <Avatar className="h-12 w-12 rounded-lg">
-                           <AvatarImage src={creatorImage?.imageUrl} />
+                           <AvatarImage src={cause.creatorAvatarUrl} />
                            <AvatarFallback>{cause.creatorName.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                         <CardTitle className="text-lg">{cause.title}</CardTitle>
                         <CardDescription className="flex items-center gap-2 mt-1">
                             <span>by {cause.creatorName}</span>
-                             <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {creatorLocation}</span>
                         </CardDescription>
                         </div>
                     </div>
@@ -291,7 +271,7 @@ export default function CausesPage() {
                     </CardContent>
                 </Card>
                 )
-            })}
+            )}
         </div>
       </div>
       

@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import Image from 'next/image';
 import {
   Card,
   CardContent,
@@ -21,7 +20,7 @@ import { useFirestore, useUser } from '@/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
-import { ArrowLeft, UploadCloud, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -29,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { FileUpload } from '@/components/ui/file-upload';
 
 const productSchema = z.object({
   name: z.string().min(5, 'Product name must be at least 5 characters'),
@@ -39,7 +38,6 @@ const productSchema = z.object({
     z.number().min(0, 'Price cannot be negative')
   ),
   type: z.enum(['Book', 'Course', 'Tool', 'Digital Asset']),
-  imageUrl: z.string().url('Please provide a valid image URL'),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -50,18 +48,16 @@ export default function NewProductPage() {
   const { user } = useUser();
   const { profile } = useMemberProfile();
   const { toast } = useToast();
+  const [imageUrl, setImageUrl] = useState('');
 
   const {
     register,
     handleSubmit,
     control,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
   });
-
-  const imageUrl = watch('imageUrl');
 
   const onSubmit = async (data: ProductFormData) => {
     if (!user || !profile) {
@@ -72,13 +68,23 @@ export default function NewProductPage() {
       });
       return;
     }
+    
+    if (!imageUrl) {
+      toast({
+        variant: 'destructive',
+        title: 'Image Required',
+        description: 'Please upload an image for your product.',
+      });
+      return;
+    }
 
     try {
       await addDoc(collection(firestore, 'products'), {
         ...data,
+        imageUrl,
         sellerMemberId: user.uid,
         sellerName: profile.name || profile.email.split('@')[0],
-        sellerImageId: profile.imageId || 'default-avatar',
+        sellerAvatarUrl: profile.avatarUrl,
         approvalStatus: 'pending',
         createdAt: serverTimestamp(),
       });
@@ -201,27 +207,7 @@ export default function NewProductPage() {
                         <CardDescription>Add a clear image of your product.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className={cn("aspect-video rounded-md border-2 border-dashed flex items-center justify-center overflow-hidden", errors.imageUrl && "border-destructive")}>
-                            {imageUrl ? (
-                                <Image src={imageUrl} alt="Product preview" width={400} height={225} className="object-cover w-full h-full" />
-                            ) : (
-                                <div className="text-center text-muted-foreground p-4">
-                                    <UploadCloud className="h-10 w-10 mx-auto" />
-                                    <p className="mt-2 text-sm">Image preview will appear here.</p>
-                                </div>
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                        <Label htmlFor="imageUrl">Image URL</Label>
-                        <Input
-                            id="imageUrl"
-                            {...register('imageUrl')}
-                            placeholder="https://example.com/image.png"
-                        />
-                        {errors.imageUrl && (
-                            <p className="text-sm text-destructive">{errors.imageUrl.message}</p>
-                        )}
-                        </div>
+                        <FileUpload value={imageUrl} onUploadComplete={setImageUrl} />
                     </CardContent>
                 </Card>
             </div>
@@ -242,5 +228,3 @@ export default function NewProductPage() {
     </div>
   );
 }
-
-    

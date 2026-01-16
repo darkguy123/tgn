@@ -3,13 +3,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +28,6 @@ import {
   Filter,
   MapPin,
   Users,
-  Globe,
   ChevronDown,
   MessageSquare,
   Briefcase,
@@ -44,7 +39,6 @@ import {
   sectors,
   mentorTypes,
 } from "@/lib/data";
-import placeholderImages from "@/lib/placeholder-images.json";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection } from "firebase/firestore";
 import type { TGNMember } from "@/lib/types";
@@ -63,11 +57,6 @@ const DirectoryPage = () => {
   const membersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const { data: members, isLoading, error } = useCollection<TGNMember>(membersRef);
 
-  const getImage = (imageId?: string) => {
-    if (!imageId) return null;
-    return placeholderImages.placeholderImages.find((p) => p.id === imageId);
-  };
-  
   const getName = (member: TGNMember) => {
     return member.name || member.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
@@ -220,7 +209,6 @@ const DirectoryPage = () => {
             <Card key={i}><CardContent className="p-4 space-y-4"><div className="flex items-start gap-3 mb-4"><Skeleton className="h-12 w-12 rounded-full" /><div className="flex-1 space-y-2"><Skeleton className="h-5 w-3/4" /><Skeleton className="h-4 w-1/2" /></div></div><Skeleton className="h-4 w-5/6" /><Skeleton className="h-4 w-3/4" /><div className="flex gap-2 pt-2"><Skeleton className="h-9 w-1/2" /><Skeleton className="h-9 w-1/2" /></div></CardContent></Card>
         ))}
         {filteredMembers?.map((member) => {
-          const img = getImage(member.imageId);
           const name = getName(member);
           return (
             <Card
@@ -230,7 +218,7 @@ const DirectoryPage = () => {
               <CardContent className="p-4">
                 <div className="flex items-start gap-3 mb-4">
                    <Avatar className="h-12 w-12 rounded-full">
-                     <AvatarImage src={img?.imageUrl} alt={name} />
+                     <AvatarImage src={member.avatarUrl} alt={name} />
                     <AvatarFallback className="bg-primary text-primary-foreground font-bold text-lg">
                       {name.charAt(0)}
                     </AvatarFallback>
@@ -304,4 +292,3 @@ const DirectoryPage = () => {
 };
 
 export default DirectoryPage;
-    
