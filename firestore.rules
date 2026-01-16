@@ -166,13 +166,13 @@ service cloud.firestore {
 
     /**
      * @description Controls access to mentor certifications. A mentor can view their own certification status.
-     * @path /mentor_certifications/{certificationId}
+     * @path /mentor_certifications/{userId}
      * @allow (get) - A user reading their own certification document.
      * @deny (list) - A user trying to list all certifications.
      * @principle Grants read-only access to the document owner. Writes are restricted to prevent self-certification.
      */
-    match /mentor_certifications/{certificationId} {
-      allow get: if isOwner(resource.data.memberId);
+    match /mentor_certifications/{userId} {
+      allow get: if isOwner(userId);
       allow list: if false;
       allow create, update, delete: if isAdmin();
     }

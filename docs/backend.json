@@ -236,13 +236,9 @@
       "type": "object",
       "description": "Represents the certification status and progress for a TGN member.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the certification record."
-        },
         "memberId": {
           "type": "string",
-          "description": "The UID of the member this certification belongs to."
+          "description": "The UID of the member this certification belongs to. This should match the document ID."
         },
         "paidProgramsCompleted": {
           "type": "number",
@@ -275,7 +271,6 @@
         }
       },
       "required": [
-        "id",
         "memberId",
         "paidProgramsCompleted",
         "accountAgeInMonths",
@@ -467,9 +462,9 @@
         "description": "Stores affiliate referral data. Security rules will control access based on referrer and referred member IDs."
       },
       {
-        "path": "/mentor_certifications/{certificationId}",
+        "path": "/mentor_certifications/{userId}",
         "entity": "MentorCertification",
-        "description": "Stores mentor certification data. Access controlled via security rules to allow updates by admins and the mentor themselves."
+        "description": "Stores mentor certification data, where the document ID is the user's UID. Access controlled via security rules to allow reads by the owner and writes by admins."
       },
       {
         "path": "/wallets/{walletId}",

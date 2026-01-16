@@ -86,7 +86,6 @@ export type ChatConversation = {
 };
 
 export interface MentorCertification {
-  id: string;
   memberId: string;
   paidProgramsCompleted: number;
   accountAgeInMonths: number;
