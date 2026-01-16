@@ -2,12 +2,12 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -53,6 +53,7 @@ const DirectoryPage = () => {
     mentorType: "All Types",
   });
   const [showFilters, setShowFilters] = useState(false);
+  const router = useRouter();
   
   const firestore = useFirestore();
   const { user: currentUser } = useUser();
@@ -309,9 +310,9 @@ const DirectoryPage = () => {
                       <Send className="h-4 w-4 mr-1" />
                       Connect
                   </Button>
-                  <Link href={`/profile/${member.id}`} className={cn(buttonVariants({ variant: "accent", size: "sm" }), "flex-1 transition-all hover:-translate-y-0.5 hover:shadow-accent")}>
+                  <Button variant="accent" size="sm" className="flex-1 transition-all hover:-translate-y-0.5 hover:shadow-accent" onClick={() => router.push(`/profile/${member.id}`)}>
                     View Profile
-                  </Link>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
