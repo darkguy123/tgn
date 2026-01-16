@@ -10,6 +10,7 @@ export interface TGNMember {
     role: 'mentee' | 'mentor-candidate' | 'associate-mentor' | 'collaborator' | 'sponsor' | 'country-manager' | 'volunteer' | 'media';
     purpose?: string;
     identityProfile?: string;
+    imageId?: string;
     createdAt?: string;
 }
 
@@ -31,14 +32,21 @@ export type Member = {
 };
 
 
-export type Product = {
-  id: string;
-  title: string;
-  author: string;
-  price: number;
-  type: 'Book' | 'Course' | 'Tool';
-  imageId: string;
-};
+export interface Product {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    type: 'Book' | 'Course' | 'Tool' | 'Digital Asset';
+    imageId: string;
+    
+    sellerMemberId: string;
+    sellerName: string; 
+    sellerImageId: string; 
+
+    approvalStatus: 'pending' | 'approved' | 'rejected';
+    createdAt: any; 
+}
 
 export type Program = {
   id: string;

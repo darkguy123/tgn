@@ -64,6 +64,10 @@
           "type": "string",
           "description": "A JSON string containing the member's self-identified goals and interests."
         },
+        "imageId": {
+          "type": "string",
+          "description": "Reference to an image in placeholder-images.json for the user's avatar."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
@@ -380,6 +384,14 @@
           "type": "string",
           "description": "Reference to the TGN Member selling the product. (Relationship: TGNMember 1:N Product)"
         },
+        "sellerName": {
+          "type": "string",
+          "description": "Denormalized name of the seller for display purposes."
+        },
+        "sellerImageId": {
+          "type": "string",
+          "description": "Denormalized image ID of the seller for display purposes."
+        },
         "name": {
           "type": "string",
           "description": "Name of the product."
@@ -392,18 +404,45 @@
           "type": "number",
           "description": "Price of the product."
         },
+        "type": {
+          "type": "string",
+          "description": "Category of the product.",
+          "enum": [
+            "Book",
+            "Course",
+            "Tool",
+            "Digital Asset"
+          ]
+        },
+        "imageId": {
+          "type": "string",
+          "description": "Reference to an image in placeholder-images.json."
+        },
         "approvalStatus": {
           "type": "string",
-          "description": "Status of the product approval workflow."
+          "description": "Status of the product approval workflow.",
+          "enum": [
+            "pending",
+            "approved",
+            "rejected"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the product was created."
         }
       },
       "required": [
-        "id",
         "sellerMemberId",
+        "sellerName",
         "name",
         "description",
         "price",
-        "approvalStatus"
+        "type",
+        "imageId",
+        "approvalStatus",
+        "createdAt"
       ]
     },
     "Event": {

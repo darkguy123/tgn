@@ -180,6 +180,9 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
               <Button onClick={() => router.push('/admin/programs')}>Manage Programs</Button>
+              <Button variant="outline" onClick={() => router.push('/admin/products')}>
+                Manage Products <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
               <Button variant="outline" onClick={() => router.push('/admin/causes')}>
                 Manage Causes <ExternalLink className="ml-2 h-4 w-4" />
               </Button>

@@ -214,8 +214,8 @@ service cloud.firestore {
     match /products/{productId} {
       allow get, list: if true;
       allow create: if isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.sellerMemberId) && request.resource.data.sellerMemberId == resource.data.sellerMemberId;
-      allow delete: if isExistingOwner(resource.data.sellerMemberId);
+      allow update: if (isExistingOwner(resource.data.sellerMemberId) && request.resource.data.sellerMemberId == resource.data.sellerMemberId) || isAdmin();
+      allow delete: if isExistingOwner(resource.data.sellerMemberId) || isAdmin();
     }
 
     /**
