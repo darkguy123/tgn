@@ -73,19 +73,27 @@ const AuthPage = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground font-body">
-      <main className="flex-1 flex items-center justify-center p-4 my-10">
-        <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 rounded-2xl overflow-hidden shadow-2xl">
-          {/* Left Side: Form */}
-          <div className="p-8 md:p-12 bg-card text-card-foreground">
-             <div className="flex justify-start mb-8">
+    <div className="relative flex min-h-screen flex-col font-body">
+       <Image
+          src="/signinpagebg.jpeg"
+          alt="People collaborating in a modern office"
+          fill={true}
+          className="object-cover"
+          data-ai-hint="collaboration office"
+        />
+        <div className="absolute inset-0 bg-black/50" />
+      <main className="relative z-10 flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-2xl overflow-hidden shadow-2xl bg-card text-card-foreground">
+          {/* Form */}
+          <div className="p-8 md:p-12">
+             <div className="flex justify-center mb-8">
                 <Logo className="h-20 object-contain"/>
             </div>
 
-            <h1 className="text-3xl font-bold text-foreground">
+            <h1 className="text-3xl font-bold text-foreground text-center">
               {isSignUp ? "Create Account" : "Welcome back"}
             </h1>
-            <p className="mt-2 text-muted-foreground">
+            <p className="mt-2 text-muted-foreground text-center">
               {isSignUp 
                 ? "Join the global mentorship network" 
                 : "Securely sign in to your account"}
@@ -140,23 +148,9 @@ const AuthPage = () => {
             </div>
           </div>
 
-          {/* Right Side: Image */}
-          <div className="relative hidden md:block">
-            <div className="absolute inset-0 bg-black/30 z-10"></div>
-            <Image
-              src="/signinpagebg.jpeg"
-              alt="People collaborating in a modern office"
-              fill={true}
-              style={{objectFit:'cover'}}
-              data-ai-hint="collaboration office"
-            />
-            <div className="relative z-20 flex flex-col justify-end h-full p-12 text-white">
-              
-            </div>
-          </div>
         </div>
       </main>
-      <footer className="py-6 text-center text-sm text-muted-foreground">
+      <footer className="relative z-10 py-6 text-center text-sm text-white">
         <p>Transcend Global Network © All rights reserved</p>
       </footer>
     </div>
