@@ -24,6 +24,7 @@ import { useWallet } from '@/hooks/useWallet';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FileUpload } from '@/components/ui/file-upload';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const adSchema = z.object({
   name: z.string().min(5, 'Campaign name must be at least 5 characters'),
@@ -35,6 +36,7 @@ const adSchema = z.object({
     a => parseFloat(String(a)),
     z.number().min(10, 'Budget must be at least $10')
   ),
+  adSize: z.enum(['350x350', '128x90', 'skyscraper']),
 });
 
 type AdFormData = z.infer<typeof adSchema>;
@@ -50,6 +52,7 @@ export default function NewAdPage() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<AdFormData>({
     resolver: zodResolver(adSchema),
@@ -138,6 +141,28 @@ export default function NewAdPage() {
                             />
                             {errors.name && (
                                 <p className="text-sm text-destructive">{errors.name.message}</p>
+                            )}
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="adSize">Ad Size</Label>
+                            <Controller
+                                name="adSize"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <SelectTrigger id="adSize">
+                                            <SelectValue placeholder="Select an ad size" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="350x350">Square (350x350)</SelectItem>
+                                            <SelectItem value="128x90">Small Landscape (128x90)</SelectItem>
+                                            <SelectItem value="skyscraper">Skyscraper (160x600)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                            {errors.adSize && (
+                                <p className="text-sm text-destructive">{errors.adSize.message}</p>
                             )}
                         </div>
                     </CardContent>

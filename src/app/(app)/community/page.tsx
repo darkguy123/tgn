@@ -47,6 +47,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { AdPlacement } from '@/components/AdPlacement';
 
 const communityNavItems = [
   { label: 'Feed', icon: LayoutGrid, path: '/community' },
@@ -425,50 +426,56 @@ export default function CommunityPage() {
           </Card>
         </aside>
 
-        {/* Main Feed */}
-        <main className="lg:col-span-9 space-y-6">
-          <Card>
-             <CardContent className="p-4 flex items-center gap-3 border-b">
-                <Avatar>
-                    <AvatarImage src={profile?.avatarUrl} />
-                    <AvatarFallback>{profile?.email.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <button
-                  className="w-full text-left h-12 px-4 rounded-full bg-muted border border-input hover:bg-muted/80 transition-colors text-muted-foreground text-sm"
-                  onClick={() => setCreatePostOpen(true)}
-                >
-                    Start a post
-                </button>
-            </CardContent>
-            <div className="p-2 flex justify-around">
-                <Button variant="ghost" className="text-muted-foreground font-medium flex-1">
-                    <ImageIcon className="mr-2" />
-                    Media
-                </Button>
-                <Button variant="ghost" className="text-muted-foreground font-medium flex-1">
-                    <Calendar className="mr-2" />
-                    Event
-                </Button>
-                <Button variant="ghost" className="text-muted-foreground font-medium flex-1">
-                    <ImageIcon className="mr-2" />
-                    Write article
-                </Button>
-            </div>
-          </Card>
+        {/* Main Content Area */}
+        <div className="lg:col-span-9 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <main className="lg:col-span-2 space-y-6">
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3 border-b">
+                    <Avatar>
+                        <AvatarImage src={profile?.avatarUrl} />
+                        <AvatarFallback>{profile?.email.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <button
+                    className="w-full text-left h-12 px-4 rounded-full bg-muted border border-input hover:bg-muted/80 transition-colors text-muted-foreground text-sm"
+                    onClick={() => setCreatePostOpen(true)}
+                    >
+                        Start a post
+                    </button>
+                </CardContent>
+                <div className="p-2 flex justify-around">
+                    <Button variant="ghost" className="text-muted-foreground font-medium flex-1">
+                        <ImageIcon className="mr-2" />
+                        Media
+                    </Button>
+                    <Button variant="ghost" className="text-muted-foreground font-medium flex-1">
+                        <Calendar className="mr-2" />
+                        Event
+                    </Button>
+                    <Button variant="ghost" className="text-muted-foreground font-medium flex-1">
+                        <ImageIcon className="mr-2" />
+                        Write article
+                    </Button>
+                </div>
+              </Card>
 
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-muted/80">
-              <TabsTrigger value="all">All Members</TabsTrigger>
-              <TabsTrigger value="mentors">Mentors Only</TabsTrigger>
-            </TabsList>
-            <TabsContent value="all" className="mt-6 space-y-6">
-              {renderPosts(posts)}
-            </TabsContent>
-            <TabsContent value="mentors" className="mt-6 space-y-6">
-              {renderPosts(mentorsOnlyPosts || null)}
-            </TabsContent>
-          </Tabs>
-        </main>
+              <Tabs defaultValue="all" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 bg-muted/80">
+                <TabsTrigger value="all">All Members</TabsTrigger>
+                <TabsTrigger value="mentors">Mentors Only</TabsTrigger>
+                </TabsList>
+                <TabsContent value="all" className="mt-6 space-y-6">
+                {renderPosts(posts)}
+                </TabsContent>
+                <TabsContent value="mentors" className="mt-6 space-y-6">
+                {renderPosts(mentorsOnlyPosts || null)}
+                </TabsContent>
+              </Tabs>
+            </main>
+            {/* Right Ad Sidebar */}
+            <aside className="lg:col-span-1 space-y-6 hidden lg:block">
+                <AdPlacement size="350x350" />
+            </aside>
+        </div>
       </div>
     </>
   );

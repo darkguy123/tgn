@@ -219,6 +219,7 @@ export interface AdCampaign {
     callToActionUrl: string;
     createdAt: any; // Firestore Timestamp
     rejectionReason?: string;
+    adSize: '350x350' | '128x90' | 'skyscraper';
 }
 
 export interface AffiliateReferral {

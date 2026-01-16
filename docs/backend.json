@@ -70,9 +70,14 @@
         "rejectionReason": {
           "type": "string",
           "description": "Reason for rejection if status is 'rejected'."
+        },
+        "adSize": {
+          "type": "string",
+          "description": "The size format of the ad.",
+          "enum": ["350x350", "128x90", "skyscraper"]
         }
       },
-      "required": ["creatorMemberId", "name", "status", "budget", "headline", "bodyText", "imageUrl", "callToActionText", "callToActionUrl", "createdAt"]
+      "required": ["creatorMemberId", "name", "status", "budget", "headline", "bodyText", "imageUrl", "callToActionText", "callToActionUrl", "createdAt", "adSize"]
     },
     "TGNMember": {
       "$schema": "http://json-schema.org/draft-07/schema#",
