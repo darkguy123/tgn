@@ -1,4 +1,4 @@
-import type { Member, Product, Program, Story, ChatConversation, Event, Wallet, Transaction } from './types';
+import type { Member, Product, Program, Story, ChatConversation, Event, Wallet, Transaction, SavedCard } from './types';
 
 export const members: Member[] = [
     { id: '9', name: "Dr. Amara Obi", role: "Executive Mentor", country: "Nigeria", sector: "Technology", badge: 7, connections: 234, tgnId: 'TGN-0009', location: 'Lagos, Nigeria', isVerified: true, profile: 'Executive mentor specializing in tech leadership.', imageId: 'default-female-avatar', joinDate: 'May 2022', bannerImageId: 'profile-banner-1' },
@@ -289,4 +289,23 @@ export const transactions: Transaction[] = [
     description: 'Purchase: "The Art of Mentorship" Book',
     createdAt: '2024-07-21T11:00:00Z',
   },
+];
+
+export const savedCards: SavedCard[] = [
+    {
+        id: 'card1',
+        brand: 'Visa',
+        last4: '4242',
+        expiryMonth: '12',
+        expiryYear: '2028',
+        isDefault: true,
+    },
+    {
+        id: 'card2',
+        brand: 'Mastercard',
+        last4: '5555',
+        expiryMonth: '08',
+        expiryYear: '2026',
+        isDefault: false,
+    },
 ];

@@ -130,3 +130,12 @@ export interface Transaction {
     description: string;
     createdAt: string;
 }
+
+export interface SavedCard {
+    id: string;
+    brand: 'Visa' | 'Mastercard' | 'Amex';
+    last4: string;
+    expiryMonth: string;
+    expiryYear: string;
+    isDefault: boolean;
+}
