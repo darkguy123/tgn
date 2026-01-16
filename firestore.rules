@@ -87,14 +87,16 @@ service cloud.firestore {
     /**
      * @description Controls access to a TGN Member's profile document.
      * @path /users/{userId}
-     * @allow (read) - Any authenticated user can read user profiles to enable directory and matchmaking features.
+     * @allow (get) - Any authenticated user can read individual user profiles to enable directory and matchmaking features.
+     * @allow (list) - Only admins can list all users for analytics.
      * @allow (create) - A new user creating their own profile.
      * @allow (update) - A user can update their own non-sensitive data. An admin can update any user's data.
      * @allow (delete) - Only an admin can delete user profiles.
      * @principle Restricts write access to a user's own data tree, but allows reads for social features. Admins have override privileges.
      */
     match /users/{userId} {
-      allow read: if isSignedIn();
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isAdmin() ||
                     // A user can update their own profile, but not change protected fields.
