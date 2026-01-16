@@ -15,7 +15,6 @@ import {
 } from 'firebase/auth';
 import { Chrome, Mail } from 'lucide-react';
 import { Logo } from '@/components/icons';
-import placeholderImages from '@/lib/placeholder-images.json';
 
 const AuthPage = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -65,8 +64,6 @@ const AuthPage = () => {
     }
   };
 
-  const authBgImage = placeholderImages.placeholderImages.find(p => p.id === 'auth-background-futuristic');
-
   if (isUserLoading || user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
@@ -78,9 +75,9 @@ const AuthPage = () => {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground font-body">
       <main className="flex-1 flex items-center justify-center p-4 my-10">
-        <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 bg-transparent text-card-foreground rounded-2xl overflow-hidden shadow-2xl border border-white/20">
+        <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 rounded-2xl overflow-hidden shadow-2xl">
           {/* Left Side: Form */}
-          <div className="p-8 md:p-12">
+          <div className="p-8 md:p-12 bg-card text-card-foreground">
              <div className="flex justify-start mb-8">
                 <Logo className="h-20 object-contain"/>
             </div>
@@ -106,7 +103,7 @@ const AuthPage = () => {
                     <div className="w-full border-t border-border"></div>
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">or</span>
+                    <span className="bg-card px-2 text-muted-foreground">or</span>
                   </div>
                 </div>
 
@@ -146,13 +143,13 @@ const AuthPage = () => {
           {/* Right Side: Image */}
           <div className="relative hidden md:block">
             <div className="absolute inset-0 bg-black/30 z-10"></div>
-            {authBgImage && <Image
-              src={authBgImage.imageUrl}
-              alt={authBgImage.description}
+            <Image
+              src="/signinpagebg.jpeg"
+              alt="People collaborating in a modern office"
               fill={true}
               style={{objectFit:'cover'}}
-              data-ai-hint={authBgImage.imageHint}
-            />}
+              data-ai-hint="collaboration office"
+            />
             <div className="relative z-20 flex flex-col justify-end h-full p-12 text-white">
               
             </div>
