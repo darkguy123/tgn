@@ -666,6 +666,14 @@
           "type": "string",
           "description": "The UID of the TGN Member who created the cause."
         },
+        "creatorName": {
+          "type": "string",
+          "description": "Denormalized name of the creator for display purposes."
+        },
+        "creatorImageId": {
+          "type": "string",
+          "description": "Denormalized image ID of the creator for display purposes."
+        },
         "title": {
           "type": "string",
           "description": "The title of the fundraising cause."
@@ -700,6 +708,8 @@
       "required": [
         "id",
         "creatorMemberId",
+        "creatorName",
+        "creatorImageId",
         "title",
         "description",
         "goalAmount",
