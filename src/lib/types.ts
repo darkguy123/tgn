@@ -70,3 +70,17 @@ export type Story = {
   author: Member;
   items: StoryItem[];
 };
+
+export type ChatMessage = {
+  id: string;
+  senderId: string; // Member['id']
+  text: string;
+  timestamp: string;
+};
+
+export type ChatConversation = {
+  id: string;
+  participants: Member[];
+  messages: ChatMessage[];
+  unreadCount?: number;
+};

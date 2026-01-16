@@ -1,4 +1,4 @@
-import type { Member, Product, Program, Story } from './types';
+import type { Member, Product, Program, Story, ChatConversation } from './types';
 
 export const members: Member[] = [
     { id: '9', name: "Dr. Amara Obi", role: "Executive Mentor", country: "Nigeria", sector: "Technology", badge: 7, connections: 234, tgnId: 'TGN-0009', location: 'Lagos, Nigeria', isVerified: true, profile: 'Executive mentor specializing in tech leadership.', imageId: 'user-1', joinDate: 'May 2022', bannerImageId: 'profile-banner-1' },
@@ -165,3 +165,39 @@ export const goals = [
 export const badgeLevels = ["All Levels", "★ 1", "★ 2", "★ 3", "★ 4", "★ 5", "★ 6", "★ 7"];
 
 export const mentorTypes = ["All Types", "Associate Mentor", "Certified Mentor", "Executive Mentor"];
+
+const currentUser = members.find(m => m.id === '5'); // Assuming Chloe Kim is the current user
+
+export const conversations: ChatConversation[] = [
+    {
+      id: 'conv1',
+      participants: [members.find(m => m.id === '10')!, currentUser!],
+      messages: [
+        { id: 'msg1', senderId: '10', text: 'Hey Chloe, how are you finding the mentorship program?', timestamp: '10:40 AM' },
+        { id: 'msg2', senderId: '5', text: 'Hi James! It\'s been great, learning a lot. Thanks for checking in.', timestamp: '10:42 AM' },
+      ],
+      unreadCount: 2,
+    },
+    {
+      id: 'conv2',
+      participants: [members.find(m => m.id === '12')!, currentUser!],
+      messages: [
+        { id: 'msg3', senderId: '12', text: 'Just saw your post on the community feed, great insights!', timestamp: 'Yesterday' },
+      ],
+    },
+    {
+      id: 'conv3',
+      participants: [members.find(m => m.id === '1')!, currentUser!],
+      messages: [
+        { id: 'msg4', senderId: '1', text: 'Let\'s schedule our next check-in.', timestamp: '2 days ago' },
+      ],
+      unreadCount: 0,
+    },
+     {
+      id: 'conv4',
+      participants: [members.find(m => m.id === '11')!, currentUser!],
+      messages: [
+        { id: 'msg5', senderId: '11', text: 'Can you review my project proposal?', timestamp: '4 days ago' },
+      ],
+    }
+  ].filter(c => c.participants.every(p => p)); // Ensure no conversations with undefined participants

@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { members, stories as storiesData } from '@/lib/data';
+import { members, stories as storiesData, conversations } from '@/lib/data';
 import placeholderImages from '@/lib/placeholder-images.json';
 import {
   LayoutGrid,
@@ -35,13 +35,16 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Search,
+  MessageSquarePlus,
+  Ellipsis,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { Separator } from '@/components/ui/separator';
-import type { Story } from '@/lib/types';
+import type { Story, ChatConversation } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 const communityNavItems = [
@@ -624,6 +627,54 @@ export default function CommunityPage() {
 
         {/* Right Sidebar */}
         <aside className="lg:col-span-3 space-y-6 hidden lg:block">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between p-3 border-b">
+              <CardTitle className="text-base font-semibold">Messaging</CardTitle>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MessageSquarePlus className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <div className="p-2">
+              <div className="relative">
+                <Input placeholder="Search messages" className="pl-8 h-9" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
+            <CardContent className="p-2 space-y-1 max-h-[400px] overflow-y-auto">
+              {conversations.map(conv => {
+                const otherParticipant = conv.participants.find(p => p.tgnId !== profile?.tgnMemberId);
+                if (!otherParticipant) return null;
+                const participantImage = getImage(otherParticipant.imageId);
+                const lastMessage = conv.messages[conv.messages.length - 1];
+
+                return (
+                  <button key={conv.id} className="w-full text-left p-2 rounded-lg hover:bg-muted flex items-start gap-3">
+                    <Avatar className="h-10 w-10 border-2 border-background">
+                      {participantImage && <AvatarImage src={participantImage.imageUrl} />}
+                      <AvatarFallback>{otherParticipant.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 overflow-hidden">
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold text-sm truncate">{otherParticipant.name}</p>
+                        <p className="text-xs text-muted-foreground">{lastMessage.timestamp}</p>
+                      </div>
+                      <div className="flex items-start justify-between">
+                        <p className="text-xs text-muted-foreground truncate pr-2">{lastMessage.text}</p>
+                        {conv.unreadCount && conv.unreadCount > 0 && (
+                          <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center text-xs">{conv.unreadCount}</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-sm font-semibold">
