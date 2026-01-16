@@ -10,7 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { GenerateRecommendationsInputSchema, GenerateRecommendationsOutputSchema } from '@/app/actions';
+import { GenerateRecommendationsInputSchema, GenerateRecommendationsOutputSchema } from '@/app/schemas';
 
 export type GenerateRecommendationsInput = z.infer<typeof GenerateRecommendationsInputSchema>;
 export type GenerateRecommendationsOutput = z.infer<typeof GenerateRecommendationsOutputSchema>;
