@@ -1,15 +1,13 @@
-
-
-"use client";
-import { useMemo, useState, useEffect } from "react";
+'use client';
+import { useMemo, useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   BookOpen,
   Users,
@@ -29,51 +27,79 @@ import {
   Loader2,
   ShoppingBag,
   Briefcase,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
-import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { useMemberProfile } from "@/hooks/useMemberProfile";
-import { useMentorCertification } from "@/hooks/useMentorCertification";
-import { Skeleton } from "@/components/ui/skeleton";
-import { members, products, events, sectors } from "@/lib/data";
-import placeholderImages from "@/lib/placeholder-images.json";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+  ExternalLink,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
+import {
+  useUser,
+  useFirestore,
+  useCollection,
+  useMemoFirebase,
+} from '@/firebase';
+import { useMemberProfile } from '@/hooks/useMemberProfile';
+import { useMentorCertification } from '@/hooks/useMentorCertification';
+import { Skeleton } from '@/components/ui/skeleton';
+import { members, products, events, sectors } from '@/lib/data';
+import placeholderImages from '@/lib/placeholder-images.json';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { collection } from 'firebase/firestore';
-import type { TGNMember, Program, Product, Event, Sector } from "@/lib/types";
-import { getRecommendations, RecommendationResult } from "@/app/actions";
+import type { TGNMember, Program, Product, Event, Sector } from '@/lib/types';
+import { getRecommendations, RecommendationResult } from '@/app/actions';
 
 const getImage = (imageId: string) => {
-    return placeholderImages.placeholderImages.find((p) => p.id === imageId);
+  return placeholderImages.placeholderImages.find(p => p.id === imageId);
 };
 
 const Dashboard = () => {
   const { user } = useUser();
   const { profile, isLoading: isProfileLoading } = useMemberProfile();
   const { certification, isLoading: isCertLoading } = useMentorCertification();
-  const userName = user?.displayName?.split(" ")[0] || "Member";
+  const userName = user?.displayName?.split(' ')[0] || 'Member';
   const router = useRouter();
   const firestore = useFirestore();
 
-  const programsCollectionRef = useMemoFirebase(() => collection(firestore, 'programs'), [firestore]);
-  const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const programsCollectionRef = useMemoFirebase(
+    () => collection(firestore, 'programs'),
+    [firestore]
+  );
+  const usersCollectionRef = useMemoFirebase(
+    () => collection(firestore, 'users'),
+    [firestore]
+  );
 
-  const { data: allPrograms, isLoading: programsLoading } = useCollection<Program>(programsCollectionRef);
-  const { data: allMembers, isLoading: membersLoading } = useCollection<TGNMember>(usersCollectionRef);
+  const { data: allPrograms, isLoading: programsLoading } =
+    useCollection<Program>(programsCollectionRef);
+  const { data: allMembers, isLoading: membersLoading } =
+    useCollection<TGNMember>(usersCollectionRef);
 
-  const [recommendations, setRecommendations] = useState<RecommendationResult | { error: string } | null>(null);
+  const [recommendations, setRecommendations] = useState<
+    RecommendationResult | { error: string } | null
+  >(null);
   const [isLoadingRecs, setIsLoadingRecs] = useState(false);
 
   useEffect(() => {
-    if (profile && allPrograms && allMembers && !recommendations && !isLoadingRecs) {
+    if (
+      profile &&
+      allPrograms &&
+      allMembers &&
+      !recommendations &&
+      !isLoadingRecs
+    ) {
       setIsLoadingRecs(true);
       // Using static data for products, events, and sectors for now
-      getRecommendations(profile, allMembers, allPrograms, products, events, sectors)
+      getRecommendations(
+        profile,
+        allMembers,
+        allPrograms,
+        products,
+        events,
+        sectors
+      )
         .then(setRecommendations)
         .finally(() => setIsLoadingRecs(false));
     }
   }, [profile, allPrograms, allMembers, recommendations, isLoadingRecs]);
-
 
   const defaultProgress = {
     paidProgramsCompleted: 0,
@@ -85,27 +111,48 @@ const Dashboard = () => {
 
   const currentProgress = certification || defaultProgress;
 
-  const certificationChecklist = useMemo(() => [
-    { completed: currentProgress.paidProgramsCompleted >= 3 },
-    { completed: currentProgress.accountAgeInMonths >= 3 },
-    { completed: currentProgress.menteeBadgeLevel >= 7 },
-    { completed: currentProgress.curriculumCompleted },
-    { completed: currentProgress.evaluationPassed },
-  ], [currentProgress]);
+  const certificationChecklist = useMemo(
+    () => [
+      { completed: currentProgress.paidProgramsCompleted >= 3 },
+      { completed: currentProgress.accountAgeInMonths >= 3 },
+      { completed: currentProgress.menteeBadgeLevel >= 7 },
+      { completed: currentProgress.curriculumCompleted },
+      { completed: currentProgress.evaluationPassed },
+    ],
+    [currentProgress]
+  );
 
   const overallProgress = useMemo(() => {
-    if(isCertLoading) return 0;
-    const completedCount = certificationChecklist.filter(item => item.completed).length;
+    if (isCertLoading) return 0;
+    const completedCount = certificationChecklist.filter(
+      item => item.completed
+    ).length;
     return Math.round((completedCount / certificationChecklist.length) * 100);
   }, [certificationChecklist, isCertLoading]);
 
-  const simplifiedChecklist = useMemo(() => [
-    { label: "Programs completed", value: `${currentProgress.paidProgramsCompleted}/3`, done: currentProgress.paidProgramsCompleted >= 3 },
-    { label: "Badge Level", value: `★ ${currentProgress.menteeBadgeLevel}/7`, done: currentProgress.menteeBadgeLevel >= 7 },
-    { label: "Evaluation Status", value: currentProgress.evaluationPassed ? 'Passed' : 'Pending', done: currentProgress.evaluationPassed },
- ], [currentProgress]);
+  const simplifiedChecklist = useMemo(
+    () => [
+      {
+        label: 'Programs completed',
+        value: `${currentProgress.paidProgramsCompleted}/3`,
+        done: currentProgress.paidProgramsCompleted >= 3,
+      },
+      {
+        label: 'Badge Level',
+        value: `★ ${currentProgress.menteeBadgeLevel}/7`,
+        done: currentProgress.menteeBadgeLevel >= 7,
+      },
+      {
+        label: 'Evaluation Status',
+        value: currentProgress.evaluationPassed ? 'Passed' : 'Pending',
+        done: currentProgress.evaluationPassed,
+      },
+    ],
+    [currentProgress]
+  );
 
- const isLoading = isProfileLoading || isCertLoading || programsLoading || membersLoading;
+  const isLoading =
+    isProfileLoading || isCertLoading || programsLoading || membersLoading;
 
   return (
     <div className="space-y-6">
@@ -128,11 +175,14 @@ const Dashboard = () => {
                 Admin Panel
               </CardTitle>
               <CardDescription>
-                You have administrative privileges as a Country Manager.
+                You have administrative privileges. Access and manage network features.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-wrap gap-2">
               <Button onClick={() => router.push('/admin/programs')}>Manage Programs</Button>
+              <Button variant="outline" onClick={() => router.push('/admin/causes')}>
+                Manage Causes <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
             </CardContent>
           </Card>
         )
@@ -147,26 +197,28 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {isLoading ? (
-            <Card>
-                <CardContent className="p-4">
-                    <Skeleton className="h-8 w-1/2 mb-1" />
-                    <Skeleton className="h-6 w-1/4" />
-                </CardContent>
-            </Card>
+          <Card>
+            <CardContent className="p-4">
+              <Skeleton className="h-8 w-1/2 mb-1" />
+              <Skeleton className="h-6 w-1/4" />
+            </CardContent>
+          </Card>
         ) : (
-            <Card className="bg-gradient-to-br from-primary to-blue-800 text-primary-foreground border-0">
-                <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-primary-foreground/80 text-sm">
-                        Badge Level
-                        </p>
-                        <p className="text-2xl font-bold">★ {currentProgress.menteeBadgeLevel || 0}</p>
-                    </div>
-                    <Star className="h-8 w-8 text-accent" />
-                    </div>
-                </CardContent>
-            </Card>
+          <Card className="bg-gradient-to-br from-primary to-blue-800 text-primary-foreground border-0">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-primary-foreground/80 text-sm">
+                    Badge Level
+                  </p>
+                  <p className="text-2xl font-bold">
+                    ★ {currentProgress.menteeBadgeLevel || 0}
+                  </p>
+                </div>
+                <Star className="h-8 w-8 text-accent" />
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         <Card>
@@ -219,7 +271,7 @@ const Dashboard = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push("/marketplace")}
+                onClick={() => router.push('/marketplace')}
               >
                 View all <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
@@ -228,14 +280,14 @@ const Dashboard = () => {
               <div className="space-y-4">
                 {[
                   {
-                    title: "Leadership Fundamentals",
+                    title: 'Leadership Fundamentals',
                     progress: 75,
-                    mentor: "Dr. Sarah Chen",
+                    mentor: 'Dr. Sarah Chen',
                   },
                   {
-                    title: "Business Strategy 101",
+                    title: 'Business Strategy 101',
                     progress: 45,
-                    mentor: "Michael Okonkwo",
+                    mentor: 'Michael Okonkwo',
                   },
                 ].map((course, i) => (
                   <div
@@ -279,7 +331,7 @@ const Dashboard = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push("#")}
+                onClick={() => router.push('#')}
               >
                 View all <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
@@ -288,19 +340,19 @@ const Dashboard = () => {
               <div className="space-y-3">
                 {[
                   {
-                    title: "Weekly Mentor Check-in",
-                    time: "Today, 3:00 PM",
-                    type: "1-on-1",
+                    title: 'Weekly Mentor Check-in',
+                    time: 'Today, 3:00 PM',
+                    type: '1-on-1',
                   },
                   {
-                    title: "Cohort Workshop: Pitching",
-                    time: "Tomorrow, 10:00 AM",
-                    type: "Group",
+                    title: 'Cohort Workshop: Pitching',
+                    time: 'Tomorrow, 10:00 AM',
+                    type: 'Group',
                   },
                   {
-                    title: "Leadership Masterclass",
-                    time: "Jan 8, 2:00 PM",
-                    type: "Webinar",
+                    title: 'Leadership Masterclass',
+                    time: 'Jan 8, 2:00 PM',
+                    type: 'Webinar',
                   },
                 ].map((session, i) => (
                   <div
@@ -340,7 +392,7 @@ const Dashboard = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push("/community")}
+                onClick={() => router.push('/community')}
               >
                 View all <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
@@ -349,54 +401,61 @@ const Dashboard = () => {
               <div className="space-y-4">
                 {[
                   {
-                    authorName: "Maria Santos",
-                    role: "Mentee",
+                    authorName: 'Maria Santos',
+                    role: 'Mentee',
                     content:
-                      "Just completed my first certification module! 🎉 Thank you to my mentor for the guidance.",
+                      'Just completed my first certification module! 🎉 Thank you to my mentor for the guidance.',
                     likes: 24,
-                    time: "2h ago",
+                    time: '2h ago',
                   },
                   {
-                    authorName: "James Chen",
-                    role: "Mentor",
+                    authorName: 'James Chen',
+                    role: 'Mentor',
                     content:
-                      "Excited to announce our new cohort starting next week. Applications open!",
+                      'Excited to announce our new cohort starting next week. Applications open!',
                     likes: 42,
-                    time: "5h ago",
+                    time: '5h ago',
                   },
                 ].map((post, i) => {
-                    const author = members.find(m => m.name === post.authorName);
-                    const authorImage = author ? getImage(author.imageId) : null;
+                  const author = members.find(m => m.name === post.authorName);
+                  const authorImage = author
+                    ? getImage(author.imageId)
+                    : null;
 
-                    return (
-                      <div key={i} className="p-4 bg-muted/30 rounded-lg">
-                        <div className="flex items-center gap-3 mb-3">
-                           <Avatar className="h-10 w-10">
-                            {authorImage && <AvatarImage src={authorImage.imageUrl} alt={post.authorName} />}
-                            <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                              {post.authorName[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium text-foreground">
-                              {post.authorName}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {post.role} • {post.time}
-                            </p>
-                          </div>
-                        </div>
-                        <p className="text-foreground mb-3">{post.content}</p>
-                        <div className="flex items-center gap-4 text-muted-foreground text-sm">
-                          <button className="flex items-center gap-1 hover:text-accent transition-colors">
-                            <Heart className="h-4 w-4" /> {post.likes}
-                          </button>
-                          <button className="flex items-center gap-1 hover:text-primary transition-colors">
-                            <MessageSquare className="h-4 w-4" /> Reply
-                          </button>
+                  return (
+                    <div key={i} className="p-4 bg-muted/30 rounded-lg">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Avatar className="h-10 w-10">
+                          {authorImage && (
+                            <AvatarImage
+                              src={authorImage.imageUrl}
+                              alt={post.authorName}
+                            />
+                          )}
+                          <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                            {post.authorName[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {post.authorName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {post.role} • {post.time}
+                          </p>
                         </div>
                       </div>
-                    )
+                      <p className="text-foreground mb-3">{post.content}</p>
+                      <div className="flex items-center gap-4 text-muted-foreground text-sm">
+                        <button className="flex items-center gap-1 hover:text-accent transition-colors">
+                          <Heart className="h-4 w-4" /> {post.likes}
+                        </button>
+                        <button className="flex items-center gap-1 hover:text-primary transition-colors">
+                          <MessageSquare className="h-4 w-4" /> Reply
+                        </button>
+                      </div>
+                    </div>
+                  );
                 })}
               </div>
             </CardContent>
@@ -413,145 +472,160 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent className="space-y-3">
               {isLoadingRecs && (
-                 <div className="flex items-center justify-center p-4">
-                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                   <p className="ml-2 text-muted-foreground">Generating recommendations...</p>
-                 </div>
-              )}
-               {recommendations && "error" in recommendations && (
-                <p className="text-destructive text-sm">{recommendations.error}</p>
-              )}
-              {recommendations && "recommendations" in recommendations && recommendations.recommendations.map((item, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
-                  onClick={() => {
-                    let path = '#';
-                    if (item.recommendedType === 'Mentor') path = `/profile/${item.id}`;
-                    if (item.recommendedType === 'Program') path = `/programs`;
-                    if (item.recommendedType === 'Product') path = `/marketplace`;
-                    if (item.recommendedType === 'Event') path = `/community`;
-                    if (item.recommendedType === 'Sector') path = `/directory`;
-                    router.push(path);
-                  }}
-                >
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    {item.recommendedType === "Mentor" && (
-                      <Users className="h-5 w-5 text-primary" />
-                    )}
-                    {item.recommendedType === "Program" && (
-                      <GraduationCap className="h-5 w-5 text-primary" />
-                    )}
-                     {item.recommendedType === "Product" && (
-                      <ShoppingBag className="h-5 w-5 text-primary" />
-                    )}
-                    {item.recommendedType === "Event" && (
-                      <Calendar className="h-5 w-5 text-primary" />
-                    )}
-                    {item.recommendedType === "Sector" && (
-                      <Briefcase className="h-5 w-5 text-primary" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground text-sm truncate">
-                      {item.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.recommendedType}
-                    </p>
-                  </div>
-                  <span className="text-xs font-medium text-accent">
-                    {item.matchScore}%
-                  </span>
+                <div className="flex items-center justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <p className="ml-2 text-muted-foreground">
+                    Generating recommendations...
+                  </p>
                 </div>
-              ))}
+              )}
+              {recommendations && 'error' in recommendations && (
+                <p className="text-destructive text-sm">
+                  {recommendations.error}
+                </p>
+              )}
+              {recommendations &&
+                'recommendations' in recommendations &&
+                recommendations.recommendations.map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
+                    onClick={() => {
+                      let path = '#';
+                      if (item.recommendedType === 'Mentor')
+                        path = `/profile/${item.id}`;
+                      if (item.recommendedType === 'Program')
+                        path = `/programs`;
+                      if (item.recommendedType === 'Product')
+                        path = `/marketplace`;
+                      if (item.recommendedType === 'Event')
+                        path = `/community`;
+                      if (item.recommendedType === 'Sector')
+                        path = `/directory`;
+                      router.push(path);
+                    }}
+                  >
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      {item.recommendedType === 'Mentor' && (
+                        <Users className="h-5 w-5 text-primary" />
+                      )}
+                      {item.recommendedType === 'Program' && (
+                        <GraduationCap className="h-5 w-5 text-primary" />
+                      )}
+                      {item.recommendedType === 'Product' && (
+                        <ShoppingBag className="h-5 w-5 text-primary" />
+                      )}
+                      {item.recommendedType === 'Event' && (
+                        <Calendar className="h-5 w-5 text-primary" />
+                      )}
+                      {item.recommendedType === 'Sector' && (
+                        <Briefcase className="h-5 w-5 text-primary" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground text-sm truncate">
+                        {item.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.recommendedType}
+                      </p>
+                    </div>
+                    <span className="text-xs font-medium text-accent">
+                      {item.matchScore}%
+                    </span>
+                  </div>
+                ))}
               {!recommendations && !isLoadingRecs && !isLoading && (
                 <div className="text-sm text-center text-muted-foreground p-4">
                   <p>Your personalized recommendations will appear here.</p>
                 </div>
               )}
-               {(isLoading || isLoadingRecs) && !recommendations && (
+              {(isLoading || isLoadingRecs) && !recommendations && (
                 <div className="space-y-2">
-                    <Skeleton className="h-16 w-full" />
-                    <Skeleton className="h-16 w-full" />
-                    <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
                 </div>
               )}
             </CardContent>
           </Card>
 
           {isLoading ? (
-             <Card>
-                <CardHeader className="pb-2">
-                    <Skeleton className="h-6 w-3/4" />
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-3">
-                        <div className="flex justify-between">
-                            <Skeleton className="h-4 w-1/3" />
-                            <Skeleton className="h-4 w-1/4" />
-                        </div>
-                        <Skeleton className="h-2 w-full" />
-                        <div className="space-y-2 pt-2">
-                            <Skeleton className="h-4 w-full" />
-                            <Skeleton className="h-4 w-full" />
-                            <Skeleton className="h-4 w-full" />
-                        </div>
-                        <Skeleton className="h-9 w-full mt-2" />
-                    </div>
-                </CardContent>
+            <Card>
+              <CardHeader className="pb-2">
+                <Skeleton className="h-6 w-3/4" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <Skeleton className="h-4 w-1/3" />
+                    <Skeleton className="h-4 w-1/4" />
+                  </div>
+                  <Skeleton className="h-2 w-full" />
+                  <div className="space-y-2 pt-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                  <Skeleton className="h-9 w-full mt-2" />
+                </div>
+              </CardContent>
             </Card>
           ) : (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">
-                Certification Progress
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    Overall Progress
-                  </span>
-                  <span className="font-medium text-foreground">{overallProgress}%</span>
-                </div>
-                <div className="h-2 bg-muted rounded-full">
-                  <div className="h-full bg-accent rounded-full" style={{ width: `${overallProgress}%` }} />
-                </div>
-                <div className="space-y-2 pt-2">
-                  {simplifiedChecklist.map((item, i) => (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">
+                  Certification Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Overall Progress
+                    </span>
+                    <span className="font-medium text-foreground">
+                      {overallProgress}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full">
                     <div
-                      key={i}
-                      className="flex items-center justify-between text-sm"
-                    >
-                      <span className="text-muted-foreground">
-                        {item.label}
-                      </span>
-                      <span
-                        className={cn(
-                          "font-medium",
-                          item.done ? "text-accent" : "text-foreground"
-                        )}
+                      className="h-full bg-accent rounded-full"
+                      style={{ width: `${overallProgress}%` }}
+                    />
+                  </div>
+                  <div className="space-y-2 pt-2">
+                    {simplifiedChecklist.map((item, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between text-sm"
                       >
-                        {item.value}
-                      </span>
-                    </div>
-                  ))}
+                        <span className="text-muted-foreground">
+                          {item.label}
+                        </span>
+                        <span
+                          className={cn(
+                            'font-medium',
+                            item.done ? 'text-accent' : 'text-foreground'
+                          )}
+                        >
+                          {item.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-2"
+                    onClick={() => router.push('/certification')}
+                  >
+                    View Details
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-2"
-                  onClick={() => router.push("/certification")}
-                >
-                  View Details
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
           )}
-
 
           <Card>
             <CardHeader className="pb-2">

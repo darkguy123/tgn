@@ -1,4 +1,4 @@
-import type { Member, Product, Program, Story, ChatConversation, Event, Wallet, Transaction, SavedCard } from './types';
+import type { Member, Product, Program, Story, ChatConversation, Event, Wallet, Transaction, SavedCard, Cause } from './types';
 
 export const members: Member[] = [
     { id: '9', name: "Dr. Amara Obi", role: "Executive Mentor", country: "Nigeria", sector: "Technology", badge: 7, connections: 234, tgnId: 'TGN-0009', location: 'Lagos, Nigeria', isVerified: true, profile: 'Executive mentor specializing in tech leadership.', imageId: 'default-female-avatar', joinDate: 'May 2022', bannerImageId: 'profile-banner-1' },
@@ -319,4 +319,41 @@ export const chartData = [
   { name: '9 July', amount: 50.00 },
 ];
 
-    
+export const causes: Cause[] = [
+    {
+        id: 'cause1',
+        creatorMemberId: '12',
+        creatorName: 'David Okonkwo',
+        creatorImageId: 'default-male-avatar',
+        title: 'Support Young Farmers in Kenya',
+        description: 'Providing seeds and tools for young farmers in rural Kenya to start their own sustainable farms.',
+        goalAmount: 5000,
+        currentAmount: 1250,
+        status: 'approved',
+        createdAt: '2024-07-15T09:00:00Z',
+    },
+    {
+        id: 'cause2',
+        creatorMemberId: '13',
+        creatorName: 'Sarah Williams',
+        creatorImageId: 'default-female-avatar',
+        title: 'Digital Literacy for Children in the UK',
+        description: 'Funding coding bootcamps for underprivileged children to bridge the digital divide.',
+        goalAmount: 10000,
+        currentAmount: 8500,
+        status: 'approved',
+        createdAt: '2024-06-20T11:00:00Z',
+    },
+    {
+        id: 'cause3',
+        creatorMemberId: '11',
+        creatorName: 'Maria Santos',
+        creatorImageId: 'default-female-avatar',
+        title: 'Mobile Health Clinic for Amazonian Villages',
+        description: 'Help us purchase a boat and medical supplies to create a mobile clinic that can reach remote villages along the Amazon River.',
+        goalAmount: 25000,
+        currentAmount: 2500,
+        status: 'pending',
+        createdAt: '2024-07-22T15:00:00Z',
+    },
+];

@@ -139,4 +139,15 @@ export interface SavedCard {
     isDefault: boolean;
 }
 
-    
+export interface Cause {
+    id: string;
+    creatorMemberId: string;
+    creatorName: string;
+    creatorImageId: string;
+    title: string;
+    description: string;
+    goalAmount: number;
+    currentAmount: number;
+    status: 'pending' | 'approved' | 'rejected';
+    createdAt: any; // Allow Firestore ServerTimestamp
+}

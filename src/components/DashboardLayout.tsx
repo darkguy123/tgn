@@ -19,6 +19,7 @@ import {
   User as UserIcon,
   Share2,
   Wallet,
+  Heart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser } from '@/firebase';
@@ -40,7 +41,8 @@ import { members } from '@/lib/data';
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
   { id: 'directory', label: 'Member Directory', icon: Users, path: '/directory' },
-  { id: 'community', label: 'Community', icon: MessageSquare, path: '/community' },
+  { id: 'community', label: 'Community Feed', icon: MessageSquare, path: '/community' },
+  { id: 'causes', label: 'Causes', icon: Heart, path: '/community/causes' },
   { id: 'matchmaking', label: 'Matchmaking', icon: Sparkles, path: '/matchmaking' },
   { id: 'programs', label: 'Programs', icon: GraduationCap, path: '/programs' },
   { id: 'marketplace', label: 'Marketplace', icon: ShoppingBag, path: '/marketplace' },
@@ -96,7 +98,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           {NAV_ITEMS.map((item) => (
             <Button
               key={item.id}
-              variant={pathname === item.path ? 'default' : 'ghost'}
+              variant={pathname.startsWith(item.path) ? 'default' : 'ghost'}
               onClick={() => {
                 router.push(item.path);
                 setSidebarOpen(false);

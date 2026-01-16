@@ -496,6 +496,62 @@
         "recommendedId",
         "explanation"
       ]
+    },
+    "Cause": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Cause",
+      "type": "object",
+      "description": "Represents a fundraising cause or campaign created by a member.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the cause."
+        },
+        "creatorMemberId": {
+          "type": "string",
+          "description": "The UID of the TGN Member who created the cause."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the fundraising cause."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the cause."
+        },
+        "goalAmount": {
+          "type": "number",
+          "description": "The target fundraising amount."
+        },
+        "currentAmount": {
+          "type": "number",
+          "description": "The amount raised so far."
+        },
+        "status": {
+          "type": "string",
+          "description": "The approval status of the cause.",
+          "enum": [
+            "pending",
+            "approved",
+            "rejected"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the cause was created."
+        }
+      },
+      "required": [
+        "id",
+        "creatorMemberId",
+        "title",
+        "description",
+        "goalAmount",
+        "currentAmount",
+        "status",
+        "createdAt"
+      ]
     }
   },
   "auth": {
@@ -560,9 +616,12 @@
         "path": "/users/{userId}/transactions/{transactionId}",
         "entity": "Transaction",
         "description": "Stores a user's wallet transactions. Owned by the user, writes are system-only."
+      },
+      {
+        "path": "/causes/{causeId}",
+        "entity": "Cause",
+        "description": "Stores fundraising causes created by members. Requires admin approval before becoming publicly visible."
       }
     ]
   }
 }
-
-    

@@ -79,15 +79,16 @@ service cloud.firestore {
     /**
      * @description Controls access to a TGN Member's profile document.
      * @path /users/{userId}
+     * @allow (get) - Any authenticated user can read another user's profile to enable directory and matchmaking features.
      * @allow (create) - A new user creating their own profile.
-     * @deny (get) - An authenticated user trying to read another user's profile.
-     * @principle Restricts access to a user's own data tree. Ensures a user can only create a profile for themselves.
+     * @deny (delete) - Users cannot delete their own profiles.
+     * @principle Restricts write access to a user's own data tree, but allows reads for social features.
      */
     match /users/{userId} {
       allow get, list: if isSignedIn();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isOwner(userId) && resource != null && request.resource.data.id == resource.data.id;
-      allow delete: if false;
+      allow delete: if isAdmin();
 
       /**
        * @description Controls access to a user's private matchmaking recommendations.
@@ -216,6 +217,22 @@ service cloud.firestore {
       allow update: if isExistingOwner(resource.data.sellerMemberId) && request.resource.data.sellerMemberId == resource.data.sellerMemberId;
       allow delete: if isExistingOwner(resource.data.sellerMemberId);
     }
+
+    /**
+     * @description Controls access to fundraising causes.
+     * @path /causes/{causeId}
+     * @allow (read) - Authenticated users can read approved causes. Admins and creators can read any.
+     * @allow (create) - Authenticated users can create a new cause for themselves.
+     * @allow (update) - Only admins can update causes (e.g., to approve/reject).
+     */
+    match /causes/{causeId} {
+        allow get: if isSignedIn() && (resource.data.status == 'approved' || isOwner(resource.data.creatorMemberId) || isAdmin());
+        allow list: if isSignedIn(); // Allow listing so client can filter by 'approved'
+        allow create: if isOwner(request.resource.data.creatorMemberId);
+        allow update: if isAdmin();
+        allow delete: if isAdmin();
+    }
+
 
     /**
      * @description Controls access to matchmaking recommendations stored at the top level.
