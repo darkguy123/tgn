@@ -64,11 +64,19 @@ service cloud.firestore {
     }
     
     /**
-     * Verifies if the user has an admin role (e.g., 'country-manager').
+     * Verifies if the user is a super admin. This is hardcoded for a specific user.
+     */
+    function isSuperAdmin() {
+      return request.auth.uid == 'Y9ckdC5d2RPQ533s5CfaiiXlKYi1';
+    }
+
+    /**
+     * Verifies if the user has an admin role (e.g., 'country-manager') or is a super admin.
      * This requires a read to the user's own profile document.
      */
     function isAdmin() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'country-manager';
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return isSignedIn() && userDoc.data != null && (userDoc.data.role == 'country-manager' || isSuperAdmin());
     }
 
 
@@ -79,15 +87,22 @@ service cloud.firestore {
     /**
      * @description Controls access to a TGN Member's profile document.
      * @path /users/{userId}
-     * @allow (get) - Any authenticated user can read another user's profile to enable directory and matchmaking features.
+     * @allow (get, list) - Any authenticated user can read another user's profile to enable directory and matchmaking features.
      * @allow (create) - A new user creating their own profile.
-     * @deny (delete) - Users cannot delete their own profiles.
-     * @principle Restricts write access to a user's own data tree, but allows reads for social features.
+     * @allow (update) - A user can update their own non-sensitive data. An admin can update any user's data.
+     * @allow (delete) - Only an admin can delete user profiles.
+     * @principle Restricts write access to a user's own data tree, but allows reads for social features. Admins have override privileges.
      */
     match /users/{userId} {
       allow get, list: if isSignedIn();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) && resource != null && request.resource.data.id == resource.data.id;
+      allow update: if (isOwner(userId)
+                          // User can't change their own role, verification status, or immutable IDs
+                          && request.resource.data.role == resource.data.role
+                          && request.resource.data.isVerifiedMentor == resource.data.isVerifiedMentor
+                          && request.resource.data.id == resource.data.id
+                          && request.resource.data.tgnMemberId == resource.data.tgnMemberId)
+                        || isAdmin();
       allow delete: if isAdmin();
 
       /**

@@ -197,6 +197,9 @@ const Dashboard = () => {
               <Button variant="outline" onClick={() => router.push('/admin/analytics')}>
                 View Analytics <BarChart3 className="ml-2 h-4 w-4" />
               </Button>
+              <Button variant="outline" onClick={() => router.push('/admin/users')}>
+                Manage Users <Users className="ml-2 h-4 w-4" />
+              </Button>
             </CardContent>
           </Card>
         )
