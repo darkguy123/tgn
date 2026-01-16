@@ -1,3 +1,4 @@
+
 export type Member = {
   id: string;
   tgnId: string;
@@ -111,36 +112,9 @@ export const members: Member[] = [
 ];
 
 export const sectors = [
-    'Technology',
-    'Finance',
-    'Healthcare',
-    'Marketing',
-    'Education',
-    'E-commerce',
-    'Creative Industries',
-    'Social Impact',
-    'Legal',
-    'Manufacturing',
-    'Hospitality',
-    'Real Estate',
-    'Energy',
-    'Telecommunications',
-    'Transportation',
-    'Agriculture',
-    'Biotechnology',
-    'Pharmaceuticals',
-    'Retail',
-    'Media & Entertainment',
-    'Government',
-    'Non-Profit',
-    'Consulting',
-    'Human Resources',
-    'Sales',
-    'Automotive',
-    'Aerospace',
-    'Construction',
-    'Fashion',
-    'Food & Beverage'
+    'Technology', 'Healthcare', 'Finance', 'Education', 'Manufacturing',
+    'Retail', 'Real Estate', 'Agriculture', 'Energy', 'Media',
+    'Non-Profit', 'Government'
 ];
 
 export const countries = [
@@ -227,28 +201,26 @@ export const products: Product[] = [
 
 export const continents = [
     "Africa",
-    "Antarctica",
     "Asia",
     "Europe",
     "North America",
-    "Oceania",
-    "South America"
+    "South America",
+    "Oceania"
 ];
 
 export const roles = [
-  {
-    id: 'mentee',
-    title: 'Mentee',
-    description: 'I want to learn and grow with guidance from experienced mentors.'
-  },
-  {
-    id: 'mentor_candidate',
-    title: 'Mentor Candidate',
-    description: 'I am an experienced professional looking to give back and mentor others.'
-  },
-  {
-    id: 'affiliate',
-    title: 'Affiliate',
-    description: 'I want to earn by promoting the network and its offerings.'
-  }
+  { id: "mentee", title: "Mentee", description: "Learn and receive mentorship", icon: "🎓" },
+  { id: "mentor-candidate", title: "Mentor Candidate", description: "Begin mentor certification", icon: "🌱" },
+  { id: "associate-mentor", title: "Associate Mentor", description: "Apply for verification", icon: "✨" },
+  { id: "collaborator", title: "Collaborator", description: "Support programs and projects", icon: "🤝" },
+  { id: "sponsor", title: "Sponsor / Partner", description: "Fund or partner with initiatives", icon: "💎" },
+  { id: "country-manager", title: "Country Manager", description: "Coordinate regional growth", icon: "🌍" },
+  { id: "volunteer", title: "Volunteer", description: "Support community operations", icon: "❤️" },
+  { id: "media", title: "Media", description: "Share impact stories", icon: "📢" },
+];
+
+export const goals = [
+  "Find a mentor", "Become a mentor", "Grow my network", 
+  "Learn new skills", "Start a business", "Career transition",
+  "Give back to community", "Find collaborators"
 ];

@@ -37,22 +37,22 @@
         },
         "sectorPreferences": {
           "type": "array",
-          "description": "Array of sector names the member has preferences for (up to 30).",
+          "description": "Array of sector names the member has preferences for (up to 3).",
           "items": {
             "type": "string"
           }
         },
         "role": {
           "type": "string",
-          "description": "The member's role within the network (e.g., 'mentee', 'mentor_candidate')."
+          "description": "The member's role within the network (e.g., 'mentee', 'mentor_candidate', 'associate-mentor', 'collaborator', 'sponsor', 'country-manager', 'volunteer', 'media')."
         },
         "purpose": {
           "type": "string",
-          "description": "A description of the member's purpose for joining the network."
+          "description": "A description of the member's purpose for joining the network (a short bio)."
         },
         "identityProfile": {
           "type": "string",
-          "description": "A description of the member's self-identified identity."
+          "description": "A JSON string containing the member's self-identified goals and interests."
         }
       },
       "required": [
