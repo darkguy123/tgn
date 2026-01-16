@@ -18,15 +18,16 @@ import Link from 'next/link';
 // Component for a single connection item
 function ConnectionItem({ member, onRemove }: { member: TGNMember, onRemove: (memberId: string) => void }) {
   const router = useRouter();
+  const name = member.name || member.email.split('@')[0];
   return (
     <div className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg">
       <Link href={`/profile/${member.id}`} className="flex items-center gap-3">
         <Avatar>
-          <AvatarImage src={member.avatarUrl} alt={member.name} />
-          <AvatarFallback>{member.name ? member.name.charAt(0) : 'U'}</AvatarFallback>
+          <AvatarImage src={member.avatarUrl} alt={name} />
+          <AvatarFallback>{name ? name.charAt(0) : 'U'}</AvatarFallback>
         </Avatar>
         <div>
-          <p className="font-semibold">{member.name || member.email.split('@')[0]}</p>
+          <p className="font-semibold">{name}</p>
           <p className="text-sm text-muted-foreground">{member.role.replace('-', ' ')}</p>
         </div>
       </Link>
@@ -41,15 +42,16 @@ function ConnectionItem({ member, onRemove }: { member: TGNMember, onRemove: (me
 // Component for a single request item
 function RequestItem({ request, type, onAction }: { request: FriendRequest & { userProfile: TGNMember }, type: 'received' | 'sent', onAction: (requestId: string, action: 'accept' | 'decline' | 'cancel') => void }) {
   const { userProfile } = request;
+  const name = userProfile.name || userProfile.email.split('@')[0];
   return (
     <div className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg">
        <Link href={`/profile/${userProfile.id}`} className="flex items-center gap-3">
         <Avatar>
-          <AvatarImage src={userProfile.avatarUrl} alt={userProfile.name} />
-          <AvatarFallback>{userProfile.name ? userProfile.name.charAt(0) : 'U'}</AvatarFallback>
+          <AvatarImage src={userProfile.avatarUrl} alt={name} />
+          <AvatarFallback>{name ? name.charAt(0) : 'U'}</AvatarFallback>
         </Avatar>
         <div>
-          <p className="font-semibold">{userProfile.name || userProfile.email.split('@')[0]}</p>
+          <p className="font-semibold">{name}</p>
           <p className="text-sm text-muted-foreground">{userProfile.role.replace('-', ' ')}</p>
         </div>
       </Link>
@@ -75,7 +77,8 @@ export default function NetworkPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
     const router = useRouter();
-    const [isSubmitting, setIsSubmitting] = useState<string | null>(null); // Store ID of item being processed
+    const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // --- DATA QUERIES ---
     
@@ -90,6 +93,16 @@ export default function NetworkPage() {
         [connectionIds, firestore]
     );
     const { data: connections, isLoading: connectionsLoading } = useCollection<TGNMember>(connectionsQuery);
+
+    const filteredConnections = useMemo(() => {
+        if (!connections) return [];
+        return connections.filter(member => {
+            const name = member.name || member.email.split('@')[0];
+            const role = member.role || '';
+            return name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                   role.toLowerCase().includes(searchQuery.toLowerCase());
+        });
+    }, [connections, searchQuery]);
 
     // 3. Fetch incoming friend requests
     const receivedRequestsQuery = useMemoFirebase(() =>
@@ -227,16 +240,24 @@ export default function NetworkPage() {
                         <div className="w-full md:w-auto flex gap-2">
                              <div className="relative flex-1 md:flex-initial">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input placeholder="Search connections..." className="pl-10" />
+                                <Input 
+                                    placeholder="Search connections..." 
+                                    className="pl-10" 
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
                             </div>
                             <Button onClick={() => router.push('/directory')}>Find Members</Button>
                         </div>
                     </CardHeader>
                     <CardContent>
                         <TabsContent value="connections">
-                            {isLoading ? renderSkeleton() : connections && connections.length > 0
-                                ? <div className="space-y-2">{connections.map(c => <ConnectionItem key={c.id} member={c} onRemove={handleRemove}/>)}</div>
-                                : renderEmptyState("No Connections Yet", "Use the directory to find and connect with members.")
+                            {isLoading ? renderSkeleton() : filteredConnections && filteredConnections.length > 0
+                                ? <div className="space-y-2">{filteredConnections.map(c => <ConnectionItem key={c.id} member={c} onRemove={handleRemove}/>)}</div>
+                                : renderEmptyState(
+                                    searchQuery ? "No Connections Found" : "No Connections Yet", 
+                                    searchQuery ? "No connections match your search." : "Use the directory to find and connect with members."
+                                )
                             }
                         </TabsContent>
                         <TabsContent value="received">
