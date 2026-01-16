@@ -289,7 +289,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Wallet",
       "type": "object",
-      "description": "Represents a member's digital wallet for multi-currency and USDT transactions.",
+      "description": "Represents a member's digital wallet for multi-currency transactions.",
       "properties": {
         "memberId": {
           "type": "string",
@@ -302,17 +302,12 @@
         "balance": {
           "type": "number",
           "description": "The current balance in the wallet's currency."
-        },
-        "usdtBalance": {
-          "type": "number",
-          "description": "The current USDT balance in the wallet."
         }
       },
       "required": [
         "memberId",
         "currency",
-        "balance",
-        "usdtBalance"
+        "balance"
       ]
     },
     "Transaction": {
@@ -569,3 +564,5 @@
     ]
   }
 }
+
+    

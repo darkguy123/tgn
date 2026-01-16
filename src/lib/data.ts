@@ -237,10 +237,9 @@ export const conversations: ChatConversation[] = [
 
 
 export const userWallet: Wallet = {
-    memberId: '5', // Corresponds to Chloe Kim
+    memberId: 'Leonardo', // Corresponds to Chloe Kim
     currency: 'USD',
-    balance: 125.00,
-    usdtBalance: 50.00
+    balance: 81910.00,
 };
 
 export const transactions: Transaction[] = [
@@ -266,7 +265,7 @@ export const transactions: Transaction[] = [
     id: 'txn3',
     type: 'withdrawal',
     status: 'pending',
-    amount: 50.00,
+    amount: -50.00,
     currency: 'USD',
     description: 'Withdrawal to bank account',
     createdAt: '2024-07-15T09:00:00Z',
@@ -295,9 +294,9 @@ export const savedCards: SavedCard[] = [
     {
         id: 'card1',
         brand: 'Visa',
-        last4: '4242',
-        expiryMonth: '12',
-        expiryYear: '2028',
+        last4: '1890',
+        expiryMonth: '05',
+        expiryYear: '2026',
         isDefault: true,
     },
     {
@@ -305,7 +304,19 @@ export const savedCards: SavedCard[] = [
         brand: 'Mastercard',
         last4: '5555',
         expiryMonth: '08',
-        expiryYear: '2026',
+        expiryYear: '2028',
         isDefault: false,
     },
 ];
+
+export const chartData = [
+  { name: '3 July', amount: 45.00 },
+  { name: '4 July', amount: 48.00 },
+  { name: '5 July', amount: 40.00 },
+  { name: '6 July', amount: 55.00 },
+  { name: '7 July', amount: 58.75 },
+  { name: '8 July', amount: 52.00 },
+  { name: '9 July', amount: 50.00 },
+];
+
+    

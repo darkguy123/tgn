@@ -118,7 +118,6 @@ export interface Wallet {
     memberId: string;
     currency: string;
     balance: number;
-    usdtBalance: number;
 }
 
 export interface Transaction {
@@ -139,3 +138,5 @@ export interface SavedCard {
     expiryYear: string;
     isDefault: boolean;
 }
+
+    
