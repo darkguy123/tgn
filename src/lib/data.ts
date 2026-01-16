@@ -234,3 +234,21 @@ export const continents = [
     "Oceania",
     "South America"
 ];
+
+export const roles = [
+  {
+    id: 'mentee',
+    title: 'Mentee',
+    description: 'I want to learn and grow with guidance from experienced mentors.'
+  },
+  {
+    id: 'mentor_candidate',
+    title: 'Mentor Candidate',
+    description: 'I am an experienced professional looking to give back and mentor others.'
+  },
+  {
+    id: 'affiliate',
+    title: 'Affiliate',
+    description: 'I want to earn by promoting the network and its offerings.'
+  }
+];

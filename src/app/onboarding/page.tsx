@@ -19,7 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { continents, countries, regions } from "@/lib/data";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { continents, countries, regions, roles } from "@/lib/data";
 import { ArrowLeft, Check } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/icons";
@@ -28,7 +29,7 @@ import { doc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useRouter } from "next/navigation";
 
-const totalSteps = 1;
+const totalSteps = 2;
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
@@ -38,7 +39,9 @@ export default function OnboardingPage() {
   const handleNext = async () => {
     if (step === totalSteps) {
       // On finish, save data to Firestore.
-      const formData = new FormData(document.querySelector('form')!);
+      const form = document.querySelector('form');
+      if (!form) return;
+      const formData = new FormData(form);
       const tgnMemberId = `TGN-${String(Math.floor(Math.random() * 9000) + 1000)}`;
 
       const dataToSave = {
@@ -49,6 +52,7 @@ export default function OnboardingPage() {
         locationContinent: formData.get("continent"),
         locationCountry: formData.get("country"),
         locationRegion: formData.get("region"),
+        role: formData.get("role"),
       };
 
       if (user) {
@@ -66,6 +70,18 @@ export default function OnboardingPage() {
   const handleBack = () => setStep((s) => Math.max(s - 1, 1));
 
   const progress = (step / totalSteps) * 100;
+  
+  const getStepDescription = () => {
+    switch(step) {
+        case 1:
+            return `Step ${step} of ${totalSteps}: Let's start with your location.`;
+        case 2:
+            return `Step ${step} of ${totalSteps}: What is your primary goal here?`;
+        default:
+            return '';
+    }
+  }
+
 
   if (!user) {
       return (
@@ -90,7 +106,7 @@ export default function OnboardingPage() {
               <Progress value={progress} className="mb-4" />
               <CardTitle>Universal Member Onboarding</CardTitle>
               <CardDescription>
-                Step {step} of {totalSteps}: Let's start with your location.
+                {getStepDescription()}
               </CardDescription>
             </>
           ) : (
@@ -144,6 +160,22 @@ export default function OnboardingPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          )}
+
+           {step === 2 && (
+             <div className="space-y-4">
+                <RadioGroup name="role" defaultValue="mentee" className="space-y-2">
+                    {roles.map((role) => (
+                        <Label key={role.id} htmlFor={role.id} className="flex items-start gap-4 rounded-lg border p-4 hover:bg-accent hover:text-accent-foreground has-[input:checked]:border-primary">
+                            <RadioGroupItem value={role.id} id={role.id} className="mt-1" />
+                            <div className="grid gap-1.5">
+                                <span className="font-semibold">{role.title}</span>
+                                <span className="text-sm text-muted-foreground">{role.description}</span>
+                            </div>
+                        </Label>
+                    ))}
+                </RadioGroup>
             </div>
           )}
           
