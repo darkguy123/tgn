@@ -97,4 +97,17 @@ export interface MentorCertification {
   certificationDate?: string;
 }
 
-    
+export interface Sector {
+    id: string;
+    name: string;
+    description?: string;
+}
+
+export interface Event {
+    id: string;
+    name: string;
+    description: string;
+    startDate: string;
+    endDate: string;
+    location: string;
+}

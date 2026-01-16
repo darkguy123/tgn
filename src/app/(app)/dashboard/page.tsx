@@ -27,6 +27,8 @@ import {
   MessageSquare,
   Shield,
   Loader2,
+  ShoppingBag,
+  Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -34,11 +36,11 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebas
 import { useMemberProfile } from "@/hooks/useMemberProfile";
 import { useMentorCertification } from "@/hooks/useMentorCertification";
 import { Skeleton } from "@/components/ui/skeleton";
-import { members } from "@/lib/data";
+import { members, products, events, sectors } from "@/lib/data";
 import placeholderImages from "@/lib/placeholder-images.json";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { collection } from 'firebase/firestore';
-import type { TGNMember, Program } from "@/lib/types";
+import type { TGNMember, Program, Product, Event, Sector } from "@/lib/types";
 import { getRecommendations, RecommendationResult } from "@/app/actions";
 
 const getImage = (imageId: string) => {
@@ -65,7 +67,8 @@ const Dashboard = () => {
   useEffect(() => {
     if (profile && allPrograms && allMembers && !recommendations && !isLoadingRecs) {
       setIsLoadingRecs(true);
-      getRecommendations(profile, allMembers, allPrograms)
+      // Using static data for products, events, and sectors for now
+      getRecommendations(profile, allMembers, allPrograms, products, events, sectors)
         .then(setRecommendations)
         .finally(() => setIsLoadingRecs(false));
     }
@@ -102,7 +105,7 @@ const Dashboard = () => {
     { label: "Evaluation Status", value: currentProgress.evaluationPassed ? 'Passed' : 'Pending', done: currentProgress.evaluationPassed },
  ], [currentProgress]);
 
- const isLoading = isProfileLoading || isCertLoading;
+ const isLoading = isProfileLoading || isCertLoading || programsLoading || membersLoading;
 
   return (
     <div className="space-y-6">
@@ -422,14 +425,31 @@ const Dashboard = () => {
                 <div
                   key={i}
                   className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
-                  onClick={() => router.push(item.type === 'Mentor' ? `/profile/${item.id}` : `/programs`)}
+                  onClick={() => {
+                    let path = '#';
+                    if (item.recommendedType === 'Mentor') path = `/profile/${item.id}`;
+                    if (item.recommendedType === 'Program') path = `/programs`;
+                    if (item.recommendedType === 'Product') path = `/marketplace`;
+                    if (item.recommendedType === 'Event') path = `/community`;
+                    if (item.recommendedType === 'Sector') path = `/directory`;
+                    router.push(path);
+                  }}
                 >
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    {item.type === "Mentor" && (
+                    {item.recommendedType === "Mentor" && (
                       <Users className="h-5 w-5 text-primary" />
                     )}
-                    {item.type === "Program" && (
+                    {item.recommendedType === "Program" && (
                       <GraduationCap className="h-5 w-5 text-primary" />
+                    )}
+                     {item.recommendedType === "Product" && (
+                      <ShoppingBag className="h-5 w-5 text-primary" />
+                    )}
+                    {item.recommendedType === "Event" && (
+                      <Calendar className="h-5 w-5 text-primary" />
+                    )}
+                    {item.recommendedType === "Sector" && (
+                      <Briefcase className="h-5 w-5 text-primary" />
                     )}
                   </div>
                   <div className="flex-1">
@@ -437,7 +457,7 @@ const Dashboard = () => {
                       {item.name}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {item.type}
+                      {item.recommendedType}
                     </p>
                   </div>
                   <span className="text-xs font-medium text-accent">
@@ -445,9 +465,16 @@ const Dashboard = () => {
                   </span>
                 </div>
               ))}
-              {!recommendations && !isLoadingRecs && (
+              {!recommendations && !isLoadingRecs && !isLoading && (
                 <div className="text-sm text-center text-muted-foreground p-4">
                   <p>Your personalized recommendations will appear here.</p>
+                </div>
+              )}
+               {(isLoading || isLoadingRecs) && !recommendations && (
+                <div className="space-y-2">
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-16 w-full" />
                 </div>
               )}
             </CardContent>
@@ -589,4 +616,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

@@ -2,9 +2,9 @@
 "use server";
 
 import { generateMatchExplanation } from "@/ai/flows/mentor-mentee-match-explanations";
-import { generateRecommendations, type GenerateRecommendationsOutput, type MatchmakingRecommendation as AIMatchmakingRecommendation } from "@/ai/flows/generate-recommendations";
+import { generateRecommendations, type MatchmakingRecommendation as AIMatchmakingRecommendation } from "@/ai/flows/generate-recommendations";
 import { z } from "zod";
-import { TGNMember, Program } from '@/lib/types';
+import type { TGNMember, Program, Product, Event, Sector } from '@/lib/types';
 
 
 const explanationState = z.object({
@@ -56,45 +56,82 @@ export async function getMatchExplanation(
 export type RecommendationDetails = AIMatchmakingRecommendation & {
     id: string;
     name: string;
-    type: "Mentor" | "Program" | "Community";
 };
 
 export type RecommendationResult = {
     recommendations: RecommendationDetails[];
 };
 
-const MemberProfileSchema = z.object({
-  sectorPreferences: z.array(z.string()).optional(),
+export const MemberProfileSchema = z.object({
+  locationCountry: z.string().optional(),
   role: z.string(),
   purpose: z.string().optional(),
-  identityProfile: z.string().optional(), // JSON string with goals and interests
+  identityProfile: z.string().optional(),
+  sectorPreferences: z.array(z.string()).optional(),
 });
 
-const MentorInfoSchema = z.object({
+export const MentorInfoSchema = z.object({
   id: z.string(),
-  // Name is not available, using ID as identifier
   sectorPreferences: z.array(z.string()).optional(),
   role: z.string(),
   purpose: z.string().optional(),
 });
 
-const ProgramInfoSchema = z.object({
+export const ProgramInfoSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string(),
 });
 
-const GenerateRecommendationsInputSchema = z.object({
+export const ProductInfoSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  author: z.string(),
+  type: z.string(),
+});
+
+export const EventInfoSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+});
+
+export const SectorInfoSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+});
+
+
+export const GenerateRecommendationsInputSchema = z.object({
   memberProfile: MemberProfileSchema,
   allMentors: z.array(MentorInfoSchema),
   allPrograms: z.array(ProgramInfoSchema),
+  allProducts: z.array(ProductInfoSchema),
+  allEvents: z.array(EventInfoSchema),
+  allSectors: z.array(SectorInfoSchema),
+});
+
+
+const MatchmakingRecommendationSchema = z.object({
+  recommendedType: z.enum(["Mentor", "Program", "Product", "Event", "Sector"]),
+  recommendedId: z.string().describe("The ID of the recommended item."),
+  explanation: z.string().describe("A concise, personalized explanation for why this is a good match for the member."),
+  matchScore: z.number().min(0).max(100).describe("A percentage score representing the quality of the match."),
+});
+
+export const GenerateRecommendationsOutputSchema = z.object({
+  recommendations: z.array(MatchmakingRecommendationSchema).max(5, { message: "Generate no more than 5 recommendations."}),
 });
 
 
 export async function getRecommendations(
   member: TGNMember, 
   allMembers: TGNMember[], 
-  allPrograms: Program[]
+  allPrograms: Program[],
+  allProducts: Product[],
+  allEvents: Event[],
+  allSectors: Sector[],
 ): Promise<RecommendationResult | { error: string }> {
   
   const input = {
@@ -103,6 +140,7 @@ export async function getRecommendations(
       purpose: member.purpose,
       sectorPreferences: member.sectorPreferences,
       identityProfile: member.identityProfile,
+      locationCountry: member.locationCountry,
     },
     allMentors: allMembers.filter(m => m.role.includes('mentor')).map(m => ({
         id: m.id,
@@ -114,6 +152,22 @@ export async function getRecommendations(
         id: p.id,
         title: p.title,
         description: p.description,
+    })),
+    allProducts: allProducts.map(p => ({
+        id: p.id,
+        title: p.title,
+        author: p.author,
+        type: p.type,
+    })),
+    allEvents: allEvents.map(e => ({
+        id: e.id,
+        name: e.name,
+        description: e.description,
+    })),
+    allSectors: allSectors.map(s => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
     })),
   };
 
@@ -129,25 +183,27 @@ export async function getRecommendations(
     
     // Enrich recommendations with details for display
     const recommendationDetails = result.recommendations.map(rec => {
+        let name = 'Unknown';
+        let id = rec.recommendedId;
+        
         if (rec.recommendedType === 'Mentor') {
-            const mentor = allMembers.find(m => m.id === rec.recommendedId);
-            return {
-                id: rec.recommendedId,
-                name: mentor?.email ?? 'Unknown Mentor', // Using email as name
-                type: rec.recommendedType,
-                ...rec
-            };
+            const mentor = allMembers.find(m => m.id === id);
+            name = mentor?.email ?? 'Unknown Mentor';
+        } else if (rec.recommendedType === 'Program') {
+            const program = allPrograms.find(p => p.id === id);
+            name = program?.title ?? 'Unknown Program';
+        } else if (rec.recommendedType === 'Product') {
+            const product = allProducts.find(p => p.id === id);
+            name = product?.title ?? 'Unknown Product';
+        } else if (rec.recommendedType === 'Event') {
+            const event = allEvents.find(e => e.id === id);
+            name = event?.name ?? 'Unknown Event';
+        } else if (rec.recommendedType === 'Sector') {
+            const sector = allSectors.find(s => s.id === id);
+            name = sector?.name ?? 'Unknown Sector';
         }
-        if (rec.recommendedType === 'Program') {
-            const program = allPrograms.find(p => p.id === rec.recommendedId);
-            return {
-                id: rec.recommendedId,
-                name: program?.title ?? 'Unknown Program',
-                type: rec.recommendedType,
-                ...rec
-            };
-        }
-        return null;
+
+        return { ...rec, id, name };
     }).filter(Boolean) as RecommendationDetails[];
 
 

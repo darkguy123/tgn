@@ -1,4 +1,4 @@
-import type { Member, Product, Program, Story, ChatConversation } from './types';
+import type { Member, Product, Program, Story, ChatConversation, Event } from './types';
 
 export const members: Member[] = [
     { id: '9', name: "Dr. Amara Obi", role: "Executive Mentor", country: "Nigeria", sector: "Technology", badge: 7, connections: 234, tgnId: 'TGN-0009', location: 'Lagos, Nigeria', isVerified: true, profile: 'Executive mentor specializing in tech leadership.', imageId: 'default-female-avatar', joinDate: 'May 2022', bannerImageId: 'profile-banner-1' },
@@ -54,7 +54,7 @@ export const sectors = [
     'Technology', 'Healthcare', 'Finance', 'Education', 'Manufacturing',
     'Retail', 'Real Estate', 'Agriculture', 'Energy', 'Media',
     'Non-Profit', 'Government'
-];
+].map((name, i) => ({ id: `sec-${i}`, name }));
 
 export const countries = [
   "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
@@ -134,6 +134,25 @@ export const products: Product[] = [
     type: 'Course',
     imageId: 'product-4',
   },
+];
+
+export const events: Event[] = [
+  {
+    id: 'evt1',
+    name: 'Global Tech Summit 2026',
+    description: 'A summit for tech leaders and innovators.',
+    startDate: '2026-03-10T09:00:00Z',
+    endDate: '2026-03-12T17:00:00Z',
+    location: 'Virtual'
+  },
+  {
+    id: 'evt2',
+    name: 'Financial Inclusion Forum - Africa',
+    description: 'Discussing the future of finance in Africa.',
+    startDate: '2025-11-05T10:00:00Z',
+    endDate: '2025-11-05T16:00:00Z',
+    location: 'Lagos, Nigeria'
+  }
 ];
 
 export const continents = [
