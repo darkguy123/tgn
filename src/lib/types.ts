@@ -1,6 +1,7 @@
 export interface TGNMember {
     id: string;
     tgnMemberId: string;
+    name?: string;
     signInType: string;
     email: string;
     locationContinent: string;
@@ -11,7 +12,22 @@ export interface TGNMember {
     purpose?: string;
     identityProfile?: string;
     imageId?: string;
-    createdAt?: string;
+    isVerifiedMentor?: boolean;
+    createdAt?: any;
+}
+
+export interface MentorKYC {
+  id: string;
+  memberId: string;
+  status: 'pending' | 'approved' | 'rejected';
+  nin: string;
+  bvn: string;
+  medicalLicenseNumber?: string;
+  certificateUrl: string;
+  degreeUrl: string;
+  submittedAt: any; // Firestore Timestamp
+  reviewedAt?: any; // Firestore Timestamp
+  rejectionReason?: string;
 }
 
 export interface Product {
@@ -150,3 +166,5 @@ export interface AffiliateReferral {
     level: number;
     commissionPercentage: number;
 }
+
+    

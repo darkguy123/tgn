@@ -6,12 +6,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import {
   MapPin,
   Mail,
   MoreHorizontal,
   Send,
   Gift,
+  CheckCircle2,
 } from 'lucide-react';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { Separator } from '@/components/ui/separator';
@@ -68,7 +70,7 @@ export default function ProfilePage() {
     return notFound();
   }
   
-  const name = member.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  const name = member.name || member.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   const avatarImg = getImage(member.imageId);
   const bannerImg = getImage('profile-banner-default');
 
@@ -129,7 +131,15 @@ export default function ProfilePage() {
         {/* Profile Info */}
         <CardContent className="pt-0 pb-6 px-6">
           <div className="mt-4">
-            <h1 className="text-2xl font-bold">{name}</h1>
+            <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold">{name}</h1>
+                {member.isVerifiedMentor && (
+                    <Badge variant="default" className="bg-blue-500 hover:bg-blue-600 gap-1.5 pl-2 pr-3">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Verified
+                    </Badge>
+                )}
+            </div>
             <p className="text-sm text-muted-foreground">@{member.tgnMemberId}</p>
           </div>
 
@@ -192,3 +202,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    

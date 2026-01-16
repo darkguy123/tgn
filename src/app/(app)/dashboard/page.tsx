@@ -28,6 +28,7 @@ import {
   Briefcase,
   ExternalLink,
   Heart,
+  CheckCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
@@ -55,7 +56,7 @@ const Dashboard = () => {
   const { user } = useUser();
   const { profile, isLoading: isProfileLoading } = useMemberProfile();
   const { certification, isLoading: isCertLoading } = useMentorCertification();
-  const userName = user?.displayName?.split(' ')[0] || 'Member';
+  const userName = profile?.name || user?.displayName?.split(' ')[0] || 'Member';
   const router = useRouter();
   const firestore = useFirestore();
 
@@ -182,6 +183,9 @@ const Dashboard = () => {
               <Button onClick={() => router.push('/admin/programs')}>Manage Programs</Button>
               <Button variant="outline" onClick={() => router.push('/admin/products')}>
                 Manage Products <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
+               <Button variant="outline" onClick={() => router.push('/admin/kyc')}>
+                Manage KYC <CheckCheck className="ml-2 h-4 w-4" />
               </Button>
               <Button variant="outline" onClick={() => router.push('/admin/causes')}>
                 Manage Causes <ExternalLink className="ml-2 h-4 w-4" />
@@ -636,3 +640,5 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+    

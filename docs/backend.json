@@ -14,6 +14,10 @@
           "type": "string",
           "description": "Auto-generated unique TGN Member ID."
         },
+        "name": {
+          "type": "string",
+          "description": "The member's full name."
+        },
         "signInType": {
           "type": "string",
           "description": "Method used for signing in (e.g., 'google.com', 'password')."
@@ -68,6 +72,10 @@
           "type": "string",
           "description": "Reference to an image in placeholder-images.json for the user's avatar."
         },
+        "isVerifiedMentor": {
+          "type": "boolean",
+          "description": "Indicates if the member has passed KYC and is a verified mentor."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
@@ -83,6 +91,54 @@
         "locationCountry",
         "createdAt"
       ]
+    },
+    "MentorKYC": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MentorKYC",
+      "type": "object",
+      "description": "Stores the Know Your Customer (KYC) information for mentor verification.",
+      "properties": {
+        "memberId": {
+          "type": "string",
+          "description": "The UID of the member this KYC submission belongs to."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the KYC verification.",
+          "enum": ["pending", "approved", "rejected"]
+        },
+        "nin": {
+          "type": "string",
+          "description": "National Identification Number."
+        },
+        "bvn": {
+          "type": "string",
+          "description": "Bank Verification Number."
+        },
+        "medicalLicenseNumber": {
+          "type": "string",
+          "description": "Medical License Number, if applicable."
+        },
+        "certificateUrl": {
+          "type": "string",
+          "description": "URL to the uploaded professional certificate."
+        },
+        "degreeUrl": {
+          "type": "string",
+          "description": "URL to the uploaded degree."
+        },
+        "submittedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the KYC form was submitted."
+        },
+        "reviewedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the submission was reviewed by an admin."
+        }
+      },
+      "required": ["memberId", "status", "nin", "certificateUrl", "degreeUrl", "submittedAt"]
     },
     "Sector": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -666,6 +722,11 @@
         "description": "Stores TGN Member profiles. Path-based ownership for private user data. Includes user's core information and role. The 'userId' param matches the Firebase Auth UID."
       },
       {
+        "path": "/mentor_kyc/{userId}",
+        "entity": "MentorKYC",
+        "description": "Stores KYC data for mentor verification. Document ID is the user's UID. Writable by the user, readable only by admins."
+      },
+      {
         "path": "/sectors/{sectorId}",
         "entity": "Sector",
         "description": "Stores information about mentorship sectors. Accessible to all members for reference."
@@ -728,3 +789,5 @@
     ]
   }
 }
+
+    

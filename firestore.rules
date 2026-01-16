@@ -162,6 +162,20 @@ service cloud.firestore {
     // ------------------------------------------------------------------------
 
     /**
+     * @description Controls access to mentor KYC submissions.
+     * @path /mentor_kyc/{userId}
+     * @allow (read) - Only the user who submitted and admins can read it.
+     * @allow (create) - A user can create their own KYC submission.
+     * @allow (update) - Only admins can update the status (approve/reject).
+     */
+    match /mentor_kyc/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.memberId == userId;
+      allow update: if isAdmin();
+      allow delete: if false; // KYC records should not be deleted
+    }
+
+    /**
      * @description Controls access to affiliate referrals.
      * @path /affiliate_referrals/{referralId}
      * @allow (get) - The user who referred or was referred can read the document.
@@ -264,3 +278,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

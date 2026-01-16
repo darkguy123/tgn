@@ -36,6 +36,7 @@ import {
   ChevronDown,
   MessageSquare,
   Briefcase,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -68,12 +69,12 @@ const DirectoryPage = () => {
     return placeholderImages.placeholderImages.find((p) => p.id === imageId);
   };
   
-  const getNameFromEmail = (email: string) => {
-    return email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  const getName = (member: TGNMember) => {
+    return member.name || member.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
 
   const filteredMembers = members?.filter((member) => {
-    const name = getNameFromEmail(member.email);
+    const name = getName(member);
     const matchesSearch =
       name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       member.role.toLowerCase().includes(searchQuery.toLowerCase());
@@ -273,7 +274,7 @@ const DirectoryPage = () => {
         ))}
         {filteredMembers?.map((member) => {
           const img = getImage(member.imageId);
-          const name = getNameFromEmail(member.email);
+          const name = getName(member);
           return (
             <Card
               key={member.id}
@@ -288,8 +289,20 @@ const DirectoryPage = () => {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-foreground truncate">
-                      {name}
+                    <p className="font-semibold text-foreground truncate flex items-center gap-2">
+                        {name}
+                        {member.isVerifiedMentor && (
+                        <TooltipProvider>
+                            <Tooltip>
+                            <TooltipTrigger>
+                                <CheckCircle2 className="h-4 w-4 text-blue-500" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Verified Mentor</p>
+                            </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                        )}
                     </p>
                     <p className="text-sm text-muted-foreground capitalize">{member.role.replace('-', ' ')}</p>
                   </div>
@@ -344,4 +357,6 @@ const DirectoryPage = () => {
 };
 
 export default DirectoryPage;
+    
+
     

@@ -61,7 +61,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { user } = useUser();
   const auth = useAuth();
   const { profile } = useMemberProfile();
-  const userName = user?.displayName || 'Member';
+  const userName = profile?.name || user?.displayName || 'Member';
   
   const profilePath = profile ? `/profile/${profile.id}` : '#';
 
@@ -144,7 +144,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
                         <Avatar className="h-9 w-9">
-                            <AvatarImage src={user?.photoURL ?? ""} alt={userName} />
+                            <AvatarImage src={profile?.imageId ? (profile.imageId.startsWith('http') ? profile.imageId : `https://placehold.co/100x100`) : user?.photoURL ?? ""} alt={userName} />
                             <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
                                 {userName[0]}
                             </AvatarFallback>
@@ -167,9 +167,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                             <span>Profile</span>
                         </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
-                        <Settings className="mr-2 h-4 w-4" />
-                        <span>Settings</span>
+                    <DropdownMenuItem asChild>
+                        <Link href="/settings/profile">
+                            <Settings className="mr-2 h-4 w-4" />
+                            <span>Profile Settings</span>
+                        </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout}>

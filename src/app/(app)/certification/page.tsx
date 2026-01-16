@@ -19,10 +19,12 @@ import {
   FileText,
   Download,
   ChevronRight,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMentorCertification } from '@/hooks/useMentorCertification';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
 
 const CERTIFICATIONS = [
   {
@@ -196,6 +198,28 @@ const CertificationPage = () => {
           </div>
         </CardContent>
       </Card>
+      
+      <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <ShieldCheck className="text-blue-500" />
+                Mentor Verification (KYC)
+            </CardTitle>
+            <CardDescription>
+                Become a verified mentor to gain trust and unlock exclusive benefits.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+                Our verification process ensures the safety and quality of our mentorship network. Submit your documents to get your profile badge.
+            </p>
+            <Button asChild>
+                <Link href="/kyc">
+                    Start Verification <ChevronRight className="h-4 w-4 ml-2" />
+                </Link>
+            </Button>
+        </CardContent>
+    </Card>
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Checklist */}
@@ -400,3 +424,5 @@ const CertificationPage = () => {
 };
 
 export default CertificationPage;
+
+    
