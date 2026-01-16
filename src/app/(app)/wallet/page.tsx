@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,7 +10,7 @@ import { useWallet } from '@/hooks/useWallet';
 import { transactions, userWallet as mockWallet, savedCards, chartData } from '@/lib/data';
 import { 
     ArrowDownLeft, ArrowUpRight, DollarSign, Upload, CreditCard, Plus, MoreHorizontal, 
-    Send, TrendingUp, TrendingDown, ClipboardCopy, Loader2, PartyPopper, Gift, Heart, User, Building, Landmark
+    Send, TrendingUp, TrendingDown, ClipboardCopy, Loader2, PartyPopper, Gift, Heart, User, Building, Landmark, ShieldCheck
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -494,64 +495,79 @@ const WalletPage = () => {
                     <CardHeader>
                         <CardTitle className="text-sm font-medium">Withdraw</CardTitle>
                     </CardHeader>
-                    <CardContent className="grid grid-cols-2 gap-3">
-                        <Dialog open={isWithdrawOpen} onOpenChange={setWithdrawOpen}>
-                            <DialogTrigger asChild>
+                    <CardContent>
+                        {profile?.isVerifiedMentor ? (
+                            <div className="grid grid-cols-2 gap-3">
+                                <Dialog open={isWithdrawOpen} onOpenChange={setWithdrawOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" className="flex-col h-20">
+                                            <Landmark className="h-6 w-6 mb-1" />
+                                            <span>To Bank</span>
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Withdraw to Bank Account</DialogTitle>
+                                            <DialogDescription>
+                                                Enter the amount and your bank details. Funds will be processed within 2-3 business days.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="space-y-4 py-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="withdraw-amount">Amount (USD)</Label>
+                                                <Input 
+                                                    id="withdraw-amount" 
+                                                    type="number" 
+                                                    placeholder="0.00" 
+                                                    value={withdrawAmount}
+                                                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                                                />
+                                                <p className="text-xs text-muted-foreground">
+                                                    Available balance: {formatCurrency(displayWallet.balance)}
+                                                </p>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="bank-name">Bank Name</Label>
+                                                <Input 
+                                                    id="bank-name" 
+                                                    placeholder="e.g., Chase Bank" 
+                                                    value={bankName}
+                                                    onChange={(e) => setBankName(e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="account-number">Account Number</Label>
+                                                <Input 
+                                                    id="account-number" 
+                                                    placeholder="Your bank account number"
+                                                    value={accountNumber}
+                                                    onChange={(e) => setAccountNumber(e.target.value)}
+                                                 />
+                                            </div>
+                                        </div>
+                                        <DialogFooter>
+                                            <Button variant="outline" onClick={() => setWithdrawOpen(false)}>Cancel</Button>
+                                            <Button onClick={handleWithdrawRequest}>Submit Request</Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
                                 <Button variant="outline" className="flex-col h-20">
-                                    <Landmark className="h-6 w-6 mb-1" />
-                                    <span>To Bank</span>
+                                    <Building className="h-6 w-6 mb-1" />
+                                <span>To Paystack/Stripe</span>
                                 </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>Withdraw to Bank Account</DialogTitle>
-                                    <DialogDescription>
-                                        Enter the amount and your bank details. Funds will be processed within 2-3 business days.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4 py-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="withdraw-amount">Amount (USD)</Label>
-                                        <Input 
-                                            id="withdraw-amount" 
-                                            type="number" 
-                                            placeholder="0.00" 
-                                            value={withdrawAmount}
-                                            onChange={(e) => setWithdrawAmount(e.target.value)}
-                                        />
-                                        <p className="text-xs text-muted-foreground">
-                                            Available balance: {formatCurrency(displayWallet.balance)}
-                                        </p>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="bank-name">Bank Name</Label>
-                                        <Input 
-                                            id="bank-name" 
-                                            placeholder="e.g., Chase Bank" 
-                                            value={bankName}
-                                            onChange={(e) => setBankName(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="account-number">Account Number</Label>
-                                        <Input 
-                                            id="account-number" 
-                                            placeholder="Your bank account number"
-                                            value={accountNumber}
-                                            onChange={(e) => setAccountNumber(e.target.value)}
-                                         />
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <Button variant="outline" onClick={() => setWithdrawOpen(false)}>Cancel</Button>
-                                    <Button onClick={handleWithdrawRequest}>Submit Request</Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                        <Button variant="outline" className="flex-col h-20">
-                            <Building className="h-6 w-6 mb-1" />
-                           <span>To Paystack/Stripe</span>
-                        </Button>
+                            </div>
+                        ) : (
+                            <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 text-center">
+                                <ShieldCheck className="h-10 w-10 mx-auto text-blue-500 mb-2" />
+                                <h4 className="font-semibold text-blue-800 dark:text-blue-300">Verification Required</h4>
+                                <p className="text-xs text-blue-700/80 dark:text-blue-300/80 mt-1 mb-3">
+                                    Complete your KYC verification to enable withdrawals.
+                                </p>
+                                <Button asChild size="sm" className="bg-blue-500 hover:bg-blue-600 text-white">
+                                    <Link href="/kyc">Start Verification</Link>
+                                </Button>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>
@@ -561,5 +577,3 @@ const WalletPage = () => {
 };
 
 export default WalletPage;
-
-    
