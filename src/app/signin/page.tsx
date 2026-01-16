@@ -7,19 +7,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth, useUser, initiateEmailSignUp, initiateEmailSignIn, initiateSocialSignIn } from '@/firebase';
-import { Chrome, Mail } from 'lucide-react';
+import { Chrome, Mail, Eye, EyeOff } from 'lucide-react';
 import { Logo } from '@/components/icons';
+import { useToast } from '@/hooks/use-toast';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const AuthPage = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!isUserLoading && user) {
@@ -28,12 +31,38 @@ const AuthPage = () => {
   }, [user, isUserLoading, router]);
   
   const handleAuthError = (error: any) => {
-    setError(error.message);
+    let title = 'Authentication Error';
+    let description = 'An unexpected error occurred. Please try again later.';
+
+    switch (error.code) {
+      case 'auth/invalid-credential':
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+        title = 'Invalid Credentials';
+        description = 'The email or password you entered is incorrect. Please try again.';
+        break;
+      case 'auth/email-already-in-use':
+        title = 'Account Exists';
+        description = 'An account with this email address already exists. Please sign in instead.';
+        break;
+      case 'auth/weak-password':
+        title = 'Weak Password';
+        description = 'Your password must be at least 6 characters long.';
+        break;
+      default:
+        // Keep the generic message for other errors
+        break;
+    }
+    
+    toast({
+        variant: 'destructive',
+        title: title,
+        description: description,
+    });
   }
 
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     if (isSignUp) {
       initiateEmailSignUp(auth, email, password, handleAuthError);
     } else {
@@ -42,7 +71,6 @@ const AuthPage = () => {
   };
 
   const handleSocialLogin = (providerName: 'google') => {
-    setError(null);
     initiateSocialSignIn(auth, providerName, handleAuthError);
   };
 
@@ -110,9 +138,36 @@ const AuthPage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required className="h-12 text-base"/>
+                  <div className="relative">
+                    <Input 
+                      id="password" 
+                      type={showPassword ? 'text' : 'password'} 
+                      placeholder="••••••••" 
+                      value={password} 
+                      onChange={e => setPassword(e.target.value)} 
+                      required 
+                      className="h-12 text-base pr-10"
+                    />
+                    <button 
+                        type="button" 
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground"
+                    >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
                 </div>
-                {error && <p className="text-sm text-red-500">{error}</p>}
+                
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                        <Checkbox id="remember-me" />
+                        <Label htmlFor="remember-me" className="text-sm font-normal">Remember me</Label>
+                    </div>
+                    <a href="#" className="text-sm text-primary hover:underline">
+                        Forgot password?
+                    </a>
+                </div>
+
                 <Button type="submit" className="w-full h-12">
                   {isSignUp ? 'Create Account' : 'Sign In'}
                 </Button>
