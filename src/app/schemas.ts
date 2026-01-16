@@ -23,8 +23,8 @@ export const ProgramInfoSchema = z.object({
 
 export const ProductInfoSchema = z.object({
   id: z.string(),
-  title: z.string(),
-  author: z.string(),
+  name: z.string(),
+  description: z.string(),
   type: z.string(),
 });
 

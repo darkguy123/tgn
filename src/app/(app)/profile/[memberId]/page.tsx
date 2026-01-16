@@ -8,36 +8,69 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   MapPin,
-  Calendar,
-  Star,
-  Users,
   Mail,
   MoreHorizontal,
   Send,
   Gift,
 } from 'lucide-react';
-import { members } from '@/lib/data';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { TGNMember } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
-const getImage = (imageId: string) => {
-  return placeholderImages.placeholderImages.find((p) => p.id === imageId);
+const getImage = (imageId?: string) => {
+    if (!imageId) return null;
+    return placeholderImages.placeholderImages.find((p) => p.id === imageId);
 };
 
 export default function ProfilePage() {
   const params = useParams();
   const memberId = params.memberId as string;
+  const firestore = useFirestore();
 
-  const member = members.find((m) => m.id === memberId);
-
-  if (!member) {
-    return notFound();
+  const memberRef = useMemoFirebase(
+    () => (memberId ? doc(firestore, 'users', memberId) : null),
+    [firestore, memberId]
+  );
+  
+  const { data: member, isLoading, error } = useDoc<TGNMember>(memberRef);
+  
+  if (isLoading) {
+    return (
+        <Card className="overflow-hidden">
+            <div className="relative">
+                <Skeleton className="h-48 w-full" />
+                <div className="absolute -bottom-16 left-6">
+                    <Skeleton className="h-32 w-32 rounded-full border-4 border-card" />
+                </div>
+            </div>
+            <div className="flex justify-end p-4 pt-4">
+                <div className="flex items-center gap-2">
+                    <Skeleton className="h-9 w-24" />
+                    <Skeleton className="h-9 w-24" />
+                </div>
+            </div>
+             <CardContent className="pt-0 pb-6 px-6 mt-4">
+                 <Skeleton className="h-7 w-48" />
+                 <Skeleton className="h-4 w-32 mt-2" />
+                 <Skeleton className="h-4 w-full mt-4" />
+                 <Skeleton className="h-4 w-2/3 mt-2" />
+             </CardContent>
+        </Card>
+    )
   }
 
+  if (error || !member) {
+    return notFound();
+  }
+  
+  const name = member.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   const avatarImg = getImage(member.imageId);
-  const bannerImg = getImage(member.bannerImageId || 'profile-banner-default');
+  const bannerImg = getImage('profile-banner-default');
 
   return (
     <div className="space-y-6">
@@ -56,9 +89,9 @@ export default function ProfilePage() {
           )}
           <div className="absolute -bottom-16 left-6">
             <Avatar className="h-32 w-32 rounded-full border-4 border-card">
-              <AvatarImage src={avatarImg?.imageUrl} alt={member.name} />
+              <AvatarImage src={avatarImg?.imageUrl} alt={name} />
               <AvatarFallback className="text-4xl">
-                {member.name.charAt(0)}
+                {name.charAt(0)}
               </AvatarFallback>
             </Avatar>
           </div>
@@ -96,39 +129,16 @@ export default function ProfilePage() {
         {/* Profile Info */}
         <CardContent className="pt-0 pb-6 px-6">
           <div className="mt-4">
-            <h1 className="text-2xl font-bold">{member.name}</h1>
-            <p className="text-sm text-muted-foreground">@{member.tgnId}</p>
+            <h1 className="text-2xl font-bold">{name}</h1>
+            <p className="text-sm text-muted-foreground">@{member.tgnMemberId}</p>
           </div>
 
-          <p className="mt-4 text-foreground/90">{member.profile}</p>
+          <p className="mt-4 text-foreground/90">{member.purpose}</p>
 
           <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <MapPin className="h-4 w-4" />
-              <span>{member.location}</span>
-            </div>
-            {member.joinDate && (
-                <div className="flex items-center gap-1.5">
-                    <Calendar className="h-4 w-4" />
-                    <span>Joined {member.joinDate}</span>
-                </div>
-            )}
-            <div className="flex items-center gap-1.5">
-              <Star className="h-4 w-4" />
-              <span>Badge Level {member.badge}</span>
-            </div>
-          </div>
-
-          <div className="mt-4 flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-1">
-              <span className="font-semibold text-foreground">
-                {member.connections}
-              </span>
-              <span className="text-muted-foreground">Connections</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="font-semibold text-foreground">128</span>
-              <span className="text-muted-foreground">Following</span>
+              <span>{member.locationCountry}</span>
             </div>
           </div>
         </CardContent>
@@ -173,7 +183,7 @@ export default function ProfilePage() {
             <h3 className="font-semibold text-lg mb-4">Member Posts</h3>
             <div className="border rounded-lg p-6 text-center">
               <p className="text-muted-foreground">
-                Posts by {member.name} will be shown here.
+                Posts by {name} will be shown here.
               </p>
             </div>
           </TabsContent>

@@ -82,9 +82,10 @@ export type Post = {
 
 export type ChatMessage = {
   id: string;
-  senderId: string; // Member['id']
+  senderId: string;
   text: string;
   timestamp: string;
+  isCurrentUser: boolean;
 };
 
 export type ChatConversation = {
@@ -158,4 +159,12 @@ export interface Cause {
     currentAmount: number;
     status: 'pending' | 'approved' | 'rejected';
     createdAt: any; // Allow Firestore ServerTimestamp
+}
+
+export interface AffiliateReferral {
+    id: string;
+    referrerMemberId: string;
+    referredMemberId: string;
+    level: number;
+    commissionPercentage: number;
 }

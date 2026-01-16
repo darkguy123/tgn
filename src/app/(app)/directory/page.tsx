@@ -31,50 +31,58 @@ import {
   Search,
   Filter,
   MapPin,
-  Star,
   Users,
   Globe,
   ChevronDown,
   MessageSquare,
+  Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  members,
   globalRegions,
   countries,
   sectors,
-  badgeLevels,
   mentorTypes,
 } from "@/lib/data";
 import placeholderImages from "@/lib/placeholder-images.json";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection } from "firebase/firestore";
+import type { TGNMember } from "@/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const DirectoryPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilters, setSelectedFilters] = useState({
     country: "All Countries",
     sector: "All Sectors",
-    badgeLevel: "All Levels",
     mentorType: "All Types",
   });
   const [showFilters, setShowFilters] = useState(false);
+  
+  const firestore = useFirestore();
+  const membersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const { data: members, isLoading, error } = useCollection<TGNMember>(membersRef);
 
-  const getImage = (imageId: string) => {
+  const getImage = (imageId?: string) => {
+    if (!imageId) return null;
     return placeholderImages.placeholderImages.find((p) => p.id === imageId);
   };
+  
+  const getNameFromEmail = (email: string) => {
+    return email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  }
 
-  const filteredMembers = members.filter((member) => {
+  const filteredMembers = members?.filter((member) => {
+    const name = getNameFromEmail(member.email);
     const matchesSearch =
-      member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       member.role.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCountry =
       selectedFilters.country === "All Countries" ||
-      member.country === selectedFilters.country;
+      member.locationCountry === selectedFilters.country;
     const matchesSector =
       selectedFilters.sector === "All Sectors" ||
-      member.sector === selectedFilters.sector;
-    const matchesBadge =
-      selectedFilters.badgeLevel === "All Levels" ||
-      `★ ${member.badge}` === selectedFilters.badgeLevel;
+      member.sectorPreferences?.includes(selectedFilters.sector);
     const matchesMentorType =
       selectedFilters.mentorType === "All Types" ||
       member.role === selectedFilters.mentorType;
@@ -83,7 +91,6 @@ const DirectoryPage = () => {
       matchesSearch &&
       matchesCountry &&
       matchesSector &&
-      matchesBadge &&
       matchesMentorType
     );
   });
@@ -129,7 +136,7 @@ const DirectoryPage = () => {
         {showFilters && (
           <Card className="animate-fade-in">
             <CardContent className="p-4">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium text-foreground mb-2 block">
                     Country
@@ -178,32 +185,7 @@ const DirectoryPage = () => {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground mb-2 block">
-                    Badge Level
-                  </label>
-                  <Select
-                    value={selectedFilters.badgeLevel}
-                    onValueChange={(value) =>
-                      setSelectedFilters((prev) => ({
-                        ...prev,
-                        badgeLevel: value,
-                      }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Filter by Badge Level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {badgeLevels.map((level) => (
-                        <SelectItem key={level} value={level}>
-                          {level}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">
-                    Mentor Type
+                    Role
                   </label>
                   <Select
                     value={selectedFilters.mentorType}
@@ -215,7 +197,7 @@ const DirectoryPage = () => {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Filter by Mentor Type" />
+                      <SelectValue placeholder="Filter by Role" />
                     </SelectTrigger>
                     <SelectContent>
                       {mentorTypes.map((type) => (
@@ -286,8 +268,12 @@ const DirectoryPage = () => {
 
       {/* Members Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredMembers.map((member) => {
+        {isLoading && Array.from({ length: 8 }).map((_, i) => (
+            <Card key={i}><CardContent className="p-4 space-y-4"><div className="flex items-start gap-3 mb-4"><Skeleton className="h-12 w-12 rounded-full" /><div className="flex-1 space-y-2"><Skeleton className="h-5 w-3/4" /><Skeleton className="h-4 w-1/2" /></div></div><Skeleton className="h-4 w-5/6" /><Skeleton className="h-4 w-3/4" /><div className="flex gap-2 pt-2"><Skeleton className="h-9 w-1/2" /><Skeleton className="h-9 w-1/2" /></div></CardContent></Card>
+        ))}
+        {filteredMembers?.map((member) => {
           const img = getImage(member.imageId);
+          const name = getNameFromEmail(member.email);
           return (
             <Card
               key={member.id}
@@ -296,32 +282,30 @@ const DirectoryPage = () => {
               <CardContent className="p-4">
                 <div className="flex items-start gap-3 mb-4">
                    <Avatar className="h-12 w-12 rounded-full">
-                     <AvatarImage src={img?.imageUrl} alt={member.name} />
+                     <AvatarImage src={img?.imageUrl} alt={name} />
                     <AvatarFallback className="bg-primary text-primary-foreground font-bold text-lg">
-                      {member.name.charAt(0)}
+                      {name.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-foreground truncate">
-                      {member.name}
+                      {name}
                     </p>
-                    <p className="text-sm text-muted-foreground">{member.role}</p>
+                    <p className="text-sm text-muted-foreground capitalize">{member.role.replace('-', ' ')}</p>
                   </div>
                 </div>
 
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <MapPin className="h-4 w-4" />
-                    {member.country}
+                    {member.locationCountry}
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Star className="h-4 w-4 text-accent" />
-                    Badge Level {member.badge}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Users className="h-4 w-4" />
-                    {member.connections} connections
-                  </div>
+                  {member.sectorPreferences && member.sectorPreferences.length > 0 && (
+                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Briefcase className="h-4 w-4" />
+                        {member.sectorPreferences[0]}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-2">
@@ -341,12 +325,18 @@ const DirectoryPage = () => {
         })}
       </div>
 
-      {filteredMembers.length === 0 && (
+      {!isLoading && filteredMembers?.length === 0 && (
         <div className="text-center py-12 col-span-full">
           <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground">
             No members found matching your criteria.
           </p>
+        </div>
+      )}
+      
+      {error && (
+        <div className="text-center py-12 col-span-full">
+            <p className="text-destructive">Failed to load members.</p>
         </div>
       )}
     </div>

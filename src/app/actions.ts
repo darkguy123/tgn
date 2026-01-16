@@ -93,8 +93,8 @@ export async function getRecommendations(
     })),
     allProducts: allProducts.map(p => ({
         id: p.id,
-        title: p.title,
-        author: p.author,
+        name: p.name,
+        description: p.description,
         type: p.type,
     })),
     allEvents: allEvents.map(e => ({
@@ -126,13 +126,13 @@ export async function getRecommendations(
         
         if (rec.recommendedType === 'Mentor') {
             const mentor = allMembers.find(m => m.id === id);
-            name = mentor?.email ?? 'Unknown Mentor';
+            name = mentor?.email.split('@')[0] ?? 'Unknown Mentor';
         } else if (rec.recommendedType === 'Program') {
             const program = allPrograms.find(p => p.id === id);
             name = program?.title ?? 'Unknown Program';
         } else if (rec.recommendedType === 'Product') {
             const product = allProducts.find(p => p.id === id);
-            name = product?.title ?? 'Unknown Product';
+            name = product?.name ?? 'Unknown Product';
         } else if (rec.recommendedType === 'Event') {
             const event = allEvents.find(e => e.id === id);
             name = event?.name ?? 'Unknown Event';

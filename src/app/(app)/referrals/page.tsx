@@ -3,13 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
-import { members } from '@/lib/data';
 import placeholderImages from '@/lib/placeholder-images.json';
-import { ClipboardCopy, DollarSign, Users, TrendingUp, AlertCircle } from 'lucide-react';
+import { ClipboardCopy, DollarSign, Users, TrendingUp, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import type { AffiliateReferral } from '@/lib/types';
+
 
 const getImage = (imageId: string) => {
   return placeholderImages.placeholderImages.find((p) => p.id === imageId);
@@ -27,8 +29,17 @@ const commissionLevels = [
 
 
 const ReferralsPage = () => {
-  const { profile } = useMemberProfile();
+  const { profile, isLoading: isProfileLoading } = useMemberProfile();
+  const firestore = useFirestore();
   const { toast } = useToast();
+  
+  const referralsQuery = useMemoFirebase(
+    () => profile ? query(collection(firestore, 'affiliate_referrals'), where('referrerMemberId', '==', profile.id)) : null,
+    [firestore, profile]
+  );
+  
+  const { data: downline, isLoading: isDownlineLoading } = useCollection<AffiliateReferral>(referralsQuery);
+
 
   const referralLink = profile ? `https://tgn.com/join?ref=${profile.tgnMemberId}` : '';
 
@@ -40,9 +51,6 @@ const ReferralsPage = () => {
       description: "Referral link copied to clipboard.",
     });
   };
-
-  // Mock data for downline
-  const downline = members.slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -69,8 +77,8 @@ const ReferralsPage = () => {
                 <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">34</div>
-                <p className="text-xs text-muted-foreground">+5 this month</p>
+                <div className="text-2xl font-bold">{isDownlineLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : downline?.length || 0}</div>
+                <p className="text-xs text-muted-foreground">Directly referred members</p>
             </CardContent>
         </Card>
          <Card>
@@ -94,7 +102,7 @@ const ReferralsPage = () => {
         <CardContent>
             <div className="flex w-full items-center space-x-2">
                 <Input type="text" value={referralLink} readOnly className="bg-muted" />
-                <Button onClick={copyToClipboard} size="icon">
+                <Button onClick={copyToClipboard} size="icon" disabled={isProfileLoading}>
                     <ClipboardCopy className="h-4 w-4" />
                 </Button>
             </div>
@@ -112,33 +120,33 @@ const ReferralsPage = () => {
              <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Member</TableHead>
-                        <TableHead>Sector</TableHead>
-                        <TableHead className="text-right">Joined</TableHead>
+                        <TableHead>Referred Member ID</TableHead>
+                        <TableHead className="text-right">Commission Rate</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {downline.map(member => {
-                        const img = getImage(member.imageId);
-                        return (
-                             <TableRow key={member.id}>
-                                <TableCell>
-                                    <div className="flex items-center gap-3">
-                                        <Avatar className="h-9 w-9">
-                                            <AvatarImage src={img?.imageUrl} alt={member.name} />
-                                            <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                                        </Avatar>
-                                        <div>
-                                            <p className="font-medium">{member.name}</p>
-                                            <p className="text-xs text-muted-foreground">{member.role}</p>
-                                        </div>
-                                    </div>
-                                </TableCell>
-                                <TableCell>{member.sector}</TableCell>
-                                <TableCell className="text-right">{member.joinDate}</TableCell>
-                            </TableRow>
-                        )
-                    })}
+                    {isDownlineLoading && (
+                        <TableRow>
+                            <TableCell colSpan={2} className="h-24 text-center">
+                                <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                            </TableCell>
+                        </TableRow>
+                    )}
+                    {!isDownlineLoading && downline?.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={2} className="h-24 text-center">
+                                No referrals yet. Share your link to get started!
+                            </TableCell>
+                        </TableRow>
+                    )}
+                    {downline?.map(referral => (
+                         <TableRow key={referral.id}>
+                            <TableCell>
+                                <p className="font-mono text-sm">{referral.referredMemberId}</p>
+                            </TableCell>
+                            <TableCell className="text-right font-medium">{referral.commissionPercentage}%</TableCell>
+                        </TableRow>
+                    ))}
                 </TableBody>
             </Table>
           </CardContent>

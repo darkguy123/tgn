@@ -1,18 +1,5 @@
 import type { Member, Product, Program, ChatConversation, Event, Wallet, Transaction, SavedCard, Cause } from './types';
 
-export const members: Member[] = [
-    { id: '9', name: "Dr. Amara Obi", role: "Executive Mentor", country: "Nigeria", sector: "Technology", badge: 7, connections: 234, tgnId: 'TGN-0009', location: 'Lagos, Nigeria', isVerified: true, profile: 'Executive mentor specializing in tech leadership.', imageId: 'default-female-avatar', joinDate: 'May 2022', bannerImageId: 'profile-banner-1' },
-    { id: '10', name: "James Chen", role: "Certified Mentor", country: "United States", sector: "Finance", badge: 5, connections: 156, tgnId: 'TGN-0010', location: 'New York, USA', isVerified: true, profile: 'Certified mentor with a background in investment banking.', imageId: 'default-male-avatar', joinDate: 'June 2023', bannerImageId: 'profile-banner-2' },
-    { id: '11', name: "Maria Santos", role: "Mentee", country: "Brazil", sector: "Healthcare", badge: 3, connections: 45, tgnId: 'TGN-0011', location: 'São Paulo, Brazil', isVerified: false, profile: 'Healthcare professional seeking mentorship.', imageId: 'default-female-avatar', joinDate: 'Jan 2024', bannerImageId: 'profile-banner-default' },
-    { id: '12', name: "David Okonkwo", role: "Associate Mentor", country: "Kenya", sector: "Agriculture", badge: 4, connections: 89, tgnId: 'TGN-0012', location: 'Nairobi, Kenya', isVerified: true, profile: 'Associate mentor in the agriculture sector.', imageId: 'default-male-avatar', joinDate: 'Feb 2023', bannerImageId: 'profile-banner-default' },
-    { id: '13', name: "Sarah Williams", role: "Certified Mentor", country: "United Kingdom", sector: "Education", badge: 6, connections: 178, tgnId: 'TGN-0013', location: 'London, UK', isVerified: true, profile: 'Certified mentor in the education technology space.', imageId: 'default-female-avatar', joinDate: 'Sep 2022', bannerImageId: 'profile-banner-default' },
-    { id: '14', name: "Raj Patel", role: "Mentee", country: "India", sector: "Technology", badge: 2, connections: 32, tgnId: 'TGN-0014', location: 'Bangalore, India', isVerified: false, profile: 'Tech mentee looking for guidance.', imageId: 'default-male-avatar', joinDate: 'Mar 2024', bannerImageId: 'profile-banner-1' },
-    { id: '15', name: "Elena Rodriguez", role: "Executive Mentor", country: "United States", sector: "Energy", badge: 7, connections: 312, tgnId: 'TGN-0015', location: 'Houston, USA', isVerified: true, profile: 'Executive in the energy sector.', imageId: 'default-female-avatar', joinDate: 'Apr 2021', bannerImageId: 'profile-banner-default' },
-    { id: '16', name: "Michael Adebayo", role: "Certified Mentor", country: "South Africa", sector: "Finance", badge: 5, connections: 145, tgnId: 'TGN-0016', location: 'Johannesburg, South Africa', isVerified: true, profile: 'Finance mentor from South Africa.', imageId: 'default-male-avatar', joinDate: 'Nov 2023', bannerImageId: 'profile-banner-2' },
-    { id: '5', tgnId: 'TGN-0005', name: 'Chloe Kim', role: 'Mentee', location: 'Toronto, Canada', country: 'Canada', sector: 'Technology', isVerified: true, imageId: 'default-female-avatar', profile: "Recent computer science graduate with a passion for artificial intelligence and machine learning. Looking for a mentor to guide career path choices, from big tech to startups, and to gain practical project experience.", badge: 4, connections: 55, joinDate: 'Oct 2023', bannerImageId: 'profile-banner-1'},
-    { id: '1', tgnId: 'TGN-0001', name: 'Sarah Chen', role: 'Executive Mentor', location: 'San Francisco, USA', country: 'United States', sector: 'Technology', isVerified: true, imageId: 'default-female-avatar', profile: "Seasoned product manager with 10+ years of experience in SaaS and mobile apps. Passionate about helping early-stage founders navigate product-market fit. Expertise in Agile methodologies, user research, and data-driven decision making.", badge: 7, connections: 212, joinDate: 'Jan 2022', bannerImageId: 'profile-banner-1' },
-];
-
 export const sectors = [
     'Technology', 'Healthcare', 'Finance', 'Education', 'Manufacturing',
     'Retail', 'Real Estate', 'Agriculture', 'Energy', 'Media',
@@ -68,34 +55,54 @@ export const products: Product[] = [
   {
     id: '1',
     title: 'The Art of Mentorship',
-    author: 'Sarah Chen',
     price: 29.99,
     type: 'Book',
     imageId: 'product-1',
+    sellerMemberId: 'mock-seller-1',
+    sellerName: 'Sarah Chen',
+    sellerImageId: 'user-1',
+    approvalStatus: 'approved',
+    description: 'A book about mentorship.',
+    createdAt: new Date().toISOString(),
   },
   {
     id: '2',
     title: 'Digital Marketing Pro',
-    author: 'Alex Rodriguez',
     price: 199.99,
     type: 'Course',
     imageId: 'product-2',
+    sellerMemberId: 'mock-seller-2',
+    sellerName: 'Alex Rodriguez',
+    sellerImageId: 'user-6',
+    approvalStatus: 'approved',
+    description: 'A course on digital marketing.',
+    createdAt: new Date().toISOString(),
   },
   {
     id: '3',
     title: 'Startup Scaling',
-    author: 'Kenji Tanaka',
     price: 49.99,
     type: 'Book',
     imageId: 'product-3',
+    sellerMemberId: 'mock-seller-3',
+    sellerName: 'Kenji Tanaka',
+    sellerImageId: 'user-4',
+    approvalStatus: 'approved',
+    description: 'A book about scaling startups.',
+    createdAt: new Date().toISOString(),
   },
   {
     id: '4',
     title: 'Leadership Essentials',
-    author: 'Maria Garcia',
     price: 249.99,
     type: 'Course',
     imageId: 'product-4',
+    sellerMemberId: 'mock-seller-4',
+    sellerName: 'Maria Garcia',
+    sellerImageId: 'user-3',
+    approvalStatus: 'approved',
+    description: 'A course on leadership.',
+    createdAt: new Date().toISOString(),
   },
 ];
 
@@ -161,43 +168,6 @@ export const goals = [
 export const badgeLevels = ["All Levels", "★ 1", "★ 2", "★ 3", "★ 4", "★ 5", "★ 6", "★ 7"];
 
 export const mentorTypes = ["All Types", "Associate Mentor", "Certified Mentor", "Executive Mentor"];
-
-const currentUser = members.find(m => m.id === '5'); // Assuming Chloe Kim is the current user
-
-export const conversations: ChatConversation[] = [
-    {
-      id: 'conv1',
-      participants: [members.find(m => m.id === '10')!, currentUser!],
-      messages: [
-        { id: 'msg1', senderId: '10', text: 'Hey Chloe, how are you finding the mentorship program?', timestamp: '10:40 AM' },
-        { id: 'msg2', senderId: '5', text: 'Hi James! It\'s been great, learning a lot. Thanks for checking in.', timestamp: '10:42 AM' },
-      ],
-      unreadCount: 2,
-    },
-    {
-      id: 'conv2',
-      participants: [members.find(m => m.id === '12')!, currentUser!],
-      messages: [
-        { id: 'msg3', senderId: '12', text: 'Just saw your post on the community feed, great insights!', timestamp: 'Yesterday' },
-      ],
-    },
-    {
-      id: 'conv3',
-      participants: [members.find(m => m.id === '1')!, currentUser!],
-      messages: [
-        { id: 'msg4', senderId: '1', text: 'Let\'s schedule our next check-in.', timestamp: '2 days ago' },
-      ],
-      unreadCount: 0,
-    },
-     {
-      id: 'conv4',
-      participants: [members.find(m => m.id === '11')!, currentUser!],
-      messages: [
-        { id: 'msg5', senderId: '11', text: 'Can you review my project proposal?', timestamp: '4 days ago' },
-      ],
-    }
-  ].filter(c => c.participants.every(p => p)); // Ensure no conversations with undefined participants
-
 
 export const userWallet: Wallet = {
     memberId: 'Leonardo', // Corresponds to Chloe Kim
