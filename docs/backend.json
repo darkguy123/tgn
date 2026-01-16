@@ -44,7 +44,17 @@
         },
         "role": {
           "type": "string",
-          "description": "The member's role within the network (e.g., 'mentee', 'mentor_candidate', 'associate-mentor', 'collaborator', 'sponsor', 'country-manager', 'volunteer', 'media')."
+          "description": "The member's role within the network.",
+          "enum": [
+            "mentee",
+            "mentor-candidate",
+            "associate-mentor",
+            "collaborator",
+            "sponsor",
+            "country-manager",
+            "volunteer",
+            "media"
+          ]
         },
         "purpose": {
           "type": "string",

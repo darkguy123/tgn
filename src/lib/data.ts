@@ -209,14 +209,14 @@ export const continents = [
 ];
 
 export const roles = [
-  { id: "mentee", title: "Mentee", description: "Learn and receive mentorship", icon: "🎓" },
-  { id: "mentor-candidate", title: "Mentor Candidate", description: "Begin mentor certification", icon: "🌱" },
-  { id: "associate-mentor", title: "Associate Mentor", description: "Apply for verification", icon: "✨" },
-  { id: "collaborator", title: "Collaborator", description: "Support programs and projects", icon: "🤝" },
-  { id: "sponsor", title: "Sponsor / Partner", description: "Fund or partner with initiatives", icon: "💎" },
-  { id: "country-manager", title: "Country Manager", description: "Coordinate regional growth", icon: "🌍" },
-  { id: "volunteer", title: "Volunteer", description: "Support community operations", icon: "❤️" },
-  { id: "media", title: "Media", description: "Share impact stories", icon: "📢" },
+  { id: "mentee", title: "Mentee", description: "Learn and receive mentorship.", icon: "🎓" },
+  { id: "mentor-candidate", title: "Mentor Candidate", description: "Begin the journey to become a certified mentor.", icon: "🌱" },
+  { id: "associate-mentor", title: "Associate (High-Pedigree Mentor)", description: "Apply for verification as an experienced mentor.", icon: "✨" },
+  { id: "collaborator", title: "Collaborator", description: "Support TGN programs and projects.", icon: "🤝" },
+  { id: "sponsor", title: "Sponsor", description: "Fund or partner with TGN initiatives.", icon: "💎" },
+  { id: "country-manager", title: "Country Manager", description: "Coordinate regional network growth.", icon: "🌍" },
+  { id: "volunteer", title: "Volunteer", description: "Support community operations and events.", icon: "❤️" },
+  { id: "media", title: "Media", description: "Share our impact and stories with the world.", icon: "📢" },
 ];
 
 export const goals = [
