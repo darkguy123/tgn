@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Bell, Globe, Palette, CreditCard, Save } from "lucide-react";
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
@@ -53,51 +53,59 @@ const SettingsPage = () => {
     handleSubmit,
     control,
     formState: { errors, isSubmitting },
+    reset,
   } = useForm<ProfileSettingsFormData>({
     resolver: zodResolver(profileSettingsSchema),
-    values: {
-        name: profile?.name || '',
-        email: profile?.email || '',
-        purpose: profile?.purpose || '',
-        locationCountry: profile?.locationCountry || '',
-        phone: profile?.phone || '',
-        timezone: profile?.timezone || '',
-    },
-    resetOptions: {
-        keepDirtyValues: true,
-    }
   });
   
-  useState(() => {
-    if (profile?.avatarUrl) {
-      setAvatarUrl(profile.avatarUrl);
+  useEffect(() => {
+    if (profile) {
+        reset({
+            name: profile.name || '',
+            email: profile.email || '',
+            purpose: profile.purpose || '',
+            locationCountry: profile.locationCountry || '',
+            phone: profile.phone || '',
+            timezone: profile.timezone || '',
+        });
+        setAvatarUrl(profile.avatarUrl || '');
     }
-  }, [profile]);
+  }, [profile, reset]);
 
-  const handleSave = async (data: ProfileSettingsFormData) => {
-    if (!user) {
+
+  const handleSave = (data: ProfileSettingsFormData) => {
+    if (!user || !firestore) {
       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
       return;
     }
-    try {
-      const userDocRef = doc(firestore, 'users', user.uid);
-      await updateDoc(userDocRef, {
-        ...data,
-        avatarUrl: avatarUrl,
-        updatedAt: serverTimestamp(),
-      });
-      toast({
-        title: 'Profile Updated',
-        description: 'Your profile has been successfully updated.',
-      });
-    } catch (error) {
-      console.error('Failed to update profile:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to update your profile. Please try again.',
-      });
-    }
+    const userDocRef = doc(firestore, 'users', user.uid);
+    const dataToSave = {
+      ...data,
+      avatarUrl: avatarUrl,
+      updatedAt: serverTimestamp(),
+    };
+    
+    updateDoc(userDocRef, dataToSave)
+        .then(() => {
+            toast({
+                title: 'Profile Updated',
+                description: 'Your profile has been successfully updated.',
+            });
+        })
+        .catch((error) => {
+            console.error('Failed to update profile:', error);
+            const permissionError = new FirestorePermissionError({
+                path: userDocRef.path,
+                operation: 'update',
+                requestResourceData: dataToSave
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to update your profile. Please try again.',
+            });
+        });
   };
   
   if (isLoading || !profile) {

@@ -19,7 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, Clock, ExternalLink } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, updateDoc } from 'firebase/firestore';
 import type { AdCampaign } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -34,22 +34,31 @@ export default function AdminAdsPage() {
   const { data: ads, isLoading, error } = useCollection<AdCampaign>(adsRef);
   const { toast } = useToast();
 
-  const handleUpdateStatus = async (adId: string, status: 'active' | 'rejected') => {
+  const handleUpdateStatus = (adId: string, status: 'active' | 'rejected') => {
+    if (!firestore) return;
     const adDocRef = doc(firestore, 'ads', adId);
-    try {
-      await updateDoc(adDocRef, { status });
-      toast({
-        title: 'Ad Campaign Updated',
-        description: `The campaign has been ${status === 'active' ? 'approved' : 'rejected'}.`,
+    
+    updateDoc(adDocRef, { status })
+      .then(() => {
+        toast({
+          title: 'Ad Campaign Updated',
+          description: `The campaign has been ${status === 'active' ? 'approved' : 'rejected'}.`,
+        });
+      })
+      .catch((serverError) => {
+        console.error("Failed to update ad status: ", serverError);
+        const permissionError = new FirestorePermissionError({
+          path: adDocRef.path,
+          operation: 'update',
+          requestResourceData: { status }
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Update Failed',
+          description: 'You do not have permission to perform this action.',
+        });
       });
-    } catch (e) {
-      console.error("Failed to update ad status: ", e);
-      toast({
-        variant: 'destructive',
-        title: 'Update Failed',
-        description: 'Could not update the campaign status.',
-      });
-    }
   };
 
   const renderTable = (filteredAds: AdCampaign[]) => (

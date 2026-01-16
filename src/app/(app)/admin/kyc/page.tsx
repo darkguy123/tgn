@@ -26,8 +26,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { collection, doc, updateDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
 import type { MentorKYC } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -36,32 +36,45 @@ import { formatDistanceToNow } from 'date-fns';
 
 export default function AdminKycPage() {
   const firestore = useFirestore();
-  const kycRef = useMemoFirebase(() => collection(firestore, 'mentor_kyc'), [firestore]);
+  const kycRef = useMemoFirebase(() => (firestore ? collection(firestore, 'mentor_kyc') : null), [firestore]);
   const { data: kycSubmissions, isLoading, error } = useCollection<MentorKYC>(kycRef);
   const { toast } = useToast();
 
-  const handleUpdateStatus = async (kycId: string, memberId: string, status: 'approved' | 'rejected') => {
+  const handleUpdateStatus = (kycId: string, memberId: string, status: 'approved' | 'rejected') => {
+    if (!firestore) return;
     const kycDocRef = doc(firestore, 'mentor_kyc', kycId);
-    try {
-      await updateDoc(kycDocRef, { status, reviewedAt: serverTimestamp() });
-      
-      if (status === 'approved') {
-        const userDocRef = doc(firestore, 'users', memberId);
-        await updateDoc(userDocRef, { isVerifiedMentor: true });
-      }
+    const userDocRef = doc(firestore, 'users', memberId);
 
+    runTransaction(firestore, async (transaction) => {
+      transaction.update(kycDocRef, { status, reviewedAt: serverTimestamp() });
+      if (status === 'approved') {
+        transaction.update(userDocRef, { isVerifiedMentor: true });
+      } else {
+        // If they were previously approved, we might want to revoke it.
+        const userDoc = await transaction.get(userDocRef);
+        if (userDoc.exists() && userDoc.data().isVerifiedMentor) {
+          transaction.update(userDocRef, { isVerifiedMentor: false });
+        }
+      }
+    }).then(() => {
       toast({
         title: 'KYC Submission Updated',
         description: `The submission has been ${status}.`,
       });
-    } catch (e) {
-      console.error("Failed to update KYC status: ", e);
+    }).catch((serverError) => {
+      console.error("Failed to update KYC status: ", serverError);
+      const permissionError = new FirestorePermissionError({
+          path: kycDocRef.path,
+          operation: 'update',
+          requestResourceData: { status }
+      });
+      errorEmitter.emit('permission-error', permissionError);
       toast({
         variant: 'destructive',
         title: 'Update Failed',
         description: 'Could not update the KYC status.',
       });
-    }
+    });
   };
 
   const renderTable = (filteredSubmissions: MentorKYC[]) => (

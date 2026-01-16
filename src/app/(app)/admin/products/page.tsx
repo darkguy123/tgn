@@ -17,7 +17,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, updateDoc } from 'firebase/firestore';
 import type { Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,26 +29,35 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function AdminProductsPage() {
   const firestore = useFirestore();
-  const productsRef = useMemoFirebase(() => collection(firestore, 'products'), [firestore]);
+  const productsRef = useMemoFirebase(() => (firestore ? collection(firestore, 'products') : null), [firestore]);
   const { data: products, isLoading, error } = useCollection<Product>(productsRef);
   const { toast } = useToast();
 
-  const handleUpdateStatus = async (productId: string, status: 'approved' | 'rejected') => {
+  const handleUpdateStatus = (productId: string, status: 'approved' | 'rejected') => {
+    if (!firestore) return;
     const productDocRef = doc(firestore, 'products', productId);
-    try {
-      await updateDoc(productDocRef, { approvalStatus: status });
-      toast({
-        title: 'Product Updated',
-        description: `The product has been ${status}.`,
+    
+    updateDoc(productDocRef, { approvalStatus: status })
+      .then(() => {
+        toast({
+          title: 'Product Updated',
+          description: `The product has been ${status}.`,
+        });
+      })
+      .catch((serverError) => {
+        console.error("Failed to update product status: ", serverError);
+        const permissionError = new FirestorePermissionError({
+          path: productDocRef.path,
+          operation: 'update',
+          requestResourceData: { approvalStatus: status }
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Update Failed',
+          description: 'Could not update the product status.',
+        });
       });
-    } catch (e) {
-      console.error("Failed to update product status: ", e);
-      toast({
-        variant: 'destructive',
-        title: 'Update Failed',
-        description: 'Could not update the product status.',
-      });
-    }
   };
 
   const renderTable = (filteredProducts: Product[]) => (

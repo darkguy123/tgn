@@ -31,7 +31,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import {
   collection,
   doc,
@@ -48,7 +48,7 @@ export default function AdminProgramsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const programsRef = useMemoFirebase(
-    () => collection(firestore, 'programs'),
+    () => (firestore ? collection(firestore, 'programs') : null),
     [firestore]
   );
   const {
@@ -60,65 +60,57 @@ export default function AdminProgramsPage() {
   const activePrograms = programs?.filter(p => !p.deactivatedAt) ?? [];
   const deactivatedPrograms = programs?.filter(p => !!p.deactivatedAt) ?? [];
 
-  const handleDeactivate = async (programId: string) => {
+  const handleDeactivate = (programId: string) => {
+    if (!firestore) return;
     const programDocRef = doc(firestore, 'programs', programId);
-    try {
-      await updateDoc(programDocRef, { deactivatedAt: serverTimestamp() });
-      toast({
-        title: 'Program Deactivated',
-        description: 'The program has been moved to the trash.',
+    
+    updateDoc(programDocRef, { deactivatedAt: serverTimestamp() })
+      .then(() => {
+        toast({
+          title: 'Program Deactivated',
+          description: 'The program has been moved to the trash.',
+        });
+      })
+      .catch((e) => {
+        console.error(e);
+        const permissionError = new FirestorePermissionError({ path: programDocRef.path, operation: 'update' });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not deactivate program.' });
       });
-    } catch (e) {
-      console.error(e);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not deactivate program.',
-      });
-    }
   };
 
-  const handleRestore = async (programId: string) => {
+  const handleRestore = (programId: string) => {
+    if (!firestore) return;
     const programDocRef = doc(firestore, 'programs', programId);
-    try {
-      await updateDoc(programDocRef, { deactivatedAt: null });
-      toast({
-        title: 'Program Restored',
-        description: 'The program has been restored from the trash.',
+    
+    updateDoc(programDocRef, { deactivatedAt: null })
+      .then(() => {
+        toast({ title: 'Program Restored', description: 'The program has been restored from the trash.' });
+      })
+      .catch((e) => {
+        console.error(e);
+        const permissionError = new FirestorePermissionError({ path: programDocRef.path, operation: 'update' });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not restore program.' });
       });
-    } catch (e) {
-      console.error(e);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not restore program.',
-      });
-    }
   };
 
-  const handleDeletePermanently = async (programId: string) => {
-    if (
-      !window.confirm(
-        'Are you sure you want to permanently delete this program? This action cannot be undone.'
-      )
-    ) {
+  const handleDeletePermanently = (programId: string) => {
+    if (!window.confirm('Are you sure you want to permanently delete this program? This action cannot be undone.') || !firestore) {
       return;
     }
     const programDocRef = doc(firestore, 'programs', programId);
-    try {
-      await deleteDoc(programDocRef);
-      toast({
-        title: 'Program Deleted',
-        description: 'The program has been permanently deleted.',
+    
+    deleteDoc(programDocRef)
+      .then(() => {
+        toast({ title: 'Program Deleted', description: 'The program has been permanently deleted.' });
+      })
+      .catch((e) => {
+        console.error(e);
+        const permissionError = new FirestorePermissionError({ path: programDocRef.path, operation: 'delete' });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not permanently delete program.' });
       });
-    } catch (e) {
-      console.error(e);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not permanently delete program.',
-      });
-    }
   };
 
   const renderTable = (programList: Program[], isDeactivated = false) => (

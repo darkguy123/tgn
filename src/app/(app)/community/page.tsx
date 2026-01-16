@@ -37,8 +37,8 @@ import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { Separator } from '@/components/ui/separator';
 import type { Post, Comment as CommentType } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query, orderBy, updateDoc, doc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { collection, addDoc, serverTimestamp, query, orderBy, updateDoc, doc, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
@@ -69,31 +69,40 @@ function CreatePostDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
     resolver: zodResolver(postSchema),
   });
 
-  const handlePostSubmit = async (data: PostFormData) => {
+  const handlePostSubmit = (data: PostFormData) => {
     if (!profile || !firestore) {
       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to post.' });
       return;
     }
     
-    try {
-      await addDoc(collection(firestore, 'posts'), {
-        content: data.content,
-        authorId: profile.id,
-        authorName: profile.name || profile.email.split('@')[0],
-        authorAvatarUrl: profile.avatarUrl,
-        authorRole: profile.role,
-        likes: 0,
-        commentsCount: 0,
-        createdAt: serverTimestamp(),
-      });
+    const postsCollection = collection(firestore, 'posts');
+    const dataToSave = {
+      content: data.content,
+      authorId: profile.id,
+      authorName: profile.name || profile.email.split('@')[0],
+      authorAvatarUrl: profile.avatarUrl,
+      authorRole: profile.role,
+      likes: 0,
+      commentsCount: 0,
+      createdAt: serverTimestamp(),
+    };
 
-      toast({ title: 'Success', description: 'Your post has been published.' });
-      reset();
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Error creating post: ", error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to publish your post.' });
-    }
+    addDoc(postsCollection, dataToSave)
+      .then(() => {
+        toast({ title: 'Success', description: 'Your post has been published.' });
+        reset();
+        onOpenChange(false);
+      })
+      .catch((error) => {
+        console.error("Error creating post: ", error);
+        const permissionError = new FirestorePermissionError({
+            path: postsCollection.path,
+            operation: 'create',
+            requestResourceData: dataToSave
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to publish your post.' });
+      });
   };
 
   return (
@@ -152,29 +161,35 @@ function PostComments({ post }: { post: Post }) {
 
   const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm<{ content: string }>();
 
-  const handleCommentSubmit = async (data: { content: string }) => {
-    if (!profile || !firestore) return;
+  const handleCommentSubmit = (data: { content: string }) => {
+    if (!profile || !firestore || !data.content.trim()) return;
 
-    try {
-        const commentsColRef = collection(firestore, 'posts', post.id, 'comments');
-        await addDoc(commentsColRef, {
-            content: data.content,
-            authorId: profile.id,
-            authorName: profile.name || profile.email.split('@')[0],
-            authorAvatarUrl: profile.avatarUrl,
-            createdAt: serverTimestamp(),
-        });
-
-        const postRef = doc(firestore, 'posts', post.id);
-        await updateDoc(postRef, {
-            commentsCount: (post.commentsCount || 0) + 1,
-        });
-
+    const postRef = doc(firestore, 'posts', post.id);
+    const commentsColRef = collection(postRef, 'comments');
+    const dataToSave = {
+        content: data.content,
+        authorId: profile.id,
+        authorName: profile.name || profile.email.split('@')[0],
+        authorAvatarUrl: profile.avatarUrl,
+        createdAt: serverTimestamp(),
+    };
+    
+    addDoc(commentsColRef, dataToSave)
+      .then(() => {
+        // Optimistically update comments count, but a transaction would be better
+        updateDoc(postRef, { commentsCount: increment(1) });
         reset();
-    } catch (e) {
+      })
+      .catch((e) => {
         console.error("Error submitting comment: ", e);
+        const permissionError = new FirestorePermissionError({
+            path: commentsColRef.path,
+            operation: 'create',
+            requestResourceData: dataToSave
+        });
+        errorEmitter.emit('permission-error', permissionError);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not post your comment.'})
-    }
+      });
   };
 
   return (
@@ -226,16 +241,20 @@ function PostComments({ post }: { post: Post }) {
 function PostCard({ post }: { post: Post }) {
   const firestore = useFirestore();
 
-  const handleLike = async () => {
+  const handleLike = () => {
     if (!firestore) return;
     const postRef = doc(firestore, 'posts', post.id);
-    try {
-      await updateDoc(postRef, {
-        likes: (post.likes || 0) + 1,
+    // Non-blocking update for likes
+    updateDoc(postRef, { likes: increment(1) })
+      .catch((error) => {
+        console.error("Error liking post: ", error);
+        const permissionError = new FirestorePermissionError({
+            path: postRef.path,
+            operation: 'update',
+            requestResourceData: { likes: increment(1) }
+        });
+        errorEmitter.emit('permission-error', permissionError);
       });
-    } catch (error) {
-      console.error("Error liking post: ", error)
-    }
   };
 
   return (

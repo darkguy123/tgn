@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
@@ -47,8 +47,8 @@ export default function NewCausePage() {
     resolver: zodResolver(causeSchema),
   });
 
-  const onSubmit = async (data: CauseFormData) => {
-    if (!user || !profile) {
+  const onSubmit = (data: CauseFormData) => {
+    if (!user || !profile || !firestore) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -57,30 +57,40 @@ export default function NewCausePage() {
       return;
     }
 
-    try {
-      await addDoc(collection(firestore, 'causes'), {
-        ...data,
-        creatorMemberId: profile.id,
-        creatorName: profile.name || profile.email.split('@')[0],
-        creatorAvatarUrl: profile.avatarUrl,
-        currentAmount: 0,
-        backersCount: 0,
-        status: 'pending',
-        createdAt: serverTimestamp(),
+    const causesCollection = collection(firestore, 'causes');
+    const dataToSave = {
+      ...data,
+      creatorMemberId: profile.id,
+      creatorName: profile.name || profile.email.split('@')[0],
+      creatorAvatarUrl: profile.avatarUrl,
+      currentAmount: 0,
+      backersCount: 0,
+      status: 'pending' as const,
+      createdAt: serverTimestamp(),
+    };
+    
+    addDoc(causesCollection, dataToSave)
+      .then(() => {
+        toast({
+          title: 'Cause Submitted!',
+          description: 'Your cause has been submitted for admin approval.',
+        });
+        router.push('/community/causes');
+      })
+      .catch((error) => {
+        console.error('Failed to create cause:', error);
+        const permissionError = new FirestorePermissionError({
+          path: causesCollection.path,
+          operation: 'create',
+          requestResourceData: dataToSave
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to create the cause. Please try again.',
+        });
       });
-      toast({
-        title: 'Cause Submitted!',
-        description: 'Your cause has been submitted for admin approval.',
-      });
-      router.push('/community/causes');
-    } catch (error) {
-      console.error('Failed to create cause:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to create the cause. Please try again.',
-      });
-    }
   };
 
   return (

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useUser, useDoc, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, CheckCircle, Clock, AlertCircle } from 'lucide-react';
@@ -40,7 +40,7 @@ export default function KycPage() {
   const [degreeUrl, setDegreeUrl] = useState('');
 
   const kycDocRef = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user || !firestore) return null;
     return doc(firestore, 'mentor_kyc', user.uid);
   }, [user, firestore]);
 
@@ -54,8 +54,8 @@ export default function KycPage() {
     resolver: zodResolver(kycSchema),
   });
 
-  const onSubmit = async (data: KycFormData) => {
-    if (!user) {
+  const onSubmit = (data: KycFormData) => {
+    if (!user || !kycDocRef) {
       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
       return;
     }
@@ -70,24 +70,33 @@ export default function KycPage() {
       return;
     }
 
-    try {
-      await setDoc(kycDocRef, {
-        ...data,
-        avatarUrl,
-        certificateUrl,
-        degreeUrl,
-        memberId: user.uid,
-        status: 'pending',
-        submittedAt: serverTimestamp(),
-        faceScanFrontUrl: 'simulated_url/face_front.jpg',
-        faceScanLeftUrl: 'simulated_url/face_left.jpg',
-        faceScanRightUrl: 'simulated_url/face_right.jpg',
+    const dataToSave = {
+      ...data,
+      avatarUrl,
+      certificateUrl,
+      degreeUrl,
+      memberId: user.uid,
+      status: 'pending' as const,
+      submittedAt: serverTimestamp(),
+      faceScanFrontUrl: 'simulated_url/face_front.jpg',
+      faceScanLeftUrl: 'simulated_url/face_left.jpg',
+      faceScanRightUrl: 'simulated_url/face_right.jpg',
+    };
+
+    setDoc(kycDocRef, dataToSave)
+      .then(() => {
+        toast({ title: 'KYC Submitted!', description: 'Your information has been sent for admin review.' });
+      })
+      .catch((error) => {
+        console.error('Failed to submit KYC:', error);
+        const permissionError = new FirestorePermissionError({
+          path: kycDocRef.path,
+          operation: 'create',
+          requestResourceData: dataToSave,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to submit KYC. Please try again.' });
       });
-      toast({ title: 'KYC Submitted!', description: 'Your information has been sent for admin review.' });
-    } catch (error) {
-      console.error('Failed to submit KYC:', error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to submit KYC. Please try again.' });
-    }
   };
   
   if (isKycLoading) {

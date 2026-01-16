@@ -1,7 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { EventForm } from '@/components/admin/EventForm';
-import { useFirestore } from '@/firebase';
+import { useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import type { Event } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -14,25 +14,36 @@ export default function NewEventPage() {
   const { toast } = useToast();
 
   const handleSave = async (data: Omit<Event, 'id' | 'createdAt'>) => {
-    try {
-      await addDoc(collection(firestore, 'events'), {
+    if (!firestore) return;
+    const eventsCollection = collection(firestore, 'events');
+    const dataToSave = {
         ...data,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
+    };
+
+    addDoc(eventsCollection, dataToSave)
+      .then(() => {
+        toast({
+          title: 'Event Created',
+          description: `${data.name} has been successfully created.`,
+        });
+        router.push('/admin/events');
+      })
+      .catch((error) => {
+        console.error('Failed to create event:', error);
+        const permissionError = new FirestorePermissionError({
+          path: eventsCollection.path,
+          operation: 'create',
+          requestResourceData: dataToSave
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to create the event. Please try again.',
+        });
       });
-      toast({
-        title: 'Event Created',
-        description: `${data.name} has been successfully created.`,
-      });
-      router.push('/admin/events');
-    } catch (error) {
-      console.error('Failed to create event:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to create the event. Please try again.',
-      });
-    }
   };
 
   return (

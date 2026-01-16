@@ -30,7 +30,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import {
   collection,
   doc,
@@ -48,7 +48,7 @@ export default function AdminEventsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const eventsRef = useMemoFirebase(
-    () => collection(firestore, 'events'),
+    () => (firestore ? collection(firestore, 'events') : null),
     [firestore]
   );
   const {
@@ -60,65 +60,57 @@ export default function AdminEventsPage() {
   const activeEvents = events?.filter(p => !p.deactivatedAt) ?? [];
   const deactivatedEvents = events?.filter(p => !!p.deactivatedAt) ?? [];
 
-  const handleDeactivate = async (eventId: string) => {
+  const handleDeactivate = (eventId: string) => {
+    if (!firestore) return;
     const eventDocRef = doc(firestore, 'events', eventId);
-    try {
-      await updateDoc(eventDocRef, { deactivatedAt: serverTimestamp() });
-      toast({
-        title: 'Event Deactivated',
-        description: 'The event has been moved to the trash.',
+    
+    updateDoc(eventDocRef, { deactivatedAt: serverTimestamp() })
+      .then(() => {
+        toast({
+          title: 'Event Deactivated',
+          description: 'The event has been moved to the trash.',
+        });
+      })
+      .catch((e) => {
+        console.error(e);
+        const permissionError = new FirestorePermissionError({ path: eventDocRef.path, operation: 'update' });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not deactivate event.' });
       });
-    } catch (e) {
-      console.error(e);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not deactivate event.',
-      });
-    }
   };
 
-  const handleRestore = async (eventId: string) => {
+  const handleRestore = (eventId: string) => {
+    if (!firestore) return;
     const eventDocRef = doc(firestore, 'events', eventId);
-    try {
-      await updateDoc(eventDocRef, { deactivatedAt: null });
-      toast({
-        title: 'Event Restored',
-        description: 'The event has been restored from the trash.',
+    
+    updateDoc(eventDocRef, { deactivatedAt: null })
+      .then(() => {
+        toast({ title: 'Event Restored', description: 'The event has been restored from the trash.' });
+      })
+      .catch((e) => {
+        console.error(e);
+        const permissionError = new FirestorePermissionError({ path: eventDocRef.path, operation: 'update' });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not restore event.' });
       });
-    } catch (e) {
-      console.error(e);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not restore event.',
-      });
-    }
   };
 
-  const handleDeletePermanently = async (eventId: string) => {
-    if (
-      !window.confirm(
-        'Are you sure you want to permanently delete this event? This action cannot be undone.'
-      )
-    ) {
+  const handleDeletePermanently = (eventId: string) => {
+    if (!window.confirm('Are you sure you want to permanently delete this event? This action cannot be undone.') || !firestore) {
       return;
     }
     const eventDocRef = doc(firestore, 'events', eventId);
-    try {
-      await deleteDoc(eventDocRef);
-      toast({
-        title: 'Event Deleted',
-        description: 'The event has been permanently deleted.',
+    
+    deleteDoc(eventDocRef)
+      .then(() => {
+        toast({ title: 'Event Deleted', description: 'The event has been permanently deleted.' });
+      })
+      .catch((e) => {
+        console.error(e);
+        const permissionError = new FirestorePermissionError({ path: eventDocRef.path, operation: 'delete' });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not permanently delete event.' });
       });
-    } catch (e) {
-      console.error(e);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not permanently delete event.',
-      });
-    }
   };
 
   const renderTable = (eventList: Event[], isDeactivated = false) => (

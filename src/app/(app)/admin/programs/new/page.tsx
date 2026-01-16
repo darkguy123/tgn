@@ -1,7 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { ProgramForm } from '@/components/admin/ProgramForm';
-import { useFirestore } from '@/firebase';
+import { useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import type { Program } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -14,25 +14,36 @@ export default function NewProgramPage() {
   const { toast } = useToast();
 
   const handleSave = async (data: Omit<Program, 'id' | 'createdAt'>) => {
-    try {
-      await addDoc(collection(firestore, 'programs'), {
+    if (!firestore) return;
+    const programsCollection = collection(firestore, 'programs');
+    const dataToSave = {
         ...data,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
+    };
+    
+    addDoc(programsCollection, dataToSave)
+      .then(() => {
+        toast({
+          title: 'Program Created',
+          description: `${data.title} has been successfully created.`,
+        });
+        router.push('/admin/programs');
+      })
+      .catch((error) => {
+        console.error('Failed to create program:', error);
+        const permissionError = new FirestorePermissionError({
+          path: programsCollection.path,
+          operation: 'create',
+          requestResourceData: dataToSave
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to create the program. Please try again.',
+        });
       });
-      toast({
-        title: 'Program Created',
-        description: `${data.title} has been successfully created.`,
-      });
-      router.push('/admin/programs');
-    } catch (error) {
-      console.error('Failed to create program:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to create the program. Please try again.',
-      });
-    }
   };
 
   return (

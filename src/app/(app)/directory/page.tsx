@@ -39,7 +39,7 @@ import {
   sectors,
   mentorTypes,
 } from "@/lib/data";
-import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import type { TGNMember } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -57,12 +57,12 @@ const DirectoryPage = () => {
   
   const firestore = useFirestore();
   const { user: currentUser } = useUser();
-  const membersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const membersRef = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
   const { data: members, isLoading, error } = useCollection<TGNMember>(membersRef);
   const { toast } = useToast();
 
-  const handleConnect = async (recipientId: string) => {
-    if (!currentUser) {
+  const handleConnect = (recipientId: string) => {
+    if (!currentUser || !firestore) {
       toast({
         variant: "destructive",
         title: "Not Signed In",
@@ -78,27 +78,36 @@ const DirectoryPage = () => {
       });
       return;
     }
-    try {
-      // In a real app, you'd check if a request already exists.
-      // For now, we'll just send it.
-      await addDoc(collection(firestore, 'friend_requests'), {
+    
+    const friendRequestsCollection = collection(firestore, 'friend_requests');
+    const dataToSave = {
         senderId: currentUser.uid,
         recipientId: recipientId,
-        status: 'pending',
+        status: 'pending' as const,
         createdAt: serverTimestamp(),
-      });
-      toast({
-        title: "Request Sent!",
-        description: "Your connection request has been sent.",
-      });
-    } catch (error) {
-      console.error("Error sending connection request:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to send connection request. Please try again.',
-      });
-    }
+    };
+
+    addDoc(friendRequestsCollection, dataToSave)
+        .then(() => {
+            toast({
+                title: "Request Sent!",
+                description: "Your connection request has been sent.",
+            });
+        })
+        .catch((error) => {
+            console.error("Error sending connection request:", error);
+            const permissionError = new FirestorePermissionError({
+                path: friendRequestsCollection.path,
+                operation: 'create',
+                requestResourceData: dataToSave
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to send connection request. Please try again.',
+            });
+        });
   };
 
 

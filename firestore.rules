@@ -123,11 +123,13 @@ service cloud.firestore {
        * @description Controls access to a user's wallet transactions.
        * @path /users/{userId}/transactions/{transactionId}
        * @allow (get, list) - A user can read their own transaction history.
-       * @deny (create, update, delete) - Transactions are system-generated and immutable by the user.
+       * @allow (create) - A user can create their own transaction log (for sending money, withdrawals, etc.).
+       * @deny (update, delete) - Transactions are immutable by the user.
        */
       match /transactions/{transactionId} {
         allow get, list: if isOwner(userId);
-        allow create, update, delete: if false;
+        allow create: if isOwner(userId);
+        allow update, delete: if false;
       }
       
       /**
@@ -161,12 +163,16 @@ service cloud.firestore {
      * @description Controls access to learning programs. Data is public for all to read.
      * @path /programs/{programId}
      * @allow (get, list) - Any client can read program information.
-     * @deny (create, update, delete) - Only admins can manage programs.
+     * @allow (create, delete) - Only admins can manage programs.
+     * @allow (update) - Admins can update. Users can update only the 'enrolled' count by exactly 1.
      */
     match /programs/{programId} {
       allow get, list: if true;
       allow create, delete: if isAdmin();
-      allow update: if isAdmin() || isSignedIn(); // Allow users to update (for enrolled count)
+      allow update: if isAdmin() || 
+                      (isSignedIn() && 
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['enrolled']) &&
+                       request.resource.data.enrolled == resource.data.enrolled + 1);
     }
 
     /**
@@ -234,15 +240,15 @@ service cloud.firestore {
     /**
      * @description Controls access to user wallets. Extremely restricted.
      * @path /wallets/{userId}
-     * @allow (read) - Admins can read all wallet documents.
-     * @allow (get) - A user can read their own wallet balance.
-     * @principle Secures sensitive financial data. All modifications must be handled by a trusted backend.
+     * @allow (read) - Admins and the owner can read a wallet.
+     * @allow (create) - A signed-in user can create a wallet for another user (for receiving funds), if the memberId is correct.
+     * @allow (update) - A signed-in user can update a wallet's balance (for P2P transfers). Admins can update anything.
+     * @principle Secures sensitive financial data but allows for P2P transfers between clients.
      */
     match /wallets/{userId} {
-      allow read: if isAdmin();
-      allow get: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.memberId == userId; // Allow user to create their own wallet
-      allow update: if isOwner(userId) || isAdmin(); // Allow user to update their own wallet (e.g. for purchases)
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isSignedIn() && request.resource.data.memberId == userId;
+      allow update: if (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance'])) || isAdmin();
       allow delete: if false;
     }
 
@@ -265,13 +271,16 @@ service cloud.firestore {
      * @path /causes/{causeId}
      * @allow (read) - Authenticated users can read approved causes. Admins and creators can read any.
      * @allow (create) - Authenticated users can create a new cause for themselves.
-     * @allow (update) - Only admins can update causes (e.g., to approve/reject).
+     * @allow (update) - Admins can update. Users can contribute, updating amounts.
      */
     match /causes/{causeId} {
         allow get: if isSignedIn() && (resource.data.status == 'approved' || isOwner(resource.data.creatorMemberId) || isAdmin());
         allow list: if isSignedIn(); // Allow listing so client can filter by 'approved'
         allow create: if isOwner(request.resource.data.creatorMemberId);
-        allow update: if isAdmin();
+        allow update: if isAdmin() || 
+                        (isSignedIn() && 
+                         request.resource.data.status == resource.data.status && // Prevent users from changing status
+                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentAmount', 'backersCount']));
         allow delete: if isAdmin();
     }
 

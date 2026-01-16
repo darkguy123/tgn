@@ -31,7 +31,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, updateDoc } from 'firebase/firestore';
 import type { TGNMember } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -40,26 +40,35 @@ import { roles } from '@/lib/data';
 
 export default function AdminUsersPage() {
   const firestore = useFirestore();
-  const usersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const usersRef = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
   const { data: users, isLoading, error } = useCollection<TGNMember>(usersRef);
   const { toast } = useToast();
 
-  const handleRoleChange = async (userId: string, newRole: TGNMember['role']) => {
+  const handleRoleChange = (userId: string, newRole: TGNMember['role']) => {
+    if (!firestore) return;
     const userDocRef = doc(firestore, 'users', userId);
-    try {
-      await updateDoc(userDocRef, { role: newRole });
-      toast({
-        title: 'Role Updated',
-        description: `User role has been changed to ${newRole}.`,
+    
+    updateDoc(userDocRef, { role: newRole })
+      .then(() => {
+        toast({
+          title: 'Role Updated',
+          description: `User role has been changed to ${newRole}.`,
+        });
+      })
+      .catch((serverError) => {
+        console.error("Failed to update user role: ", serverError);
+        const permissionError = new FirestorePermissionError({
+          path: userDocRef.path,
+          operation: 'update',
+          requestResourceData: { role: newRole }
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Update Failed',
+          description: 'Could not update the user role.',
+        });
       });
-    } catch (e) {
-      console.error("Failed to update user role: ", e);
-      toast({
-        variant: 'destructive',
-        title: 'Update Failed',
-        description: 'Could not update the user role.',
-      });
-    }
   };
 
   const renderTable = (userList: TGNMember[]) => (

@@ -1,7 +1,7 @@
 'use client';
 import { useRouter, useParams } from 'next/navigation';
 import { ProgramForm } from '@/components/admin/ProgramForm';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import type { Program } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -17,7 +17,7 @@ export default function EditProgramPage() {
   const { toast } = useToast();
 
   const programRef = useMemoFirebase(
-    () => (programId ? doc(firestore, 'programs', programId as string) : null),
+    () => (firestore && programId ? doc(firestore, 'programs', programId as string) : null),
     [firestore, programId]
   );
   
@@ -25,24 +25,33 @@ export default function EditProgramPage() {
 
   const handleSave = async (data: Omit<Program, 'id' | 'createdAt'>) => {
     if (!programRef) return;
-    try {
-      await updateDoc(programRef, {
-        ...data,
-        updatedAt: serverTimestamp(),
+    const dataToUpdate = {
+      ...data,
+      updatedAt: serverTimestamp(),
+    };
+    
+    updateDoc(programRef, dataToUpdate)
+      .then(() => {
+        toast({
+          title: 'Program Updated',
+          description: `${data.title} has been successfully updated.`,
+        });
+        router.push('/admin/programs');
+      })
+      .catch((serverError) => {
+        console.error('Failed to update program:', serverError);
+        const permissionError = new FirestorePermissionError({
+          path: programRef.path,
+          operation: 'update',
+          requestResourceData: dataToUpdate,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to update the program. Please try again.',
+        });
       });
-      toast({
-        title: 'Program Updated',
-        description: `${data.title} has been successfully updated.`,
-      });
-      router.push('/admin/programs');
-    } catch (e) {
-      console.error('Failed to update program:', e);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to update the program. Please try again.',
-      });
-    }
   };
 
   if (isLoading) {

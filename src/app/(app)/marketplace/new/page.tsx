@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
@@ -59,8 +59,8 @@ export default function NewProductPage() {
     resolver: zodResolver(productSchema),
   });
 
-  const onSubmit = async (data: ProductFormData) => {
-    if (!user || !profile) {
+  const onSubmit = (data: ProductFormData) => {
+    if (!user || !profile || !firestore) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -78,29 +78,39 @@ export default function NewProductPage() {
       return;
     }
 
-    try {
-      await addDoc(collection(firestore, 'products'), {
-        ...data,
-        imageUrl,
-        sellerMemberId: user.uid,
-        sellerName: profile.name || profile.email.split('@')[0],
-        sellerAvatarUrl: profile.avatarUrl,
-        approvalStatus: 'pending',
-        createdAt: serverTimestamp(),
+    const productsCollection = collection(firestore, 'products');
+    const dataToSave = {
+      ...data,
+      imageUrl,
+      sellerMemberId: user.uid,
+      sellerName: profile.name || profile.email.split('@')[0],
+      sellerAvatarUrl: profile.avatarUrl,
+      approvalStatus: 'pending' as const,
+      createdAt: serverTimestamp(),
+    };
+    
+    addDoc(productsCollection, dataToSave)
+      .then(() => {
+        toast({
+          title: 'Product Submitted!',
+          description: 'Your product has been submitted for admin approval.',
+        });
+        router.push('/marketplace/my-products');
+      })
+      .catch((error) => {
+        console.error('Failed to create product:', error);
+        const permissionError = new FirestorePermissionError({
+          path: productsCollection.path,
+          operation: 'create',
+          requestResourceData: dataToSave,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to create the product. Please try again.',
+        });
       });
-      toast({
-        title: 'Product Submitted!',
-        description: 'Your product has been submitted for admin approval.',
-      });
-      router.push('/marketplace/my-products');
-    } catch (error) {
-      console.error('Failed to create product:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to create the product. Please try again.',
-      });
-    }
   };
 
   return (

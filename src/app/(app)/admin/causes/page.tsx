@@ -31,7 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, updateDoc } from 'firebase/firestore';
 import type { Cause } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -45,22 +45,31 @@ export default function AdminCausesPage() {
   const { data: causes, isLoading, error } = useCollection<Cause>(causesRef);
   const { toast } = useToast();
 
-  const handleUpdateStatus = async (causeId: string, status: 'approved' | 'rejected') => {
+  const handleUpdateStatus = (causeId: string, status: 'approved' | 'rejected') => {
+    if (!firestore) return;
     const causeDocRef = doc(firestore, 'causes', causeId);
-    try {
-      await updateDoc(causeDocRef, { status });
-      toast({
-        title: 'Cause Updated',
-        description: `The cause has been ${status}.`,
+    
+    updateDoc(causeDocRef, { status })
+      .then(() => {
+        toast({
+          title: 'Cause Updated',
+          description: `The cause has been ${status}.`,
+        });
+      })
+      .catch((serverError) => {
+        console.error("Failed to update cause status: ", serverError);
+        const permissionError = new FirestorePermissionError({
+          path: causeDocRef.path,
+          operation: 'update',
+          requestResourceData: { status }
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Update Failed',
+          description: 'You do not have permission to perform this action.',
+        });
       });
-    } catch (e) {
-      console.error("Failed to update cause status: ", e);
-      toast({
-        variant: 'destructive',
-        title: 'Update Failed',
-        description: 'Could not update the cause status.',
-      });
-    }
   };
 
   const renderTable = (filteredCauses: Cause[]) => (

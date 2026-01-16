@@ -1,7 +1,7 @@
 'use client';
 import { useRouter, useParams } from 'next/navigation';
 import { EventForm } from '@/components/admin/EventForm';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import type { Event } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -17,7 +17,7 @@ export default function EditEventPage() {
   const { toast } = useToast();
 
   const eventRef = useMemoFirebase(
-    () => (eventId ? doc(firestore, 'events', eventId as string) : null),
+    () => (firestore && eventId ? doc(firestore, 'events', eventId as string) : null),
     [firestore, eventId]
   );
   
@@ -25,24 +25,33 @@ export default function EditEventPage() {
 
   const handleSave = async (data: Omit<Event, 'id' | 'createdAt'>) => {
     if (!eventRef) return;
-    try {
-      await updateDoc(eventRef, {
+    const dataToUpdate = {
         ...data,
         updatedAt: serverTimestamp(),
+    };
+    
+    updateDoc(eventRef, dataToUpdate)
+      .then(() => {
+        toast({
+          title: 'Event Updated',
+          description: `${data.name} has been successfully updated.`,
+        });
+        router.push('/admin/events');
+      })
+      .catch((serverError) => {
+        console.error('Failed to update event:', serverError);
+        const permissionError = new FirestorePermissionError({
+          path: eventRef.path,
+          operation: 'update',
+          requestResourceData: dataToUpdate,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to update the event. Please try again.',
+        });
       });
-      toast({
-        title: 'Event Updated',
-        description: `${data.name} has been successfully updated.`,
-      });
-      router.push('/admin/events');
-    } catch (e) {
-      console.error('Failed to update event:', e);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to update the event. Please try again.',
-      });
-    }
   };
 
   if (isLoading) {

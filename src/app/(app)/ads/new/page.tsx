@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { useFirestore } from '@/firebase';
+import { useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
@@ -56,7 +56,7 @@ export default function NewAdPage() {
   });
 
   const onSubmit = async (data: AdFormData) => {
-    if (!profile) {
+    if (!profile || !firestore) {
       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
       return;
     }
@@ -69,30 +69,40 @@ export default function NewAdPage() {
         return;
     }
 
-    try {
-      await addDoc(collection(firestore, 'ads'), {
-        ...data,
-        imageUrl,
-        creatorMemberId: profile.id,
-        creatorName: profile.name || profile.email.split('@')[0],
-        creatorAvatarUrl: profile.avatarUrl,
-        status: 'pending',
-        amountSpent: 0,
-        createdAt: serverTimestamp(),
+    const adsCollection = collection(firestore, 'ads');
+    const dataToSave = {
+      ...data,
+      imageUrl,
+      creatorMemberId: profile.id,
+      creatorName: profile.name || profile.email.split('@')[0],
+      creatorAvatarUrl: profile.avatarUrl,
+      status: 'pending' as const,
+      amountSpent: 0,
+      createdAt: serverTimestamp(),
+    };
+
+    addDoc(adsCollection, dataToSave)
+      .then(() => {
+        toast({
+          title: 'Campaign Submitted!',
+          description: 'Your ad campaign has been submitted for admin approval.',
+        });
+        router.push('/ads');
+      })
+      .catch((error) => {
+        console.error('Failed to create ad campaign:', error);
+        const permissionError = new FirestorePermissionError({
+          path: adsCollection.path,
+          operation: 'create',
+          requestResourceData: dataToSave,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to create the campaign. Please try again.',
+        });
       });
-      toast({
-        title: 'Campaign Submitted!',
-        description: 'Your ad campaign has been submitted for admin approval.',
-      });
-      router.push('/ads');
-    } catch (error) {
-      console.error('Failed to create ad campaign:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to create the campaign. Please try again.',
-      });
-    }
   };
 
   return (
