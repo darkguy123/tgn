@@ -23,7 +23,7 @@ import {
   Megaphone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -37,6 +37,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { BottomNav } from './BottomNav';
+import { NotificationsMenu } from './NotificationsMenu';
+import { collection, query, where } from 'firebase/firestore';
+import type { FriendRequest } from '@/lib/types';
 
 
 const NAV_ITEMS = [
@@ -67,6 +70,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const auth = useAuth();
   const { profile } = useMemberProfile();
   const userName = profile?.name || user?.displayName || 'Member';
+  const firestore = useFirestore();
+
+  const requestsQuery = useMemoFirebase(
+    () => user ? query(collection(firestore, 'friend_requests'), where('recipientId', '==', user.uid), where('status', '==', 'pending')) : null,
+    [user, firestore]
+  );
+  const { data: pendingRequests } = useCollection<FriendRequest>(requestsQuery);
+  const notificationCount = pendingRequests?.length || 0;
   
   const profilePath = profile ? `/profile/${profile.id}` : '#';
 
@@ -117,10 +128,22 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </div>
 
             <div className="flex items-center gap-3 lg:w-full lg:justify-end">
-              <Button variant="ghost" size="icon" className="p-2 hover:bg-muted rounded-lg relative">
-                <Bell className="h-5 w-5 text-muted-foreground" />
-                <span className="absolute top-1 right-1 h-2 w-2 bg-accent rounded-full" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="p-2 hover:bg-muted rounded-lg relative">
+                    <Bell className="h-5 w-5 text-muted-foreground" />
+                     {notificationCount > 0 && (
+                      <span className="absolute top-1 right-1 h-4 w-4 text-xs flex items-center justify-center bg-accent text-accent-foreground rounded-full">
+                        {notificationCount}
+                      </span>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-80" align="end">
+                  <NotificationsMenu />
+                </DropdownMenuContent>
+              </DropdownMenu>
+
                <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">

@@ -30,7 +30,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useDoc, useFirestore, useMemoFirebase, useCollection, useUser } from '@/firebase';
-import { collection, doc, query, where, orderBy, addDoc, serverTimestamp, runTransaction, arrayUnion, arrayRemove, deleteDoc } from 'firebase/firestore';
+import { collection, doc, query, where, orderBy, addDoc, serverTimestamp, runTransaction, arrayUnion, arrayRemove, deleteDoc, updateDoc } from 'firebase/firestore';
 import type { TGNMember, MentorCertification, Post, FriendRequest } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
@@ -135,16 +135,18 @@ export default function ProfilePage() {
     setIsSubmitting(true);
     const requestRef = doc(firestore, 'friend_requests', friendRequestId);
     const currentUserRef = doc(firestore, 'users', currentUser.uid);
-    const otherUserRef = doc(firestore, 'users', member.id);
     try {
         await runTransaction(firestore, async (transaction) => {
+            const reqDoc = await transaction.get(requestRef);
+            if (!reqDoc.exists() || reqDoc.data().status !== 'pending') {
+              throw new Error("This request is no longer valid.");
+            }
             transaction.update(requestRef, { status: 'accepted' });
             transaction.update(currentUserRef, { connections: arrayUnion(member.id) });
-            transaction.update(otherUserRef, { connections: arrayUnion(currentUser.uid) });
         });
         toast({ title: "Connection accepted!" });
-    } catch (e) {
-        toast({ variant: 'destructive', title: "Error", description: "Failed to accept request." });
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: "Error", description: e.message || "Failed to accept request." });
     } finally {
         setIsSubmitting(false);
     }
