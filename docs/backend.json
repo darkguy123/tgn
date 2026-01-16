@@ -135,6 +135,22 @@
           "type": "string",
           "description": "URL to the uploaded degree."
         },
+        "avatarUrl": {
+          "type": "string",
+          "description": "URL to the user's avatar photo for verification."
+        },
+        "faceScanFrontUrl": {
+            "type": "string",
+            "description": "URL to the captured front-facing facial scan image."
+        },
+        "faceScanLeftUrl": {
+            "type": "string",
+            "description": "URL to the captured left-facing facial scan image."
+        },
+        "faceScanRightUrl": {
+            "type": "string",
+            "description": "URL to the captured right-facing facial scan image."
+        },
         "submittedAt": {
           "type": "string",
           "format": "date-time",
@@ -146,7 +162,7 @@
           "description": "Timestamp when the submission was reviewed by an admin."
         }
       },
-      "required": ["memberId", "status", "nin", "certificateUrl", "degreeUrl", "submittedAt"]
+      "required": ["memberId", "status", "nin", "certificateUrl", "degreeUrl", "avatarUrl", "submittedAt"]
     },
     "Sector": {
       "$schema": "http://json-schema.org/draft-07/schema#",

@@ -27,6 +27,10 @@ export interface MentorKYC {
   medicalLicenseNumber?: string;
   certificateUrl: string;
   degreeUrl: string;
+  avatarUrl: string;
+  faceScanFrontUrl?: string;
+  faceScanLeftUrl?: string;
+  faceScanRightUrl?: string;
   submittedAt: any; // Firestore Timestamp
   reviewedAt?: any; // Firestore Timestamp
   rejectionReason?: string;

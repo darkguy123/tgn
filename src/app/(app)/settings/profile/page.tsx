@@ -31,7 +31,7 @@ const profileSettingsSchema = z.object({
   purpose: z.string().min(10, 'Bio must be at least 10 characters.'),
   locationCountry: z.string().min(1, 'Country is required'),
   timezone: z.string().min(1, 'Timezone is required'),
-  imageId: z.string().optional(),
+  imageId: z.string().url("Please enter a valid image URL.").optional().or(z.literal('')),
 });
 
 type ProfileSettingsFormData = z.infer<typeof profileSettingsSchema>;
@@ -45,8 +45,12 @@ const timezones = [
 
 const getImage = (imageId?: string) => {
   if (!imageId) return null;
+  // If imageId is a full URL, return it directly
+  if (imageId.startsWith('http')) {
+    return { imageUrl: imageId };
+  }
+  // Otherwise, find it in the placeholder data
   const image = placeholderImages.placeholderImages.find((p) => p.id === imageId);
-  // Fallback to default avatars if a user-specific one isn't found
   if (!image) {
       if (imageId?.includes('female')) {
           return placeholderImages.placeholderImages.find(p => p.id === 'default-female-avatar');
@@ -76,6 +80,7 @@ const SettingsPage = () => {
     register,
     handleSubmit,
     control,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<ProfileSettingsFormData>({
     resolver: zodResolver(profileSettingsSchema),
@@ -86,7 +91,7 @@ const SettingsPage = () => {
         locationCountry: profile?.locationCountry || '',
         phone: profile?.phone || '',
         timezone: profile?.timezone || '',
-        imageId: profile?.imageId || 'default-male-avatar',
+        imageId: profile?.imageId || '',
     },
     resetOptions: {
         keepDirtyValues: true,
@@ -118,7 +123,8 @@ const SettingsPage = () => {
     }
   };
   
-  const currentAvatar = getImage(profile?.imageId || 'default-male-avatar');
+  const watchedImageId = watch('imageId');
+  const currentAvatar = getImage(watchedImageId || profile?.imageId || 'default-male-avatar');
 
   if (isLoading || !profile) {
     return (
@@ -163,9 +169,9 @@ const SettingsPage = () => {
                            </AvatarFallback>
                         </Avatar>
                         <div className="w-full space-y-2">
-                             <Label htmlFor="imageId">Profile Image ID</Label>
-                             <Input id="imageId" {...register('imageId')} placeholder="e.g., user-1"/>
-                             <p className="text-xs text-muted-foreground">For this demo, use an ID from `placeholder-images.json`.</p>
+                             <Label htmlFor="imageId">Profile Photo URL</Label>
+                             <Input id="imageId" {...register('imageId')} placeholder="https://example.com/photo.jpg"/>
+                             {errors.imageId && <p className="text-sm text-destructive">{errors.imageId.message}</p>}
                         </div>
                     </CardContent>
                     </Card>

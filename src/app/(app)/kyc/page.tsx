@@ -14,6 +14,8 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { type MentorKYC } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useState } from 'react';
+import { FacialScan } from '@/components/facial-scan';
 
 const kycSchema = z.object({
   nin: z.string().min(10, 'National Identification Number is required'),
@@ -21,6 +23,7 @@ const kycSchema = z.object({
   medicalLicenseNumber: z.string().optional(),
   certificateUrl: z.string().url('Please enter a valid URL for your certificate'),
   degreeUrl: z.string().url('Please enter a valid URL for your degree'),
+  avatarUrl: z.string().url('Please enter a valid URL for your avatar photo'),
 });
 
 type KycFormData = z.infer<typeof kycSchema>;
@@ -30,6 +33,9 @@ export default function KycPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
+
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanCompleted, setScanCompleted] = useState(false);
 
   const kycDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -51,6 +57,11 @@ export default function KycPage() {
       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
       return;
     }
+    
+    if (!scanCompleted) {
+        toast({ variant: 'destructive', title: 'Facial Scan Required', description: 'Please complete the facial scan before submitting.' });
+        return;
+    }
 
     try {
       await setDoc(kycDocRef, {
@@ -58,6 +69,9 @@ export default function KycPage() {
         memberId: user.uid,
         status: 'pending',
         submittedAt: serverTimestamp(),
+        faceScanFrontUrl: 'simulated_url/face_front.jpg',
+        faceScanLeftUrl: 'simulated_url/face_left.jpg',
+        faceScanRightUrl: 'simulated_url/face_right.jpg',
       });
       toast({ title: 'KYC Submitted!', description: 'Your information has been sent for admin review.' });
     } catch (error) {
@@ -82,6 +96,19 @@ export default function KycPage() {
               </Card>
           </div>
       )
+  }
+
+  if (isScanning) {
+    return (
+        <FacialScan 
+            onComplete={() => {
+                setScanCompleted(true);
+                setIsScanning(false);
+                toast({ title: "Scan Complete!", description: "Your facial scan has been captured." });
+            }}
+            onCancel={() => setIsScanning(false)}
+        />
+    );
   }
 
   if (kycStatus) {
@@ -165,6 +192,12 @@ export default function KycPage() {
               <Input id="medicalLicenseNumber" {...register('medicalLicenseNumber')} />
             </div>
             <div className="md:col-span-2 space-y-2">
+              <Label htmlFor="avatarUrl">Your Avatar Photo URL</Label>
+              <Input id="avatarUrl" {...register('avatarUrl')} placeholder="https://example.com/your-photo.jpg" />
+              {errors.avatarUrl && <p className="text-sm text-destructive">{errors.avatarUrl.message}</p>}
+              <p className="text-xs text-muted-foreground">Please provide a clear, professional headshot.</p>
+            </div>
+            <div className="md:col-span-2 space-y-2">
               <Label htmlFor="certificateUrl">Professional Certificate URL</Label>
               <Input id="certificateUrl" {...register('certificateUrl')} placeholder="https://linkedin.com/in/me/details/certifications/..." />
               {errors.certificateUrl && <p className="text-sm text-destructive">{errors.certificateUrl.message}</p>}
@@ -176,15 +209,36 @@ export default function KycPage() {
               {errors.degreeUrl && <p className="text-sm text-destructive">{errors.degreeUrl.message}</p>}
             </div>
           </CardContent>
-          <CardFooter className="flex justify-end">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting...' : 'Submit for Verification'}
-            </Button>
-          </CardFooter>
         </Card>
+
+        <Card className="mt-6">
+            <CardHeader>
+                <CardTitle>Facial Verification</CardTitle>
+                <CardDescription>
+                    Complete a quick facial scan for identity verification. This is a one-time process.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                {scanCompleted ? (
+                    <div className="flex items-center gap-3 p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-700">
+                        <CheckCircle className="h-6 w-6" />
+                        <div>
+                            <h3 className="font-semibold">Scan Completed Successfully</h3>
+                            <p className="text-sm">You can now proceed to submit your application.</p>
+                        </div>
+                    </div>
+                ) : (
+                    <Button type="button" onClick={() => setIsScanning(true)}>Start Facial Scan</Button>
+                )}
+            </CardContent>
+        </Card>
+
+        <CardFooter className="flex justify-end mt-6 px-0">
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Submitting...' : 'Submit for Verification'}
+          </Button>
+        </CardFooter>
       </form>
     </div>
   );
 }
-
-    
