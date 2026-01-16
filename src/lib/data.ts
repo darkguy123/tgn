@@ -3,113 +3,30 @@ export type Member = {
   id: string;
   tgnId: string;
   name: string;
-  role: 'Mentor' | 'Mentee' | 'Affiliate';
+  role: string;
   location: string;
   country: string;
   sector: string;
   isVerified: boolean;
   profile: string;
   imageId: string;
+  badge: number;
+  connections: number;
 };
 
 export const members: Member[] = [
-  {
-    id: '1',
-    tgnId: 'TGN-0001',
-    name: 'Sarah Chen',
-    role: 'Mentor',
-    location: 'San Francisco, USA',
-    country: 'United States',
-    sector: 'Technology',
-    isVerified: true,
-    imageId: 'user-1',
-    profile: "Seasoned product manager with 10+ years of experience in SaaS and mobile apps. Passionate about helping early-stage founders navigate product-market fit. Expertise in Agile methodologies, user research, and data-driven decision making."
-  },
-  {
-    id: '2',
-    tgnId: 'TGN-0002',
-    name: 'David Lee',
-    role: 'Mentee',
-    location: 'Seoul, South Korea',
-    country: 'South Korea',
-    sector: 'Finance',
-    isVerified: true,
-    imageId: 'user-2',
-    profile: "Aspiring FinTech entrepreneur, currently developing a mobile payment solution for emerging markets. Seeking guidance on fundraising, financial modeling, and scaling a business. Background in software engineering with a keen interest in blockchain technology."
-  },
-  {
-    id: '3',
-    tgnId: 'TGN-0003',
-    name: 'Maria Garcia',
-    role: 'Mentor',
-    location: 'Madrid, Spain',
-    country: 'Spain',
-    sector: 'Healthcare',
-    isVerified: true,
-    imageId: 'user-3',
-    profile: "Healthcare executive with expertise in digital health and hospital management. Co-founded two successful HealthTech startups. Enjoys mentoring professionals on leadership, strategic planning, and navigating regulatory landscapes."
-  },
-  {
-    id: '4',
-    tgnId: 'TGN-0004',
-    name: 'Kenji Tanaka',
-    role: 'Mentor',
-    location: 'Tokyo, Japan',
-    country: 'Japan',
-    sector: 'Technology',
-    isVerified: false,
-    imageId: 'user-4',
-    profile: "Venture Capitalist focused on deep tech and AI. Sits on the board of several high-growth startups. Offers mentorship on pitch deck refinement, venture fundraising, and corporate governance."
-  },
-  {
-    id: '5',
-    tgnId: 'TGN-0005',
-    name: 'Chloe Kim',
-    role: 'Mentee',
-    location: 'Toronto, Canada',
-    country: 'Canada',
-    sector: 'Technology',
-    isVerified: true,
-    imageId: 'user-5',
-    profile: "Recent computer science graduate with a passion for artificial intelligence and machine learning. Looking for a mentor to guide career path choices, from big tech to startups, and to gain practical project experience."
-  },
-  {
-    id: '6',
-    tgnId: 'TGN-0006',
-    name: 'Alex Rodriguez',
-    role: 'Affiliate',
-    location: 'Mexico City, Mexico',
-    country: 'Mexico',
-    sector: 'Marketing',
-    isVerified: true,
-    imageId: 'user-6',
-    profile: "Digital marketing consultant specializing in growth hacking for e-commerce brands. An active networker and affiliate partner, promoting valuable educational resources within their community."
-  },
-  {
-    id: '7',
-    tgnId: 'TGN-0007',
-    name: 'Emily White',
-    role: 'Mentor',
-    location: 'London, UK',
-    country: 'United Kingdom',
-    sector: 'Finance',
-    isVerified: true,
-    imageId: 'user-7',
-    profile: "Investment banker with 15 years of experience in M&A and capital markets. Provides mentorship on financial analysis, valuation, and career progression in the competitive finance industry."
-  },
-  {
-    id: '8',
-    tgnId: 'TGN-0008',
-    name: 'Michael Brown',
-    role: 'Mentee',
-    location: 'Lagos, Nigeria',
-    country: 'Nigeria',
-    sector: 'Healthcare',
-    isVerified: false,
-    imageId: 'user-8',
-    profile: "Young doctor building a telehealth platform to serve rural communities in Nigeria. Seeking mentorship on business development, securing partnerships with hospitals, and leveraging technology to improve healthcare access."
-  },
+    { id: '9', name: "Dr. Amara Obi", role: "Executive Mentor", country: "Nigeria", sector: "Technology", badge: 7, connections: 234, tgnId: 'TGN-0009', location: 'Lagos, Nigeria', isVerified: true, profile: 'Executive mentor specializing in tech leadership.', imageId: 'user-1' },
+    { id: '10', name: "James Chen", role: "Certified Mentor", country: "United States", sector: "Finance", badge: 5, connections: 156, tgnId: 'TGN-0010', location: 'New York, USA', isVerified: true, profile: 'Certified mentor with a background in investment banking.', imageId: 'user-2' },
+    { id: '11', name: "Maria Santos", role: "Mentee", country: "Brazil", sector: "Healthcare", badge: 3, connections: 45, tgnId: 'TGN-0011', location: 'São Paulo, Brazil', isVerified: false, profile: 'Healthcare professional seeking mentorship.', imageId: 'user-3' },
+    { id: '12', name: "David Okonkwo", role: "Associate Mentor", country: "Kenya", sector: "Agriculture", badge: 4, connections: 89, tgnId: 'TGN-0012', location: 'Nairobi, Kenya', isVerified: true, profile: 'Associate mentor in the agriculture sector.', imageId: 'user-4' },
+    { id: '13', name: "Sarah Williams", role: "Certified Mentor", country: "United Kingdom", sector: "Education", badge: 6, connections: 178, tgnId: 'TGN-0013', location: 'London, UK', isVerified: true, profile: 'Certified mentor in the education technology space.', imageId: 'user-5' },
+    { id: '14', name: "Raj Patel", role: "Mentee", country: "India", sector: "Technology", badge: 2, connections: 32, tgnId: 'TGN-0014', location: 'Bangalore, India', isVerified: false, profile: 'Tech mentee looking for guidance.', imageId: 'user-6' },
+    { id: '15', name: "Elena Rodriguez", role: "Executive Mentor", country: "United States", sector: "Energy", badge: 7, connections: 312, tgnId: 'TGN-0015', location: 'Houston, USA', isVerified: true, profile: 'Executive in the energy sector.', imageId: 'user-7' },
+    { id: '16', name: "Michael Adebayo", role: "Certified Mentor", country: "South Africa", sector: "Finance", badge: 5, connections: 145, tgnId: 'TGN-0016', location: 'Johannesburg, South Africa', isVerified: true, profile: 'Finance mentor from South Africa.', imageId: 'user-8' },
+    { id: '5', tgnId: 'TGN-0005', name: 'Chloe Kim', role: 'Mentee', location: 'Toronto, Canada', country: 'Canada', sector: 'Technology', isVerified: true, imageId: 'user-5', profile: "Recent computer science graduate with a passion for artificial intelligence and machine learning. Looking for a mentor to guide career path choices, from big tech to startups, and to gain practical project experience.", badge: 4, connections: 55},
+    { id: '1', tgnId: 'TGN-0001', name: 'Sarah Chen', role: 'Executive Mentor', location: 'San Francisco, USA', country: 'United States', sector: 'Technology', isVerified: true, imageId: 'user-1', profile: "Seasoned product manager with 10+ years of experience in SaaS and mobile apps. Passionate about helping early-stage founders navigate product-market fit. Expertise in Agile methodologies, user research, and data-driven decision making.", badge: 7, connections: 212 },
 ];
+
 
 export const sectors = [
     'Technology', 'Healthcare', 'Finance', 'Education', 'Manufacturing',
@@ -151,6 +68,14 @@ export const regions = [
   "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", 
   "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", 
   "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"
+];
+
+export const globalRegions = [
+  { name: "Africa", members: 12500, hubs: 45 },
+  { name: "North America", members: 8200, hubs: 32 },
+  { name: "Europe", members: 6800, hubs: 28 },
+  { name: "Asia Pacific", members: 9400, hubs: 38 },
+  { name: "Latin America", members: 5600, hubs: 22 },
 ];
 
 
@@ -224,3 +149,7 @@ export const goals = [
   "Learn new skills", "Start a business", "Career transition",
   "Give back to community", "Find collaborators"
 ];
+
+export const badgeLevels = ["All Levels", "★ 1", "★ 2", "★ 3", "★ 4", "★ 5", "★ 6", "★ 7"];
+
+export const mentorTypes = ["All Types", "Associate Mentor", "Certified Mentor", "Executive Mentor"];

@@ -1,13 +1,14 @@
+
 "use client";
 
-import React, { useState, useMemo } from "react";
+import { useState } from "react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -16,166 +17,308 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { members, sectors, countries } from "@/lib/data";
-import type { Member } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle2, Map as MapIcon } from "lucide-react";
-import Image from "next/image";
+import {
+  Search,
+  Filter,
+  MapPin,
+  Star,
+  Users,
+  Globe,
+  ChevronDown,
+  MessageSquare,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  members,
+  globalRegions,
+  countries,
+  sectors,
+  badgeLevels,
+  mentorTypes,
+} from "@/lib/data";
 import placeholderImages from "@/lib/placeholder-images.json";
 
-export default function DirectoryPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [countryFilter, setCountryFilter] = useState("all");
-  const [sectorFilter, setSectorFilter] = useState("all");
-  const [roleFilter, setRoleFilter] = useState("all");
+const DirectoryPage = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFilters, setSelectedFilters] = useState({
+    country: "All Countries",
+    sector: "All Sectors",
+    badgeLevel: "All Levels",
+    mentorType: "All Types",
+  });
+  const [showFilters, setShowFilters] = useState(false);
 
   const getImage = (imageId: string) => {
-    return placeholderImages.placeholderImages.find(p => p.id === imageId);
-  }
+    return placeholderImages.placeholderImages.find((p) => p.id === imageId);
+  };
 
-  const filteredMembers = useMemo(() => {
-    return members.filter((member: Member) => {
-      const searchMatch =
-        member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        member.sector.toLowerCase().includes(searchTerm.toLowerCase());
-      const countryMatch =
-        countryFilter === "all" || member.country === countryFilter;
-      const sectorMatch =
-        sectorFilter === "all" || member.sector === sectorFilter;
-      const roleMatch = roleFilter === "all" || member.role === roleFilter;
+  const filteredMembers = members.filter((member) => {
+    const matchesSearch =
+      member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      member.role.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCountry =
+      selectedFilters.country === "All Countries" ||
+      member.country === selectedFilters.country;
+    const matchesSector =
+      selectedFilters.sector === "All Sectors" ||
+      member.sector === selectedFilters.sector;
+    const matchesBadge =
+      selectedFilters.badgeLevel === "All Levels" ||
+      `★ ${member.badge}` === selectedFilters.badgeLevel;
+    const matchesMentorType =
+      selectedFilters.mentorType === "All Types" ||
+      member.role === selectedFilters.mentorType;
 
-      return searchMatch && countryMatch && sectorMatch && roleMatch;
-    });
-  }, [searchTerm, countryFilter, sectorFilter, roleFilter]);
+    return (
+      matchesSearch &&
+      matchesCountry &&
+      matchesSector &&
+      matchesBadge &&
+      matchesMentorType
+    );
+  });
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight">Member Directory</h1>
-        <p className="text-muted-foreground">
-          Find and connect with members across the globe.
-        </p>
-      </header>
-      <Tabs defaultValue="directory">
-        <TabsList>
-          <TabsTrigger value="directory">Directory</TabsTrigger>
-          <TabsTrigger value="map">Global Map</TabsTrigger>
-        </TabsList>
-        <TabsContent value="directory">
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                <Input
-                  placeholder="Search by name or sector..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="max-w-sm"
-                />
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:ml-auto">
-                   <Select value={roleFilter} onValueChange={setRoleFilter}>
-                    <SelectTrigger><SelectValue placeholder="Filter by Role" /></SelectTrigger>
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
+          Member Directory
+        </h1>
+        <p className="text-muted-foreground">Search and connect globally.</p>
+      </div>
+
+      {/* Search & Filters */}
+      <div className="mb-6 space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search members by name or role..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => setShowFilters(!showFilters)}
+            className="gap-2"
+          >
+            <Filter className="h-4 w-4" />
+            Filters
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 transition-transform",
+                showFilters && "rotate-180"
+              )}
+            />
+          </Button>
+        </div>
+
+        {showFilters && (
+          <Card className="animate-fade-in">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Country
+                  </label>
+                  <Select
+                    value={selectedFilters.country}
+                    onValueChange={(value) =>
+                      setSelectedFilters((prev) => ({ ...prev, country: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter by Country" />
+                    </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Roles</SelectItem>
-                      <SelectItem value="Mentor">Mentor</SelectItem>
-                      <SelectItem value="Mentee">Mentee</SelectItem>
-                      <SelectItem value="Affiliate">Affiliate</SelectItem>
+                      <SelectItem value="All Countries">All Countries</SelectItem>
+                      {countries.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                  <Select value={countryFilter} onValueChange={setCountryFilter}>
-                    <SelectTrigger><SelectValue placeholder="Filter by Country" /></SelectTrigger>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Sector
+                  </label>
+                  <Select
+                    value={selectedFilters.sector}
+                    onValueChange={(value) =>
+                      setSelectedFilters((prev) => ({ ...prev, sector: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter by Sector" />
+                    </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Countries</SelectItem>
-                      {countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      <SelectItem value="All Sectors">All Sectors</SelectItem>
+                      {sectors.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                  <Select value={sectorFilter} onValueChange={setSectorFilter}>
-                    <SelectTrigger><SelectValue placeholder="Filter by Sector" /></SelectTrigger>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Badge Level
+                  </label>
+                  <Select
+                    value={selectedFilters.badgeLevel}
+                    onValueChange={(value) =>
+                      setSelectedFilters((prev) => ({
+                        ...prev,
+                        badgeLevel: value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter by Badge Level" />
+                    </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Sectors</SelectItem>
-                      {sectors.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      {badgeLevels.map((level) => (
+                        <SelectItem key={level} value={level}>
+                          {level}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Mentor Type
+                  </label>
+                  <Select
+                    value={selectedFilters.mentorType}
+                    onValueChange={(value) =>
+                      setSelectedFilters((prev) => ({
+                        ...prev,
+                        mentorType: value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter by Mentor Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mentorTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Member</TableHead>
-                    <TableHead>TGN ID</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Sector</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredMembers.map((member) => {
-                    const img = getImage(member.imageId);
-                    return (
-                      <TableRow key={member.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarImage src={img?.imageUrl} alt={member.name} />
-                              <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            {member.name}
-                          </div>
-                        </TableCell>
-                        <TableCell>{member.tgnId}</TableCell>
-                        <TableCell>{member.location}</TableCell>
-                        <TableCell>{member.sector}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{member.role}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          {member.isVerified ? (
-                            <Badge variant="default" className="bg-green-500 hover:bg-green-600">
-                              <CheckCircle2 className="mr-1 h-3 w-3" />
-                              Verified
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline">Not Verified</Badge>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
             </CardContent>
           </Card>
-        </TabsContent>
-        <TabsContent value="map">
-          <Card>
-            <CardHeader>
-              <CardTitle>Global Member Map</CardTitle>
-              <CardDescription>
-                Visualizing our network's hubs and activity clusters.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="aspect-[16/9] flex items-center justify-center bg-muted/50 rounded-lg">
-              <div className="text-center text-muted-foreground">
-                <MapIcon className="mx-auto h-12 w-12" />
-                <p className="mt-2 font-medium">Map View Coming Soon</p>
-                <p className="text-sm">Interactive global map functionality will be available here.</p>
+        )}
+      </div>
+
+      {/* Global Activity Map */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-5 w-5 text-primary" />
+            Global Activity Map
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-4">
+            Showing hubs and active regions.
+          </p>
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            {globalRegions.map((region) => (
+              <div
+                key={region.name}
+                className="p-4 bg-muted/50 rounded-lg text-center"
+              >
+                <p className="font-semibold text-foreground">{region.name}</p>
+                <p className="text-2xl font-bold text-primary">
+                  {(region.members / 1000).toFixed(1)}K
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {region.hubs} hubs
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Members Grid */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {filteredMembers.map((member) => {
+          const img = getImage(member.imageId);
+          return (
+            <Card
+              key={member.id}
+              className="hover:shadow-card transition-all duration-300 group"
+            >
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3 mb-4">
+                   <Avatar className="h-12 w-12 rounded-full">
+                     <AvatarImage src={img?.imageUrl} alt={member.name} />
+                    <AvatarFallback className="bg-primary text-primary-foreground font-bold text-lg">
+                      {member.name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-foreground truncate">
+                      {member.name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">{member.role}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    {member.country}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Star className="h-4 w-4 text-accent" />
+                    Badge Level {member.badge}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Users className="h-4 w-4" />
+                    {member.connections} connections
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1">
+                    <MessageSquare className="h-4 w-4 mr-1" />
+                    Connect
+                  </Button>
+                  <Button variant="default" size="sm" className="flex-1">
+                    View Profile
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {filteredMembers.length === 0 && (
+        <div className="text-center py-12 col-span-full">
+          <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">
+            No members found matching your criteria.
+          </p>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default DirectoryPage;

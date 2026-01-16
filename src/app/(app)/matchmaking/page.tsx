@@ -21,7 +21,7 @@ export default function MatchmakingPage() {
   const currentMentee = members.find((m) => m.name === "Chloe Kim");
   const recommendedMentors = members.filter(
     (m) =>
-      m.role === "Mentor" &&
+      m.role.includes("Mentor") &&
       (m.sector === "Technology" || m.sector === "Finance")
   );
 
