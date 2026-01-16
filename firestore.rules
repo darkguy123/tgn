@@ -214,18 +214,15 @@ service cloud.firestore {
     /**
      * @description Controls access to affiliate referrals.
      * @path /affiliate_referrals/{referralId}
-     * @allow (read) - Admins can read all referral documents.
-     * @allow (get) - The user who referred or was referred can read the document.
-     * @allow (list) - A user can only list referrals they have made.
+     * @allow (get) - The user who referred, was referred, or an admin can read the document.
+     * @allow (list) - A user can only list referrals where they are the referrer.
      * @principle Secures data based on participation. Only the referrer can create the record. Updates/deletes are disallowed.
      */
     match /affiliate_referrals/{referralId} {
-      allow read: if isAdmin();
-      allow get: if isSignedIn() && (isOwner(resource.data.referrerMemberId) || isOwner(resource.data.referredMemberId));
-      allow list: if (isSignedIn() && request.query.where[0][0] == "referrerMemberId" && request.query.where[0][2] == request.auth.uid) || isAdmin();
+      allow get: if (isSignedIn() && (isOwner(resource.data.referrerMemberId) || isOwner(resource.data.referredMemberId))) || isAdmin();
+      allow list: if isSignedIn() && request.query.where[0][0] == "referrerMemberId" && request.query.where[0][1] == "==" && request.query.where[0][2] == request.auth.uid;
       allow create: if isSignedIn() && request.resource.data.referrerMemberId == request.auth.uid;
-      allow update: if false;
-      allow delete: if false;
+      allow update, delete: if false;
     }
 
     /**
