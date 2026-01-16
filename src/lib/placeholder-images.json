@@ -143,6 +143,30 @@
       "description": "Finance-themed profile banner",
       "imageUrl": "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzdG9jayUyMG1hcmtldCUyMGNoYXJ0fGVufDB8fHx8MTcxODc0NjI5NXww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "stock chart"
+    },
+    {
+      "id": "community-post-office-1",
+      "description": "Bright modern office interior with desks and computers",
+      "imageUrl": "https://images.unsplash.com/photo-1556761175-b413da4baf72?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMG9mZmljZXxlbnwwfHx8fDE3MjE4MzI0ODV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "business office"
+    },
+    {
+      "id": "community-post-office-2",
+      "description": "People collaborating in a modern meeting room",
+      "imageUrl": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxidXNpbmVzcyUyMG1lZXRpbmd8ZW58MHx8fHwxNzIxODMyNTIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "business meeting"
+    },
+    {
+      "id": "suggested-page-logo",
+      "description": "Abstract logo for a design studio",
+      "imageUrl": "https://images.unsplash.com/photo-1626428020177-364e03565968?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxhYnN0cmFjdCUyMGxvZ298ZW58MHx8fHwxNzIxODMyNTkyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract logo"
+    },
+    {
+      "id": "suggested-page-banner",
+      "description": "A diverse team photo for a suggested page",
+      "imageUrl": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx0ZWFtJTIwcGhvdG98ZW58MHx8fHwxNzIxODMyNjIxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "team photo"
     }
   ]
 }
