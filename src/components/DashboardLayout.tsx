@@ -21,6 +21,7 @@ import {
   Wallet,
   Heart,
   Calendar,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser } from '@/firebase';
@@ -47,6 +48,7 @@ const NAV_ITEMS = [
   { id: 'causes', label: 'Causes', icon: Heart, path: '/community/causes' },
   { id: 'matchmaking', label: 'Matchmaking', icon: Sparkles, path: '/matchmaking' },
   { id: 'cohorts', label: 'My Cohorts', icon: Users, path: '/cohorts' },
+  { id: 'impact', label: 'Impact', icon: BarChart3, path: '/impact' },
   { id: 'programs', label: 'Programs', icon: GraduationCap, path: '/programs' },
   { id: 'marketplace', label: 'Marketplace', icon: ShoppingBag, path: '/marketplace' },
   { id: 'certification', label: 'Certification', icon: Award, path: '/certification' },
