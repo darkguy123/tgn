@@ -391,6 +391,20 @@
         "location": {
           "type": "string",
           "description": "Location of the event."
+        },
+        "price": {
+          "type": "number",
+          "description": "Price for the event ticket."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of event.",
+          "enum": [
+            "Conference",
+            "Webinar",
+            "Workshop",
+            "Meetup"
+          ]
         }
       },
       "required": [
@@ -499,5 +513,3 @@
     ]
   }
 }
-
-    

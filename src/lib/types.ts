@@ -110,4 +110,6 @@ export interface Event {
     startDate: string;
     endDate: string;
     location: string;
+    price?: number;
+    type?: 'Conference' | 'Webinar' | 'Workshop' | 'Meetup';
 }

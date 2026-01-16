@@ -143,7 +143,9 @@ export const events: Event[] = [
     description: 'A summit for tech leaders and innovators.',
     startDate: '2026-03-10T09:00:00Z',
     endDate: '2026-03-12T17:00:00Z',
-    location: 'Virtual'
+    location: 'Virtual',
+    price: 499,
+    type: 'Conference',
   },
   {
     id: 'evt2',
@@ -151,7 +153,19 @@ export const events: Event[] = [
     description: 'Discussing the future of finance in Africa.',
     startDate: '2025-11-05T10:00:00Z',
     endDate: '2025-11-05T16:00:00Z',
-    location: 'Lagos, Nigeria'
+    location: 'Lagos, Nigeria',
+    price: 150,
+    type: 'Conference',
+  },
+  {
+    id: 'evt3',
+    name: 'Intro to AI Mentorship Webinar',
+    description: 'A free webinar on how to get started with AI.',
+    startDate: '2025-09-20T14:00:00Z',
+    endDate: '2025-09-20T15:00:00Z',
+    location: 'Online',
+    price: 0,
+    type: 'Webinar',
   }
 ];
 
