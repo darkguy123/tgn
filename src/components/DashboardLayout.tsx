@@ -15,12 +15,25 @@ import {
   LogOut,
   GraduationCap,
   MessageSquare,
+  Settings,
+  User as UserIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useMemberProfile } from '@/hooks/useMemberProfile';
+import { members } from '@/lib/data';
+
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
@@ -42,7 +55,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const pathname = usePathname();
   const { user } = useUser();
   const auth = useAuth();
+  const { profile } = useMemberProfile();
   const userName = user?.displayName || 'Member';
+  
+  const member = members.find(m => m.tgnId === profile?.tgnMemberId);
+  const profilePath = member ? `/profile/${member.id}` : '#';
 
   const handleLogout = () => {
     signOut(auth);
@@ -89,14 +106,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </nav>
 
         <div className="p-4 border-t border-border">
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            className="w-full flex items-center justify-start gap-3 px-3 py-2.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-          >
-            <LogOut className="h-5 w-5" />
-            Sign Out
-          </Button>
+          {/* Logout moved to user dropdown */}
         </div>
       </aside>
 
@@ -126,12 +136,44 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 <Bell className="h-5 w-5 text-muted-foreground" />
                 <span className="absolute top-1 right-1 h-2 w-2 bg-accent rounded-full" />
               </Button>
-              <Avatar className="h-9 w-9">
-                  <AvatarImage src={user?.photoURL ?? ""} alt={userName} />
-                  <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
-                    {userName[0]}
-                  </AvatarFallback>
-              </Avatar>
+               <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
+                        <Avatar className="h-9 w-9">
+                            <AvatarImage src={user?.photoURL ?? ""} alt={userName} />
+                            <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
+                                {userName[0]}
+                            </AvatarFallback>
+                        </Avatar>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                        <div className="flex flex-col space-y-1">
+                            <p className="text-sm font-medium leading-none">{userName}</p>
+                            <p className="text-xs leading-none text-muted-foreground">
+                                {user?.email}
+                            </p>
+                        </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                        <Link href={profilePath}>
+                            <UserIcon className="mr-2 h-4 w-4" />
+                            <span>Profile</span>
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Settings</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Log out</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
             </div>
           </div>
         </header>

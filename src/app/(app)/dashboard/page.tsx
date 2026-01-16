@@ -32,6 +32,13 @@ import { useUser } from "@/firebase";
 import { useMemberProfile } from "@/hooks/useMemberProfile";
 import { useMentorCertification } from "@/hooks/useMentorCertification";
 import { Skeleton } from "@/components/ui/skeleton";
+import { members } from "@/lib/data";
+import placeholderImages from "@/lib/placeholder-images.json";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+const getImage = (imageId: string) => {
+    return placeholderImages.placeholderImages.find((p) => p.id === imageId);
+};
 
 const Dashboard = () => {
   const { user } = useUser();
@@ -314,7 +321,7 @@ const Dashboard = () => {
               <div className="space-y-4">
                 {[
                   {
-                    author: "Maria Santos",
+                    authorName: "Maria Santos",
                     role: "Mentee",
                     content:
                       "Just completed my first certification module! 🎉 Thank you to my mentor for the guidance.",
@@ -322,39 +329,47 @@ const Dashboard = () => {
                     time: "2h ago",
                   },
                   {
-                    author: "David Kim",
+                    authorName: "James Chen",
                     role: "Mentor",
                     content:
                       "Excited to announce our new cohort starting next week. Applications open!",
                     likes: 42,
                     time: "5h ago",
                   },
-                ].map((post, i) => (
-                  <div key={i} className="p-4 bg-muted/30 rounded-lg">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
-                        {post.author[0]}
+                ].map((post, i) => {
+                    const author = members.find(m => m.name === post.authorName);
+                    const authorImage = author ? getImage(author.imageId) : null;
+
+                    return (
+                      <div key={i} className="p-4 bg-muted/30 rounded-lg">
+                        <div className="flex items-center gap-3 mb-3">
+                           <Avatar className="h-10 w-10">
+                            {authorImage && <AvatarImage src={authorImage.imageUrl} alt={post.authorName} />}
+                            <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                              {post.authorName[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium text-foreground">
+                              {post.authorName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {post.role} • {post.time}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-foreground mb-3">{post.content}</p>
+                        <div className="flex items-center gap-4 text-muted-foreground text-sm">
+                          <button className="flex items-center gap-1 hover:text-accent transition-colors">
+                            <Heart className="h-4 w-4" /> {post.likes}
+                          </button>
+                          <button className="flex items-center gap-1 hover:text-primary transition-colors">
+                            <MessageSquare className="h-4 w-4" /> Reply
+                          </button>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-foreground">
-                          {post.author}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {post.role} • {post.time}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="text-foreground mb-3">{post.content}</p>
-                    <div className="flex items-center gap-4 text-muted-foreground text-sm">
-                      <button className="flex items-center gap-1 hover:text-accent transition-colors">
-                        <Heart className="h-4 w-4" /> {post.likes}
-                      </button>
-                      <button className="flex items-center gap-1 hover:text-primary transition-colors">
-                        <MessageSquare className="h-4 w-4" /> Reply
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                    )
+                })}
               </div>
             </CardContent>
           </Card>
@@ -541,5 +556,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
-    
