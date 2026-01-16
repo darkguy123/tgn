@@ -32,14 +32,14 @@ const ProgramInfoSchema = z.object({
   description: z.string(),
 });
 
-export const GenerateRecommendationsInputSchema = z.object({
+const GenerateRecommendationsInputSchema = z.object({
   memberProfile: MemberProfileSchema,
   allMentors: z.array(MentorInfoSchema),
   allPrograms: z.array(ProgramInfoSchema),
 });
 export type GenerateRecommendationsInput = z.infer<typeof GenerateRecommendationsInputSchema>;
 
-export const MatchmakingRecommendationSchema = z.object({
+const MatchmakingRecommendationSchema = z.object({
   recommendedType: z.enum(["Mentor", "Program"]),
   recommendedId: z.string().describe("The ID of the recommended item."),
   explanation: z.string().describe("A concise, personalized explanation for why this is a good match for the member."),
@@ -48,7 +48,7 @@ export const MatchmakingRecommendationSchema = z.object({
 export type MatchmakingRecommendation = z.infer<typeof MatchmakingRecommendationSchema>;
 
 
-export const GenerateRecommendationsOutputSchema = z.object({
+const GenerateRecommendationsOutputSchema = z.object({
   recommendations: z.array(MatchmakingRecommendationSchema).max(3, { message: "Generate no more than 3 recommendations."}),
 });
 export type GenerateRecommendationsOutput = z.infer<typeof GenerateRecommendationsOutputSchema>;

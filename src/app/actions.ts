@@ -2,7 +2,7 @@
 "use server";
 
 import { generateMatchExplanation } from "@/ai/flows/mentor-mentee-match-explanations";
-import { generateRecommendations, GenerateRecommendationsInputSchema, GenerateRecommendationsOutput, MatchmakingRecommendation as AIMatchmakingRecommendation } from "@/ai/flows/generate-recommendations";
+import { generateRecommendations, type GenerateRecommendationsOutput, type MatchmakingRecommendation as AIMatchmakingRecommendation } from "@/ai/flows/generate-recommendations";
 import { z } from "zod";
 import { TGNMember, Program } from '@/lib/types';
 
@@ -62,6 +62,34 @@ export type RecommendationDetails = AIMatchmakingRecommendation & {
 export type RecommendationResult = {
     recommendations: RecommendationDetails[];
 };
+
+const MemberProfileSchema = z.object({
+  sectorPreferences: z.array(z.string()).optional(),
+  role: z.string(),
+  purpose: z.string().optional(),
+  identityProfile: z.string().optional(), // JSON string with goals and interests
+});
+
+const MentorInfoSchema = z.object({
+  id: z.string(),
+  // Name is not available, using ID as identifier
+  sectorPreferences: z.array(z.string()).optional(),
+  role: z.string(),
+  purpose: z.string().optional(),
+});
+
+const ProgramInfoSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+});
+
+const GenerateRecommendationsInputSchema = z.object({
+  memberProfile: MemberProfileSchema,
+  allMentors: z.array(MentorInfoSchema),
+  allPrograms: z.array(ProgramInfoSchema),
+});
+
 
 export async function getRecommendations(
   member: TGNMember, 
