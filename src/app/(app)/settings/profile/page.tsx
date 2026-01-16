@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -20,9 +20,12 @@ import type { TGNMember } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import placeholderImages from '@/lib/placeholder-images.json';
-import { countries } from '@/lib/data';
+import { countries, savedCards } from '@/lib/data';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
+import { differenceInDays, formatDistanceToNowStrict } from 'date-fns';
 
 const profileSettingsSchema = z.object({
   name: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -45,11 +48,9 @@ const timezones = [
 
 const getImage = (imageId?: string) => {
   if (!imageId) return null;
-  // If imageId is a full URL, return it directly
   if (imageId.startsWith('http')) {
     return { imageUrl: imageId };
   }
-  // Otherwise, find it in the placeholder data
   const image = placeholderImages.placeholderImages.find((p) => p.id === imageId);
   if (!image) {
       if (imageId?.includes('female')) {
@@ -74,6 +75,13 @@ const SettingsPage = () => {
     communityActivity: false,
     marketingEmails: false,
     pushNotifications: true,
+  });
+
+  const [theme, setTheme] = useState('Light');
+  const [language, setLanguage] = useState('en');
+  const [privacy, setPrivacy] = useState({
+    profileVisibility: 'members',
+    showOnlineStatus: true,
   });
 
   const {
@@ -125,6 +133,32 @@ const SettingsPage = () => {
   
   const watchedImageId = watch('imageId');
   const currentAvatar = getImage(watchedImageId || profile?.imageId || 'default-male-avatar');
+
+  const subscriptionInfo = useMemo(() => {
+    if (!profile?.subscription || !profile.createdAt) {
+      return {
+        daysRemaining: 0,
+        totalDays: 365,
+        progress: 0,
+        renewsAt: 'N/A',
+        planName: 'No Plan'
+      };
+    }
+    const renewalDate = profile.subscription.renewsAt.toDate();
+    const creationDate = profile.createdAt.toDate();
+    const totalDays = differenceInDays(renewalDate, creationDate);
+    const daysRemaining = differenceInDays(renewalDate, new Date());
+    const progress = Math.max(0, (daysRemaining / (totalDays || 1)) * 100);
+
+    return {
+      daysRemaining,
+      totalDays,
+      progress,
+      renewsAt: renewalDate.toLocaleDateString(),
+      planName: profile.subscription.planName || 'Pro Member',
+    };
+  }, [profile]);
+
 
   if (isLoading || !profile) {
     return (
@@ -308,22 +342,23 @@ const SettingsPage = () => {
                 <div>
                   <Label className="mb-2 block">Theme</Label>
                   <div className="flex gap-2">
-                    {['Light', 'Dark', 'System'].map((theme) => (
+                    {['Light', 'Dark', 'System'].map((themeName) => (
                       <Button
-                        key={theme}
-                        variant={theme === 'Light' ? 'accent' : 'outline'}
+                        key={themeName}
+                        variant={theme === themeName ? 'accent' : 'outline'}
                         size="sm"
+                        onClick={() => setTheme(themeName)}
                       >
-                        {theme}
+                        {themeName}
                       </Button>
                     ))}
                   </div>
                 </div>
                 <div>
                   <Label className="mb-2 block">Language</Label>
-                   <Select>
+                   <Select value={language} onValueChange={setLanguage}>
                     <SelectTrigger>
-                        <SelectValue placeholder="English" />
+                        <SelectValue placeholder="Select Language" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="en">English</SelectItem>
@@ -349,7 +384,7 @@ const SettingsPage = () => {
                     <p className="font-medium text-foreground">Profile Visibility</p>
                     <p className="text-sm text-muted-foreground">Who can see your profile</p>
                   </div>
-                  <Select defaultValue="members">
+                  <Select value={privacy.profileVisibility} onValueChange={(value) => setPrivacy({...privacy, profileVisibility: value})}>
                     <SelectTrigger className="w-auto">
                         <SelectValue />
                     </SelectTrigger>
@@ -365,7 +400,7 @@ const SettingsPage = () => {
                     <p className="font-medium text-foreground">Show Online Status</p>
                     <p className="text-sm text-muted-foreground">Let others see when you're online</p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch checked={privacy.showOnlineStatus} onCheckedChange={(checked) => setPrivacy({...privacy, showOnlineStatus: checked})} />
                 </div>
               </CardContent>
             </Card>
@@ -383,10 +418,21 @@ const SettingsPage = () => {
               </CardHeader>
               <CardContent>
                 <div className="p-4 bg-accent/10 border border-accent/30 rounded-lg mb-4">
-                  <p className="text-lg font-bold text-foreground">Pro Member</p>
-                  <p className="text-sm text-muted-foreground">$29/month • Renews Jan 15, 2026</p>
+                  <p className="text-lg font-bold text-foreground">{subscriptionInfo.planName}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {subscriptionInfo.planName === 'No Plan' ? 'No active subscription' : `Renews ${subscriptionInfo.renewsAt}`}
+                  </p>
                 </div>
-                <div className="space-y-2 text-sm text-muted-foreground">
+                {subscriptionInfo.planName !== 'No Plan' && (
+                  <div className="space-y-2 mt-4">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Days Remaining</span>
+                      <span>{subscriptionInfo.daysRemaining > 0 ? `${subscriptionInfo.daysRemaining} days` : 'Expired'}</span>
+                    </div>
+                     <Progress value={subscriptionInfo.progress} className={cn(subscriptionInfo.daysRemaining < 30 && '[&>div]:bg-destructive')}/>
+                  </div>
+                )}
+                <div className="space-y-2 text-sm text-muted-foreground mt-4">
                   <p>✓ Unlimited program access</p>
                   <p>✓ Priority mentor matching</p>
                   <p>✓ Certification eligible</p>
@@ -403,18 +449,20 @@ const SettingsPage = () => {
                 <CardTitle>Payment Methods</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-14 bg-muted rounded flex items-center justify-center text-xs font-bold">
-                      VISA
+                {savedCards.map((card) => (
+                    <div key={card.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-14 bg-muted rounded flex items-center justify-center text-xs font-bold">
+                        {card.brand.toUpperCase()}
+                        </div>
+                        <div>
+                        <p className="font-medium text-foreground">•••• •••• •••• {card.last4}</p>
+                        <p className="text-sm text-muted-foreground">Expires {card.expiryMonth}/{card.expiryYear}</p>
+                        </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-foreground">•••• •••• •••• 4242</p>
-                      <p className="text-sm text-muted-foreground">Expires 12/26</p>
+                    {card.isDefault && <span className="text-xs px-2 py-1 bg-accent/20 text-accent rounded-full">Default</span>}
                     </div>
-                  </div>
-                  <span className="text-xs px-2 py-1 bg-accent/20 text-accent rounded-full">Default</span>
-                </div>
+                ))}
                 <Button variant="outline" className="w-full">
                   Add Payment Method
                 </Button>

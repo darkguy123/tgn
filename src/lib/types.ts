@@ -16,6 +16,10 @@ export interface TGNMember {
     imageId?: string;
     isVerifiedMentor?: boolean;
     createdAt?: any;
+    subscription?: {
+        planName: string;
+        renewsAt: any; // Firestore Timestamp
+    };
 }
 
 export interface MentorKYC {

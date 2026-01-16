@@ -84,6 +84,21 @@
           "type": "boolean",
           "description": "Indicates if the member has passed KYC and is a verified mentor."
         },
+        "subscription": {
+          "type": "object",
+          "description": "The member's active subscription plan.",
+          "properties": {
+            "planName": {
+              "type": "string",
+              "description": "Name of the subscription plan (e.g., 'Pro Member')."
+            },
+            "renewsAt": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Timestamp when the subscription is due for renewal."
+            }
+          }
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
