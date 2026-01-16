@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { useWallet } from '@/hooks/useWallet';
 import { 
-    ArrowDownLeft, ArrowUpRight, DollarSign, Upload, CreditCard, Plus, MoreHorizontal, 
+    ArrowDownLeft, ArrowUpRight, DollarSign, Plus, CreditCard, MoreHorizontal, 
     Send, TrendingUp, TrendingDown, ClipboardCopy, Loader2, PartyPopper, Gift, Heart, User, Building, Landmark, ShieldCheck
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,7 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, orderBy, runTransaction, doc, serverTimestamp, addDoc } from 'firebase/firestore';
+import { collection, query, orderBy, runTransaction, doc, serverTimestamp, addDoc, setDoc } from 'firebase/firestore';
 import type { TGNMember, Transaction } from '@/lib/types';
 
 
@@ -54,6 +54,9 @@ const WalletPage = () => {
     const [pin, setPin] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Add Funds Dialog State
+    const [isAddFundsOpen, setAddFundsOpen] = useState(false);
+    const [addFundsAmount, setAddFundsAmount] = useState('');
 
     // Withdraw Dialog State
     const [isWithdrawOpen, setWithdrawOpen] = useState(false);
@@ -191,6 +194,51 @@ const WalletPage = () => {
         }
     };
     
+    const handleAddFunds = async () => {
+        const depositAmount = parseFloat(addFundsAmount);
+        if (!user || !depositAmount || depositAmount <= 0) {
+            toast({ variant: 'destructive', title: 'Invalid Amount' });
+            return;
+        }
+
+        setIsSubmitting(true);
+        const walletRef = doc(firestore, 'wallets', user.uid);
+        
+        try {
+            await runTransaction(firestore, async (transaction) => {
+                const walletDoc = await transaction.get(walletRef);
+                const currentBalance = walletDoc.exists() ? walletDoc.data().balance : 0;
+                const newBalance = currentBalance + depositAmount;
+
+                transaction.set(walletRef, { 
+                    balance: newBalance,
+                    memberId: user.uid,
+                    currency: 'USD'
+                }, { merge: true });
+            });
+
+            const transactionsRef = collection(firestore, 'users', user.uid, 'transactions');
+            await addDoc(transactionsRef, {
+                type: 'deposit',
+                status: 'completed',
+                amount: depositAmount,
+                currency: 'USD',
+                description: 'Funds added from card',
+                createdAt: serverTimestamp(),
+            });
+
+            toast({ title: "Funds Added", description: `${formatCurrency(depositAmount)} has been added to your wallet.` });
+            setAddFundsOpen(false);
+            setAddFundsAmount('');
+
+        } catch (e: any) {
+            console.error("Failed to add funds:", e);
+            toast({ variant: 'destructive', title: 'Failed to Add Funds', description: 'An error occurred. Please try again.' });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const handleWithdrawRequest = async () => {
         setIsSubmitting(true);
         const amountNum = parseFloat(withdrawAmount);
@@ -458,10 +506,46 @@ const WalletPage = () => {
                                 )}
                             </DialogContent>
                         </Dialog>
-                        <Button variant="outline" className="flex-1">
-                            <Upload className="mr-2 h-4 w-4"/>
-                            Receive
-                        </Button>
+                        <Dialog open={isAddFundsOpen} onOpenChange={setAddFundsOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" className="flex-1" onClick={() => setAddFundsOpen(true)}>
+                                    <Plus className="mr-2 h-4 w-4"/>
+                                    Add Funds
+                                </Button>
+                            </DialogTrigger>
+                             <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Add Funds to Wallet</DialogTitle>
+                                    <DialogDescription>Simulate adding funds from a credit/debit card.</DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="add-funds-amount">Amount (USD)</Label>
+                                        <Input 
+                                            id="add-funds-amount"
+                                            type="number"
+                                            placeholder="0.00"
+                                            value={addFundsAmount}
+                                            onChange={(e) => setAddFundsAmount(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="p-4 border rounded-lg flex justify-between items-center bg-muted/50">
+                                        <div className="flex items-center gap-2 text-muted-foreground">
+                                            <CreditCard className="h-5 w-5" />
+                                            <span>Payment Method</span>
+                                        </div>
+                                        <span className="font-semibold">Card ending in 4242</span>
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button variant="outline" onClick={() => setAddFundsOpen(false)}>Cancel</Button>
+                                    <Button onClick={handleAddFunds} disabled={isSubmitting || !addFundsAmount}>
+                                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+                                        Add {addFundsAmount ? formatCurrency(parseFloat(addFundsAmount)) : ''}
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                     </CardFooter>
                 </Card>
 

@@ -247,17 +247,19 @@ service cloud.firestore {
      * @path /wallets/{userId}
      * @allow (read) - Admins and the owner can read a wallet.
      * @allow (create) - A signed-in user can create a wallet for themselves.
-     * @allow (update) - Allows for secure P2P transfers between clients.
-     * @principle Secures sensitive financial data by only allowing balance decrements by the owner, or increments by others.
+     * @allow (update) - Allows for secure P2P transfers and simulated deposits between clients.
+     * @principle Secures sensitive financial data by only allowing balance changes under specific conditions.
      */
     match /wallets/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && request.resource.data.memberId == userId;
       allow update: if isAdmin() ||
                     (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance']) && (
-                        // Allow user to DECREASE their own balance (sending)
+                        // Allow user to DECREASE their own balance (sending funds)
                         (isOwner(userId) && request.resource.data.balance < resource.data.balance) ||
-                        // Allow other users to INCREASE this user's balance (receiving)
+                        // Allow user to INCREASE their own balance (simulated deposit)
+                        (isOwner(userId) && request.resource.data.balance > resource.data.balance) ||
+                        // Allow other users to INCREASE this user's balance (receiving funds)
                         (!isOwner(userId) && request.resource.data.balance > resource.data.balance)
                     ));
       allow delete: if false; // Wallets should never be deleted
