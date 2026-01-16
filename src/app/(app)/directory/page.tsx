@@ -29,9 +29,9 @@ import {
   MapPin,
   Users,
   ChevronDown,
-  UserPlus,
   Briefcase,
   CheckCircle2,
+  Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -39,8 +39,8 @@ import {
   sectors,
   mentorTypes,
 } from "@/lib/data";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import type { TGNMember } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -55,22 +55,61 @@ const DirectoryPage = () => {
   const [showFilters, setShowFilters] = useState(false);
   
   const firestore = useFirestore();
+  const { user: currentUser } = useUser();
   const membersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const { data: members, isLoading, error } = useCollection<TGNMember>(membersRef);
   const { toast } = useToast();
 
-  const handleAddFriend = () => {
-    toast({
-      title: "Coming Soon!",
-      description: "The ability to send friend requests is under development.",
-    });
+  const handleConnect = async (recipientId: string) => {
+    if (!currentUser) {
+      toast({
+        variant: "destructive",
+        title: "Not Signed In",
+        description: "You must be signed in to connect with members.",
+      });
+      return;
+    }
+    if (currentUser.uid === recipientId) {
+      toast({
+        variant: "destructive",
+        title: "Cannot Connect With Yourself",
+        description: "You cannot send a connection request to yourself.",
+      });
+      return;
+    }
+    try {
+      // In a real app, you'd check if a request already exists.
+      // For now, we'll just send it.
+      await addDoc(collection(firestore, 'friend_requests'), {
+        senderId: currentUser.uid,
+        recipientId: recipientId,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+      });
+      toast({
+        title: "Request Sent!",
+        description: "Your connection request has been sent.",
+      });
+    } catch (error) {
+      console.error("Error sending connection request:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to send connection request. Please try again.',
+      });
+    }
   };
+
 
   const getName = (member: TGNMember) => {
     return member.name || member.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
 
   const filteredMembers = members?.filter((member) => {
+    // Don't show the current user in the directory
+    if (currentUser && member.id === currentUser.uid) {
+        return false;
+    }
     const name = getName(member);
     const matchesSearch =
       name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -266,9 +305,9 @@ const DirectoryPage = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={handleAddFriend}>
-                      <UserPlus className="h-4 w-4 mr-1" />
-                      Add Friend
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handleConnect(member.id)}>
+                      <Send className="h-4 w-4 mr-1" />
+                      Connect
                   </Button>
                   <Button asChild variant="accent" size="sm" className="flex-1 transition-all hover:-translate-y-0.5 hover:shadow-accent">
                     <Link href={`/profile/${member.id}`}>View Profile</Link>

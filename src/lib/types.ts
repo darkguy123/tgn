@@ -16,6 +16,7 @@ export interface TGNMember {
     avatarUrl?: string;
     isVerifiedMentor?: boolean;
     createdAt?: any;
+    connections?: string[];
     subscription?: {
         planName: string;
         renewsAt: any; // Firestore Timestamp
@@ -219,4 +220,12 @@ export interface AffiliateReferral {
     referredMemberId: string;
     level: number;
     commissionPercentage: number;
+}
+
+export interface FriendRequest {
+    id: string;
+    senderId: string;
+    recipientId: string;
+    status: 'pending' | 'accepted' | 'declined';
+    createdAt: any; // Firestore Timestamp
 }
