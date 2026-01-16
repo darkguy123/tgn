@@ -15,8 +15,8 @@
  *   (e.g., `sellerMemberId`, `memberId`) within each document.
  *
  * Key Security Decisions:
- * - Strict User Ownership: A user can only read or write data within their own
- *   `/users/{userId}` path. Listing other users is disallowed.
+ * - Controlled User Visibility: Users can only update their own data. For features like
+ *   matchmaking and member directories to work, profiles are readable by other signed-in members.
  * - Denormalized Authorization: Collections like `/products` and `/wallets` rely on
  *   internal fields (`sellerMemberId`, `memberId`) to grant access. This is faster and
  *   more secure than using `get()` calls to check permissions on related documents.
@@ -84,10 +84,10 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree. Ensures a user can only create a profile for themselves.
      */
     match /users/{userId} {
-      allow get, list: if isOwner(userId);
+      allow get, list: if isSignedIn();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isOwner(userId) && resource != null && request.resource.data.id == resource.data.id;
-      allow delete: if isOwner(userId) && resource != null;
+      allow delete: if false;
 
       /**
        * @description Controls access to a user's private matchmaking recommendations.
