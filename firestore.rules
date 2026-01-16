@@ -352,14 +352,20 @@ service cloud.firestore {
 
       // Chat metadata can be read or updated by participants.
       // For list queries, this rule requires a query with `where('participantIds', 'array-contains', request.auth.uid)`
-      allow read, update: if 'participantIds' in resource.data && request.auth.uid in resource.data.participantIds;
+      allow read, update: if 'participantIds' in resource.data &&
+                          resource.data.participantIds is list &&
+                          request.auth.uid in resource.data.participantIds;
 
       match /messages/{messageId} {
         // Messages can be read by any participant of the chat.
-        allow read: if request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds;
+        allow read: if 'participantIds' in get(/databases/$(database)/documents/chats/$(chatId)).data &&
+                      get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds is list &&
+                      request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds;
 
         // A participant can create a message and must be the sender.
-        allow create: if (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds)
+        allow create: if ('participantIds' in get(/databases/$(database)/documents/chats/$(chatId)).data &&
+                       get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds is list &&
+                       request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds)
                       && request.resource.data.senderId == request.auth.uid;
                       
         // A message can only be updated or deleted by its original sender or an admin.
