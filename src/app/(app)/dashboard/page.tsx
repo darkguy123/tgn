@@ -30,6 +30,7 @@ import {
   Heart,
   CheckCheck,
   BarChart3,
+  Megaphone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
@@ -199,6 +200,9 @@ const Dashboard = () => {
               </Button>
               <Button variant="outline" onClick={() => router.push('/admin/users')}>
                 Manage Users <Users className="ml-2 h-4 w-4" />
+              </Button>
+               <Button variant="outline" onClick={() => router.push('/admin/ads')}>
+                Manage Ads <Megaphone className="ml-2 h-4 w-4" />
               </Button>
             </CardContent>
           </Card>
@@ -650,3 +654,5 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+    

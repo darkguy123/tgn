@@ -1,5 +1,78 @@
 {
   "entities": {
+    "AdCampaign": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AdCampaign",
+      "type": "object",
+      "description": "Represents an advertising campaign created by a member.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ad campaign."
+        },
+        "creatorMemberId": {
+          "type": "string",
+          "description": "The UID of the TGN Member who created the campaign."
+        },
+        "creatorName": {
+          "type": "string",
+          "description": "Denormalized name of the creator for display."
+        },
+        "creatorImageId": {
+          "type": "string",
+          "description": "Denormalized image ID of the creator for display."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the ad campaign."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the campaign.",
+          "enum": ["pending", "active", "paused", "rejected"]
+        },
+        "budget": {
+          "type": "number",
+          "description": "The total budget for the campaign."
+        },
+        "amountSpent": {
+          "type": "number",
+          "description": "The amount of the budget that has been spent."
+        },
+        "headline": {
+          "type": "string",
+          "description": "The main headline for the ad creative."
+        },
+        "bodyText": {
+          "type": "string",
+          "description": "The body text content for the ad creative."
+        },
+        "imageUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the primary ad image."
+        },
+        "callToActionText": {
+          "type": "string",
+          "description": "The text for the call-to-action button."
+        },
+        "callToActionUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "The destination URL for the ad."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the campaign was created."
+        },
+        "rejectionReason": {
+          "type": "string",
+          "description": "Reason for rejection if status is 'rejected'."
+        }
+      },
+      "required": ["creatorMemberId", "name", "status", "budget", "headline", "bodyText", "imageUrl", "callToActionText", "callToActionUrl", "createdAt"]
+    },
     "TGNMember": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TGNMember",
@@ -897,7 +970,14 @@
         "path": "/posts/{postId}/comments/{commentId}",
         "entity": "Comment",
         "description": "Stores comments for a specific post. Readable by all authenticated members."
+      },
+      {
+        "path": "/ads/{adId}",
+        "entity": "AdCampaign",
+        "description": "Stores all advertising campaigns. Requires admin approval before going live. Writable by creator, manageable by admin."
       }
     ]
   }
 }
+
+    

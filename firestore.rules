@@ -263,6 +263,21 @@ service cloud.firestore {
     }
 
     /**
+     * @description Controls access to ad campaigns.
+     * @path /ads/{adId}
+     * @allow (read) - Owner and admins can read.
+     * @allow (create) - Owner can create.
+     * @allow (update) - Owner can update (but not status), admin can update anything.
+     * @allow (delete) - Owner and admin can delete.
+     */
+     match /ads/{adId} {
+      allow read: if isOwner(resource.data.creatorMemberId) || isAdmin();
+      allow create: if isOwner(request.resource.data.creatorMemberId);
+      allow update: if isAdmin() || (isOwner(resource.data.creatorMemberId) && request.resource.data.status == resource.data.status);
+      allow delete: if isOwner(resource.data.creatorMemberId) || isAdmin();
+    }
+
+    /**
      * @description Controls access to community posts.
      * @path /posts/{postId}
      * @allow (list, get) - Any authenticated user can read posts.
@@ -306,3 +321,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

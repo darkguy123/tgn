@@ -186,6 +186,24 @@ export interface Cause {
     createdAt: any; // Allow Firestore ServerTimestamp
 }
 
+export interface AdCampaign {
+    id: string;
+    creatorMemberId: string;
+    creatorName: string;
+    creatorImageId: string;
+    name: string;
+    status: 'pending' | 'active' | 'paused' | 'rejected';
+    budget: number;
+    amountSpent?: number;
+    headline: string;
+    bodyText: string;
+    imageUrl: string;
+    callToActionText: string;
+    callToActionUrl: string;
+    createdAt: any; // Firestore Timestamp
+    rejectionReason?: string;
+}
+
 export interface AffiliateReferral {
     id: string;
     referrerMemberId: string;
@@ -193,3 +211,5 @@ export interface AffiliateReferral {
     level: number;
     commissionPercentage: number;
 }
+
+    
