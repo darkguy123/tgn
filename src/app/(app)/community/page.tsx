@@ -46,6 +46,7 @@ import { collection, addDoc, serverTimestamp, query, orderBy, updateDoc, doc } f
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 
 const communityNavItems = [
   { label: 'Feed', icon: LayoutGrid, path: '/community' },
