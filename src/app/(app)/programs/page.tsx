@@ -12,7 +12,7 @@ import {
   BookCheck, Circle, CheckCircle, GraduationCap, Video
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import placeholderImages from "@/lib/placeholder-images.json";
 import type { Program } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,7 +42,7 @@ const ProgramsPage = () => {
   const router = useRouter();
 
   const firestore = useFirestore();
-  const programsCollectionRef = useMemoFirebase(() => collection(firestore, 'programs'), [firestore]);
+  const programsCollectionRef = useMemoFirebase(() => query(collection(firestore, 'programs'), where('deactivatedAt', '==', null)), [firestore]);
   const { data: allPrograms, isLoading, error } = useCollection<Program>(programsCollectionRef);
 
   const programsByType = useMemo(() => {
@@ -416,5 +416,3 @@ const ProgramsPage = () => {
 };
 
 export default ProgramsPage;
-
-    

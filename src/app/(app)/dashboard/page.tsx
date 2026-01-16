@@ -43,7 +43,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { products, events, sectors } from '@/lib/data';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { collection } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import type { TGNMember, Program, Product, Event, Sector } from '@/lib/types';
 import { getRecommendations, RecommendationResult } from '@/app/actions';
 
@@ -60,7 +60,7 @@ const Dashboard = () => {
   const firestore = useFirestore();
 
   const programsCollectionRef = useMemoFirebase(
-    () => collection(firestore, 'programs'),
+    () => query(collection(firestore, 'programs'), where('deactivatedAt', '==', null)),
     [firestore]
   );
   const usersCollectionRef = useMemoFirebase(
@@ -636,5 +636,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
-    

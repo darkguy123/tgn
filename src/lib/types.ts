@@ -44,9 +44,9 @@ export type Program = {
   format: 'Live' | 'Pre-recorded' | 'Self-paced' | 'Hybrid';
   type: 'Free' | 'Paid' | 'Executive';
   googleMeetUrl?: string;
-  createdAt: string;
-  updatedAt?: string;
-  deactivatedAt?: string;
+  createdAt: any;
+  updatedAt?: any;
+  deactivatedAt?: any;
 };
 
 export type Post = {
@@ -150,5 +150,3 @@ export interface AffiliateReferral {
     level: number;
     commissionPercentage: number;
 }
-
-    
