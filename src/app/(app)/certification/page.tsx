@@ -10,10 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   CheckCircle2,
-  Circle,
   FileText,
   Star,
-  Activity,
+  Award,
+  BookOpen,
+  Calendar,
+  BadgeDollarSign,
 } from "lucide-react";
 
 export default function CertificationPage() {
@@ -28,7 +30,7 @@ export default function CertificationPage() {
         </p>
       </header>
 
-      <Tabs defaultValue="mentee" className="w-full">
+      <Tabs defaultValue="mentor" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="mentee">Mentee Verification</TabsTrigger>
           <TabsTrigger value="mentor">Mentor Certification</TabsTrigger>
@@ -71,39 +73,94 @@ export default function CertificationPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold mb-2">
-                  TGN Certified Mentor
+                <h3 className="text-lg font-semibold mb-4">
+                  TGN Certified Mentor Path
                 </h3>
                 <div className="grid gap-4">
-                  <div className="flex items-center gap-4 p-4 border rounded-lg">
-                    <CheckCircle2 className="h-6 w-6 text-green-500" />
+                  <div className="flex items-start gap-4 p-4 border rounded-lg">
+                    <BadgeDollarSign className="h-6 w-6 text-primary mt-1" />
                     <div>
-                      <p className="font-medium">Complete Onboarding Program</p>
+                      <p className="font-medium">Complete 3 Paid Programs</p>
                       <p className="text-sm text-muted-foreground">
-                        Status: Completed
+                        Status: 1 of 3 completed
                       </p>
                     </div>
-                    <Progress value={100} className="ml-auto w-1/4" />
+                    <Progress value={33} className="ml-auto w-1/4 mt-2" />
                   </div>
-                  <div className="flex items-center gap-4 p-4 border rounded-lg">
-                    <Activity className="h-6 w-6 text-primary" />
+
+                  <div className="flex items-start gap-4 p-4 border rounded-lg">
+                    <Calendar className="h-6 w-6 text-primary mt-1" />
                     <div>
-                      <p className="font-medium">Platform Activity</p>
+                      <p className="font-medium">Be Active for 3+ Months</p>
                       <p className="text-sm text-muted-foreground">
-                        Mentor at least 3 mentees over 6 months.
+                        Status: 1.5 of 3 months
                       </p>
                     </div>
-                    <Progress value={40} className="ml-auto w-1/4" />
+                    <Progress value={50} className="ml-auto w-1/4 mt-2" />
                   </div>
-                  <div className="flex items-center gap-4 p-4 border rounded-lg">
-                    <Circle className="h-6 w-6 text-muted-foreground" />
+
+                  <div className="flex items-start gap-4 p-4 border rounded-lg">
+                    <Star className="h-6 w-6 text-primary mt-1" />
                     <div>
-                      <p className="font-medium">Pass Evaluation</p>
+                      <p className="font-medium">
+                        Achieve 7-Star Mentee Badge
+                      </p>
                       <p className="text-sm text-muted-foreground">
-                        Receive positive feedback from your mentees.
+                        Current: ★ 4
                       </p>
                     </div>
-                    <Progress value={0} className="ml-auto w-1/4" />
+                    <Progress value={(4 / 7) * 100} className="ml-auto w-1/4 mt-2" />
+                  </div>
+
+                  <div className="flex items-start gap-4 p-4 border rounded-lg">
+                    <BookOpen className="h-6 w-6 text-primary mt-1" />
+                    <div>
+                      <p className="font-medium">
+                        Complete Certification Curriculum
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Includes assessments and practicum.
+                      </p>
+                    </div>
+                    <Button variant="outline" size="sm" className="ml-auto">
+                      Start Curriculum
+                    </Button>
+                  </div>
+
+                  <div className="flex items-start gap-4 p-4 border rounded-lg">
+                    <CheckCircle2 className="h-6 w-6 text-primary mt-1" />
+                    <div>
+                      <p className="font-medium">Pass TGN Evaluation</p>
+                      <p className="text-sm text-muted-foreground">
+                        Final review by the TGN committee.
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="ml-auto"
+                      disabled
+                    >
+                      Pending
+                    </Button>
+                  </div>
+
+                  <div className="flex items-start gap-4 p-4 border rounded-lg bg-primary/5 border-primary/20">
+                    <Award className="h-6 w-6 text-primary mt-1" />
+                    <div>
+                      <p className="font-medium">Certificate Issued</p>
+                      <p className="text-sm text-muted-foreground">
+                        Your official TGN Certified Mentor certificate.
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="ml-auto"
+                      disabled
+                    >
+                      View Certificate
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -133,7 +190,12 @@ export default function CertificationPage() {
                         Complete a verification call and platform orientation.
                       </p>
                     </div>
-                     <Button variant="outline" size="sm" className="ml-auto" disabled>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="ml-auto"
+                      disabled
+                    >
                       Schedule
                     </Button>
                   </div>
