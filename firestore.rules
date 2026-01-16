@@ -351,7 +351,8 @@ service cloud.firestore {
       allow create: if request.auth.uid in request.resource.data.participantIds;
 
       // Chat metadata can be read or updated by participants.
-      allow read, update: if request.auth.uid in resource.data.participantIds;
+      // For list queries, this rule requires a query with `where('participantIds', 'array-contains', request.auth.uid)`
+      allow read, update: if 'participantIds' in resource.data && request.auth.uid in resource.data.participantIds;
 
       match /messages/{messageId} {
         // Messages can be read by any participant of the chat.
