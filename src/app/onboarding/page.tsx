@@ -20,38 +20,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { sectors, continents, countries } from "@/lib/data";
+import { continents, countries } from "@/lib/data";
 import { ArrowLeft, Check } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/icons";
-import { useUser, useFirestore, useAuth } from "@/firebase";
+import { useUser, useFirestore } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { Textarea } from "@/components/ui/textarea";
 import { useRouter } from "next/navigation";
 
-const totalSteps = 4;
-
-const roles = [
-    "Mentee",
-    "Mentor Candidate",
-    "Associate",
-    "Collaborator",
-    "Sponsor",
-    "Country Manager",
-    "Volunteer",
-    "Media"
-];
+const totalSteps = 1;
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
-  const [role, setRole] = useState("");
-  const [selectedSectors, setSelectedSectors] = useState<string[]>([]);
   const { user } = useUser();
   const firestore = useFirestore();
-  const auth = useAuth();
-  const router = useRouter();
 
   const handleNext = async () => {
     if (step === totalSteps) {
@@ -67,10 +50,6 @@ export default function OnboardingPage() {
         locationContinent: formData.get("continent"),
         locationCountry: formData.get("country"),
         locationRegion: formData.get("region"),
-        role: formData.get("role"),
-        purpose: formData.get("purpose"),
-        identityProfile: formData.get("identityProfile"),
-        sectorPreferences: selectedSectors,
       };
 
       if (user) {
@@ -86,16 +65,6 @@ export default function OnboardingPage() {
   };
   
   const handleBack = () => setStep((s) => Math.max(s - 1, 1));
-
-  const handleSectorChange = (sector: string, checked: boolean | "indeterminate") => {
-    if (checked) {
-      if(selectedSectors.length < 30) {
-        setSelectedSectors([...selectedSectors, sector]);
-      }
-    } else {
-      setSelectedSectors(selectedSectors.filter((s) => s !== sector));
-    }
-  };
 
   const progress = (step / totalSteps) * 100;
 
@@ -122,7 +91,7 @@ export default function OnboardingPage() {
               <Progress value={progress} className="mb-4" />
               <CardTitle>Universal Member Onboarding</CardTitle>
               <CardDescription>
-                Step {step} of {totalSteps}: Complete your profile to join the network.
+                Step {step} of {totalSteps}: Let's start with your location.
               </CardDescription>
             </>
           ) : (
@@ -171,57 +140,7 @@ export default function OnboardingPage() {
               </div>
             </div>
           )}
-          {step === 2 && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="role">Primary Role</Label>
-                <Select onValueChange={setRole} value={role} name="role">
-                  <SelectTrigger id="role">
-                    <SelectValue placeholder="Select your role..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.map(r => <SelectItem key={r} value={r.toLowerCase().replace(' ', '_')}>{r}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-          {step === 3 && (
-            <div className="space-y-4">
-                <div className="space-y-2">
-                    <Label>Sector Preferences (up to 30)</Label>
-                    <p className="text-sm text-muted-foreground">
-                        Select industries you're interested in or have expertise in.
-                    </p>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-64 overflow-y-auto">
-                    {sectors.map((sector) => (
-                        <div key={sector} className="flex items-center space-x-2">
-                            <Checkbox 
-                                id={sector.toLowerCase()}
-                                onCheckedChange={(checked) => handleSectorChange(sector, checked)}
-                                checked={selectedSectors.includes(sector)}
-                                disabled={selectedSectors.length >= 30 && !selectedSectors.includes(sector)}
-                            />
-                            <Label htmlFor={sector.toLowerCase()} className="font-normal">{sector}</Label>
-                        </div>
-                    ))}
-                </div>
-                <p className="text-sm text-muted-foreground">{selectedSectors.length} of 30 selected.</p>
-            </div>
-          )}
-          {step === 4 && (
-            <div className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="purpose">Purpose</Label>
-                    <Textarea id="purpose" name="purpose" placeholder="What is your purpose for joining the network?" />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="identityProfile">Identity Profile</Label>
-                    <Textarea id="identityProfile" name="identityProfile" placeholder="Describe your self-identified identity." />
-                </div>
-            </div>
-          )}
+          
           {step > totalSteps && (
               <div className="text-center">
                   <p>You can now access all features of the network.</p>

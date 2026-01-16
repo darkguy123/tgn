@@ -61,8 +61,7 @@
         "signInType",
         "email",
         "locationContinent",
-        "locationCountry",
-        "role"
+        "locationCountry"
       ]
     },
     "Sector": {
