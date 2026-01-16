@@ -11,12 +11,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getMatchExplanation } from "@/app/actions";
-import type { Member } from "@/lib/data";
+import type { TGNMember } from "@/lib/types";
 import { Sparkles, Loader2, AlertTriangle } from "lucide-react";
 
 type MatchExplanationProps = {
-  mentor: Member;
-  mentee: Member;
+  mentor: TGNMember;
+  mentee: TGNMember;
 };
 
 const initialState = {
@@ -46,6 +46,8 @@ function SubmitButton() {
 export function MatchExplanation({ mentor, mentee }: MatchExplanationProps) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useFormState(getMatchExplanation, initialState);
+  
+  const mentorName = mentor.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
   useEffect(() => {
     if (state.explanation || state.error) {
@@ -56,8 +58,8 @@ export function MatchExplanation({ mentor, mentee }: MatchExplanationProps) {
   return (
     <>
       <form action={formAction}>
-        <input type="hidden" name="menteeProfile" value={mentee.profile} />
-        <input type="hidden" name="mentorProfile" value={mentor.profile} />
+        <input type="hidden" name="menteeProfile" value={JSON.stringify(mentee)} />
+        <input type="hidden" name="mentorProfile" value={JSON.stringify(mentor)} />
         <SubmitButton />
       </form>
 
@@ -69,7 +71,7 @@ export function MatchExplanation({ mentor, mentee }: MatchExplanationProps) {
               Match Explanation
             </DialogTitle>
             <DialogDescription>
-              AI-powered insights into why {mentor.name} is a great match for you.
+              AI-powered insights into why {mentorName} is a great match for you.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
@@ -90,3 +92,5 @@ export function MatchExplanation({ mentor, mentee }: MatchExplanationProps) {
     </>
   );
 }
+
+    

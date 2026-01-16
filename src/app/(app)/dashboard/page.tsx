@@ -15,7 +15,6 @@ import {
   Wallet,
   Share2,
   Star,
-  Heart,
   Bell,
   ChevronRight,
   Play,
@@ -28,6 +27,7 @@ import {
   ShoppingBag,
   Briefcase,
   ExternalLink,
+  Heart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
@@ -40,7 +40,7 @@ import {
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { useMentorCertification } from '@/hooks/useMentorCertification';
 import { Skeleton } from '@/components/ui/skeleton';
-import { members, products, events, sectors } from '@/lib/data';
+import { products, events, sectors } from '@/lib/data';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { collection } from 'firebase/firestore';
@@ -401,65 +401,8 @@ const Dashboard = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {[
-                  {
-                    authorName: 'Maria Santos',
-                    role: 'Mentee',
-                    content:
-                      'Just completed my first certification module! 🎉 Thank you to my mentor for the guidance.',
-                    likes: 24,
-                    time: '2h ago',
-                  },
-                  {
-                    authorName: 'James Chen',
-                    role: 'Mentor',
-                    content:
-                      'Excited to announce our new cohort starting next week. Applications open!',
-                    likes: 42,
-                    time: '5h ago',
-                  },
-                ].map((post, i) => {
-                  const author = members.find(m => m.name === post.authorName);
-                  const authorImage = author
-                    ? getImage(author.imageId)
-                    : null;
-
-                  return (
-                    <div key={i} className="p-4 bg-muted/30 rounded-lg">
-                      <div className="flex items-center gap-3 mb-3">
-                        <Avatar className="h-10 w-10">
-                          {authorImage && (
-                            <AvatarImage
-                              src={authorImage.imageUrl}
-                              alt={post.authorName}
-                            />
-                          )}
-                          <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                            {post.authorName[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium text-foreground">
-                            {post.authorName}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {post.role} • {post.time}
-                          </p>
-                        </div>
-                      </div>
-                      <p className="text-foreground mb-3">{post.content}</p>
-                      <div className="flex items-center gap-4 text-muted-foreground text-sm">
-                        <button className="flex items-center gap-1 hover:text-accent transition-colors">
-                          <Heart className="h-4 w-4" /> {post.likes}
-                        </button>
-                        <button className="flex items-center gap-1 hover:text-primary transition-colors">
-                          <MessageSquare className="h-4 w-4" /> Reply
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="space-y-4 text-center text-muted-foreground p-4">
+                <p>View the latest community posts.</p>
               </div>
             </CardContent>
           </Card>
@@ -693,3 +636,5 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+    

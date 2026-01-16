@@ -35,7 +35,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
-import { members } from '@/lib/data';
 
 
 const NAV_ITEMS = [
@@ -64,8 +63,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { profile } = useMemberProfile();
   const userName = user?.displayName || 'Member';
   
-  const member = members.find(m => m.tgnId === profile?.tgnMemberId);
-  const profilePath = member ? `/profile/${member.id}` : '#';
+  const profilePath = profile ? `/profile/${profile.id}` : '#';
 
   const handleLogout = () => {
     signOut(auth);
@@ -197,3 +195,5 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 };
 
 export default DashboardLayout;
+
+    

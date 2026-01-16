@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useWallet } from '@/hooks/useWallet';
-import { transactions, userWallet as mockWallet, savedCards, members, chartData } from '@/lib/data';
+import { transactions, userWallet as mockWallet, savedCards, chartData } from '@/lib/data';
 import { 
     ArrowDownLeft, ArrowUpRight, DollarSign, Upload, CreditCard, Plus, MoreHorizontal, 
     Send, TrendingUp, TrendingDown, ClipboardCopy, Loader2, PartyPopper, Gift, Heart, User, Building, Landmark
@@ -32,19 +32,26 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
-import type { Member } from '@/lib/types';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import type { TGNMember, Transaction, SavedCard } from '@/lib/types';
+
 
 const WalletPage = () => {
     const { wallet, isLoading: isWalletLoading } = useWallet();
     const { profile, isLoading: isProfileLoading } = useMemberProfile();
     const { toast } = useToast();
+    const firestore = useFirestore();
+
+    const usersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+    const { data: allMembers, isLoading: membersLoading } = useCollection<TGNMember>(usersRef);
 
     // Send Money Dialog State
     const [isSendOpen, setSendOpen] = useState(false);
     const [sendStep, setSendStep] = useState(1);
     const [recipientId, setRecipientId] = useState('');
     const [debouncedRecipientId, setDebouncedRecipientId] = useState('');
-    const [recipient, setRecipient] = useState<Member | null | 'loading' | 'not_found'>(null);
+    const [recipient, setRecipient] = useState<TGNMember & { name: string } | null | 'loading' | 'not_found'>(null);
     const [amount, setAmount] = useState('');
     const [pin, setPin] = useState('');
 
@@ -55,13 +62,17 @@ const WalletPage = () => {
     const [accountNumber, setAccountNumber] = useState('');
 
     const displayWallet = wallet || mockWallet;
-    const isLoading = isWalletLoading || isProfileLoading;
+    const isLoading = isWalletLoading || isProfileLoading || membersLoading;
 
     // Debounce for recipient search
     useEffect(() => {
         const handler = setTimeout(() => setDebouncedRecipientId(recipientId), 500);
         return () => clearTimeout(handler);
     }, [recipientId]);
+
+    const getNameFromEmail = (email: string) => {
+        return email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
 
     useEffect(() => {
         if (debouncedRecipientId.trim() === '') {
@@ -70,10 +81,14 @@ const WalletPage = () => {
         }
         setRecipient('loading');
         setTimeout(() => {
-            const foundMember = members.find(m => m.tgnId.toLowerCase() === debouncedRecipientId.toLowerCase());
-            setRecipient(foundMember || 'not_found');
+            const foundMember = allMembers?.find(m => m.tgnMemberId.toLowerCase() === debouncedRecipientId.toLowerCase());
+            if (foundMember) {
+                setRecipient({ ...foundMember, name: getNameFromEmail(foundMember.email) });
+            } else {
+                setRecipient('not_found');
+            }
         }, 500);
-    }, [debouncedRecipientId]);
+    }, [debouncedRecipientId, allMembers]);
 
     const formatCurrency = (amount: number, currency = 'USD') => {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
@@ -138,7 +153,8 @@ const WalletPage = () => {
     };
 
 
-    const getImage = (imageId: string) => {
+    const getImage = (imageId?: string) => {
+      if (!imageId) return null;
       return placeholderImages.placeholderImages.find((p) => p.id === imageId);
     };
     
@@ -350,7 +366,7 @@ const WalletPage = () => {
                                                 </Avatar>
                                                 <div>
                                                     <p className="font-semibold">{recipient.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{recipient.tgnId}</p>
+                                                    <p className="text-xs text-muted-foreground">{recipient.tgnMemberId}</p>
                                                 </div>
                                             </div>
                                         )}
@@ -382,7 +398,7 @@ const WalletPage = () => {
                                             </Avatar>
                                             <div>
                                                 <p className="font-semibold">{recipient.name}</p>
-                                                <p className="text-xs text-muted-foreground">{recipient.tgnId}</p>
+                                                <p className="text-xs text-muted-foreground">{recipient.tgnMemberId}</p>
                                             </div>
                                         </div>
                                          <div className="space-y-2">
@@ -545,3 +561,5 @@ const WalletPage = () => {
 };
 
 export default WalletPage;
+
+    

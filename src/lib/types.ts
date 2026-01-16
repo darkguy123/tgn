@@ -14,24 +14,6 @@ export interface TGNMember {
     createdAt?: string;
 }
 
-export type Member = {
-  id: string;
-  tgnId: string;
-  name: string;
-  role: string;
-  location: string;
-  country: string;
-  sector: string;
-  isVerified: boolean;
-  profile: string;
-  imageId: string;
-  bannerImageId?: string;
-  joinDate?: string;
-  badge: number;
-  connections: number;
-};
-
-
 export interface Product {
     id: string;
     name: string;
@@ -90,7 +72,7 @@ export type ChatMessage = {
 
 export type ChatConversation = {
   id: string;
-  participants: Member[];
+  participants: TGNMember[];
   messages: ChatMessage[];
   unreadCount?: number;
 };
@@ -168,3 +150,5 @@ export interface AffiliateReferral {
     level: number;
     commissionPercentage: number;
 }
+
+    

@@ -12,11 +12,10 @@ import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import type { Cause } from '@/lib/types';
+import type { Cause, TGNMember } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { HeartHandshake, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
-import { members } from '@/lib/data';
 import placeholderImages from '@/lib/placeholder-images.json';
 
 const getImage = (imageId: string) => {
@@ -31,6 +30,9 @@ export default function CausesPage() {
     [firestore]
   );
   const { data: causes, isLoading, error } = useCollection<Cause>(causesQuery);
+  
+  const usersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const { data: allUsers, isLoading: usersLoading } = useCollection<TGNMember>(usersRef);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -56,7 +58,7 @@ export default function CausesPage() {
         </Button>
       </header>
 
-      {isLoading && (
+      {(isLoading || usersLoading) && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 3 }).map((_, i) => (
             <Card key={i}>
@@ -84,7 +86,7 @@ export default function CausesPage() {
         </div>
       )}
 
-      {!isLoading && causes?.length === 0 && (
+      {!isLoading && !usersLoading && causes?.length === 0 && (
          <div className="text-center py-20 border-2 border-dashed rounded-lg">
             <HeartHandshake className="mx-auto h-12 w-12 text-muted-foreground" />
             <h3 className="mt-4 text-lg font-medium">No Active Causes</h3>
@@ -103,8 +105,8 @@ export default function CausesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {causes?.map(cause => {
           const progress = (cause.currentAmount / cause.goalAmount) * 100;
-          const creator = members.find(m => m.tgnId === cause.creatorMemberId);
-          const creatorImage = creator ? getImage(creator.imageId) : null;
+          const creator = allUsers?.find(u => u.tgnMemberId === cause.creatorMemberId);
+          const creatorImage = creator?.imageId ? getImage(creator.imageId) : null;
           
           return (
             <Card key={cause.id} className="flex flex-col">
@@ -144,3 +146,5 @@ export default function CausesPage() {
     </div>
   );
 }
+
+    
