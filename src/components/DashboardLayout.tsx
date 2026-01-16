@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Logo } from '@/components/icons';
@@ -10,7 +9,6 @@ import {
   Sparkles,
   ShoppingBag,
   Award,
-  Menu,
   Bell,
   LogOut,
   GraduationCap,
@@ -39,6 +37,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import placeholderImages from '@/lib/placeholder-images.json';
+import { BottomNav } from './BottomNav';
 
 
 const NAV_ITEMS = [
@@ -74,7 +73,6 @@ const getImage = (imageId?: string) => {
 
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useUser();
@@ -91,19 +89,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-foreground/20 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
+      {/* Desktop Sidebar */}
       <aside
         className={cn(
-          'fixed top-0 left-0 h-full w-64 bg-card border-r border-border z-50 transform transition-transform duration-300 lg:translate-x-0 flex flex-col',
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          'fixed top-0 left-0 h-full w-64 bg-card border-r border-border z-40 hidden lg:flex flex-col'
         )}
       >
         <div className="p-4 border-b border-border">
@@ -119,7 +108,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               variant={pathname.startsWith(item.path) ? 'default' : 'ghost'}
               onClick={() => {
                 router.push(item.path);
-                setSidebarOpen(false);
               }}
               className="w-full flex items-center justify-start gap-3 px-3 py-2.5"
             >
@@ -128,10 +116,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </Button>
           ))}
         </nav>
-
-        <div className="p-4 border-t border-border">
-          {/* Logout moved to user dropdown */}
-        </div>
       </aside>
 
       {/* Main content */}
@@ -139,23 +123,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         {/* Header */}
         <header className="sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border">
           <div className="flex items-center justify-between px-4 py-3">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 hover:bg-muted rounded-lg"
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
-              <div className="lg:hidden">
-                <Link href="/dashboard">
-                  <Logo className="h-8 object-contain" />
-                </Link>
-              </div>
+            <div className="flex items-center gap-3 lg:hidden">
+              <Link href="/dashboard">
+                <Logo className="h-8 object-contain" />
+              </Link>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 lg:w-full lg:justify-end">
               <Button variant="ghost" size="icon" className="p-2 hover:bg-muted rounded-lg relative">
                 <Bell className="h-5 w-5 text-muted-foreground" />
                 <span className="absolute top-1 right-1 h-2 w-2 bg-accent rounded-full" />
@@ -205,17 +179,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </header>
 
         {/* Page content */}
-        <main className="p-4 lg:p-6 max-w-7xl mx-auto">{children}</main>
+        <main className="p-4 lg:p-6 max-w-7xl mx-auto pb-24 lg:pb-6">{children}</main>
 
-        {/* Footer */}
-        <footer className="py-6 text-center text-sm text-muted-foreground border-t border-border mt-8">
+        <footer className="py-6 text-center text-sm text-muted-foreground border-t border-border mt-8 hidden lg:block">
           <p>Transcend Global Network © All rights reserved</p>
         </footer>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
     </div>
   );
 };
 
 export default DashboardLayout;
-
-    
