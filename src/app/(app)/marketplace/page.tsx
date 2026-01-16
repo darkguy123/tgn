@@ -26,7 +26,6 @@ import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import placeholderImages from '@/lib/placeholder-images.json';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import {
@@ -38,10 +37,6 @@ import {
 } from '@/components/ui/select';
 import { Search, Wallet, CheckCircle, XCircle, ShoppingBag, List } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-
-const getImage = (imageId: string) => {
-  return placeholderImages.placeholderImages.find(p => p.id === imageId);
-};
 
 export default function MarketplacePage() {
   const firestore = useFirestore();
@@ -177,7 +172,6 @@ export default function MarketplacePage() {
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {products?.map(product => {
-          const sellerImg = getImage(product.sellerImageId);
           return (
             <Card key={product.id} className="flex flex-col overflow-hidden group">
               <CardHeader className="p-0 relative">
@@ -208,7 +202,7 @@ export default function MarketplacePage() {
                 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
                     <Avatar className="h-6 w-6">
-                        <AvatarImage src={sellerImg?.imageUrl} />
+                        <AvatarImage src={product.sellerAvatarUrl} />
                         <AvatarFallback>{product.sellerName.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <span>{product.sellerName}</span>
@@ -272,5 +266,3 @@ export default function MarketplacePage() {
     </div>
   );
 }
-
-    

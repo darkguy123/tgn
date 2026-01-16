@@ -21,6 +21,7 @@ import {
   Calendar,
   BarChart3,
   Megaphone,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -60,6 +61,17 @@ const NAV_ITEMS = [
   { id: 'settings', label: 'Settings', icon: Settings, path: '/settings/profile' },
 ];
 
+const ADMIN_NAV_ITEMS = [
+    { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/admin/analytics' },
+    { id: 'users', label: 'Users', icon: Users, path: '/admin/users' },
+    { id: 'kyc', label: 'KYC', icon: Shield, path: '/admin/kyc' },
+    { id: 'programs', label: 'Programs', icon: GraduationCap, path: '/admin/programs' },
+    { id: 'events', label: 'Events', icon: Calendar, path: '/admin/events' },
+    { id: 'products', label: 'Products', icon: ShoppingBag, path: '/admin/products' },
+    { id: 'causes', label: 'Causes', icon: Heart, path: '/admin/causes' },
+    { id: 'ads', label: 'Ads', icon: Megaphone, path: '/admin/ads' },
+];
+
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
@@ -85,6 +97,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const handleLogout = () => {
     signOut(auth);
   };
+  
+  const isAdmin = profile?.role === 'country-manager';
 
   return (
     <div className="min-h-screen bg-background">
@@ -114,6 +128,24 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               {item.label}
             </Button>
           ))}
+          {isAdmin && (
+            <>
+                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Admin</div>
+                {ADMIN_NAV_ITEMS.map((item) => (
+                    <Button
+                    key={item.id}
+                    variant={pathname.startsWith(item.path) ? 'default' : 'ghost'}
+                    onClick={() => {
+                        router.push(item.path);
+                    }}
+                    className="w-full flex items-center justify-start gap-3 px-3 py-2.5"
+                    >
+                    <item.icon className="h-5 w-5" />
+                    {item.label}
+                    </Button>
+                ))}
+            </>
+          )}
         </nav>
       </aside>
 

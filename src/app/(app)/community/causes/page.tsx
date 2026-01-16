@@ -23,6 +23,11 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Wallet as WalletIcon, CreditCard, TrendingUp, ChevronRight, Loader2 } from 'lucide-react';
 
+const PAYMENT_METHODS = [
+  { id: 'wallet', label: 'TGN Wallet', icon: WalletIcon },
+  { id: 'card', label: 'Credit/Debit Card', icon: CreditCard },
+];
+
 export default function CausesPage() {
   const firestore = useFirestore();
   const causesQuery = useMemoFirebase(

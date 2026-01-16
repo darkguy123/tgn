@@ -60,10 +60,11 @@ export default function NewCausePage() {
     try {
       await addDoc(collection(firestore, 'causes'), {
         ...data,
-        creatorMemberId: profile.tgnMemberId,
-        creatorName: user.displayName || profile.email.split('@')[0],
-        creatorImageId: 'default-avatar', // This should be dynamic based on user profile
+        creatorMemberId: profile.id,
+        creatorName: profile.name || profile.email.split('@')[0],
+        creatorAvatarUrl: profile.avatarUrl,
         currentAmount: 0,
+        backersCount: 0,
         status: 'pending',
         createdAt: serverTimestamp(),
       });
