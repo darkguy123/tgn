@@ -36,7 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Wallet, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Wallet, CheckCircle, XCircle, ShoppingBag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const getImage = (imageId: string) => {
