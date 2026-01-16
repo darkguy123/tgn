@@ -42,7 +42,7 @@ export interface Product {
     description: string;
     price: number;
     type: 'Book' | 'Course' | 'Tool' | 'Digital Asset';
-    imageId: string;
+    imageUrl: string;
     
     sellerMemberId: string;
     sellerName: string; 
@@ -172,3 +172,5 @@ export interface AffiliateReferral {
     level: number;
     commissionPercentage: number;
 }
+
+    

@@ -70,14 +70,13 @@ export default function AdminProductsPage() {
       </TableHeader>
       <TableBody>
         {filteredProducts.map(product => {
-            const img = getImage(product.imageId);
             const sellerImg = getImage(product.sellerImageId);
             return (
                 <TableRow key={product.id}>
                     <TableCell>
                         <div className="flex items-center gap-3">
                              <Image
-                                src={img?.imageUrl || 'https://placehold.co/120x80'}
+                                src={product.imageUrl || 'https://placehold.co/120x80'}
                                 alt={product.name}
                                 width={120}
                                 height={80}
@@ -185,3 +184,5 @@ export default function AdminProductsPage() {
     </div>
   );
 }
+
+    

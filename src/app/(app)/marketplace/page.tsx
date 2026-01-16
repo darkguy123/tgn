@@ -36,7 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Wallet, CheckCircle, XCircle, ShoppingBag } from 'lucide-react';
+import { Search, Wallet, CheckCircle, XCircle, ShoppingBag, List } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const getImage = (imageId: string) => {
@@ -100,9 +100,17 @@ export default function MarketplacePage() {
             Books, courses, and tools from our expert members.
           </p>
         </div>
-        <Button asChild>
-          <Link href="/marketplace/new">Sell Your Product</Link>
-        </Button>
+        <div className="flex gap-2">
+            <Button asChild variant="outline">
+                <Link href="/marketplace/my-products">
+                    <List className="mr-2 h-4 w-4" />
+                    My Products
+                </Link>
+            </Button>
+            <Button asChild>
+                <Link href="/marketplace/new">Sell Your Product</Link>
+            </Button>
+        </div>
       </header>
 
       <Card>
@@ -169,19 +177,17 @@ export default function MarketplacePage() {
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {products?.map(product => {
-          const img = getImage(product.imageId);
           const sellerImg = getImage(product.sellerImageId);
           return (
             <Card key={product.id} className="flex flex-col overflow-hidden group">
               <CardHeader className="p-0 relative">
                 <Link href="#">
                   <Image
-                    src={img?.imageUrl || 'https://placehold.co/600x400'}
+                    src={product.imageUrl || 'https://placehold.co/600x400'}
                     alt={product.name}
                     width={600}
                     height={400}
                     className="aspect-[3/2] w-full object-cover transition-transform group-hover:scale-105"
-                    data-ai-hint={img?.imageHint}
                   />
                 </Link>
                 <Badge
@@ -266,3 +272,5 @@ export default function MarketplacePage() {
     </div>
   );
 }
+
+    

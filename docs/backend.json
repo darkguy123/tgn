@@ -494,9 +494,10 @@
             "Digital Asset"
           ]
         },
-        "imageId": {
+        "imageUrl": {
           "type": "string",
-          "description": "Reference to an image in placeholder-images.json."
+          "format": "uri",
+          "description": "URL of the primary product image."
         },
         "approvalStatus": {
           "type": "string",
@@ -520,7 +521,7 @@
         "description",
         "price",
         "type",
-        "imageId",
+        "imageUrl",
         "approvalStatus",
         "createdAt"
       ]
@@ -813,3 +814,5 @@
     ]
   }
 }
+
+    
