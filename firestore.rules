@@ -87,15 +87,14 @@ service cloud.firestore {
     /**
      * @description Controls access to a TGN Member's profile document.
      * @path /users/{userId}
-     * @allow (get) - Any authenticated user can read individual user profiles to enable directory and matchmaking features.
-     * @allow (list) - Any signed-in user can list all users for the directory. Admin-only pages are secured by the app's layout.
+     * @allow (read) - Any authenticated user can read user profiles to enable directory and matchmaking features.
      * @allow (create) - A new user creating their own profile.
      * @allow (update) - A user can update their own non-sensitive data. An admin can update any user's data.
      * @allow (delete) - Only an admin can delete user profiles.
      * @principle Restricts write access to a user's own data tree, but allows reads for social features. Admins have override privileges.
      */
     match /users/{userId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isAdmin() ||
                     // A user can update their own profile, but not change protected fields.
@@ -309,13 +308,15 @@ service cloud.firestore {
     /**
      * @description Controls access to ad campaigns.
      * @path /ads/{adId}
-     * @allow (read) - Owner and admins can read.
-     * @allow (create) - Owner can create.
+     * @allow (get) - A single ad can be read if it is active, or by its owner, or by an admin.
+     * @allow (list) - An authenticated user can perform list queries. Queries will be validated against 'get' rules.
+     * @allow (create) - The ad creator can create a campaign.
      * @allow (update) - Owner can update (but not status), admin can update anything.
      * @allow (delete) - Owner and admin can delete.
      */
      match /ads/{adId} {
-      allow read: if isOwner(resource.data.creatorMemberId) || isAdmin();
+      allow get: if (resource.data.status == 'active') || isOwner(resource.data.creatorMemberId) || isAdmin();
+      allow list: if isSignedIn();
       allow create: if isOwner(request.resource.data.creatorMemberId);
       allow update: if isAdmin() || (isOwner(resource.data.creatorMemberId) && request.resource.data.status == resource.data.status);
       allow delete: if isOwner(resource.data.creatorMemberId) || isAdmin();
