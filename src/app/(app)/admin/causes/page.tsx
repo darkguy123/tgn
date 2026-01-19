@@ -39,27 +39,27 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
-export default function AdminCausesPage() {
+export default function AdminFundraisePage() {
   const firestore = useFirestore();
-  const causesRef = useMemoFirebase(() => collection(firestore, 'causes'), [firestore]);
-  const { data: causes, isLoading, error } = useCollection<Cause>(causesRef);
+  const fundraisersRef = useMemoFirebase(() => collection(firestore, 'causes'), [firestore]);
+  const { data: fundraisers, isLoading, error } = useCollection<Cause>(fundraisersRef);
   const { toast } = useToast();
 
-  const handleUpdateStatus = (causeId: string, status: 'approved' | 'rejected') => {
+  const handleUpdateStatus = (fundraiserId: string, status: 'approved' | 'rejected') => {
     if (!firestore) return;
-    const causeDocRef = doc(firestore, 'causes', causeId);
+    const fundraiserDocRef = doc(firestore, 'causes', fundraiserId);
     
-    updateDoc(causeDocRef, { status })
+    updateDoc(fundraiserDocRef, { status })
       .then(() => {
         toast({
-          title: 'Cause Updated',
-          description: `The cause has been ${status}.`,
+          title: 'Fundraiser Updated',
+          description: `The fundraiser has been ${status}.`,
         });
       })
       .catch((serverError) => {
-        console.error("Failed to update cause status: ", serverError);
+        console.error("Failed to update fundraiser status: ", serverError);
         const permissionError = new FirestorePermissionError({
-          path: causeDocRef.path,
+          path: fundraiserDocRef.path,
           operation: 'update',
           requestResourceData: { status }
         });
@@ -72,7 +72,7 @@ export default function AdminCausesPage() {
       });
   };
 
-  const renderTable = (filteredCauses: Cause[]) => (
+  const renderTable = (filteredFundraisers: Cause[]) => (
     <Table>
       <TableHeader>
         <TableRow>
@@ -85,30 +85,30 @@ export default function AdminCausesPage() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {filteredCauses.map(cause => (
-          <TableRow key={cause.id}>
-            <TableCell>{cause.creatorName}</TableCell>
-            <TableCell className="font-medium">{cause.title}</TableCell>
-            <TableCell>${cause.goalAmount.toLocaleString()}</TableCell>
+        {filteredFundraisers.map(fundraiser => (
+          <TableRow key={fundraiser.id}>
+            <TableCell>{fundraiser.creatorName}</TableCell>
+            <TableCell className="font-medium">{fundraiser.title}</TableCell>
+            <TableCell>${fundraiser.goalAmount.toLocaleString()}</TableCell>
             <TableCell>
               <Badge
                 variant={
-                  cause.status === 'approved'
+                  fundraiser.status === 'approved'
                     ? 'default'
-                    : cause.status === 'rejected'
+                    : fundraiser.status === 'rejected'
                     ? 'destructive'
                     : 'secondary'
                 }
-                className={cn(cause.status === 'approved' && 'bg-green-600')}
+                className={cn(fundraiser.status === 'approved' && 'bg-green-600')}
               >
-                {cause.status}
+                {fundraiser.status}
               </Badge>
             </TableCell>
             <TableCell>
-              {cause.createdAt?.toDate ? formatDistanceToNow(cause.createdAt.toDate(), { addSuffix: true }) : 'N/A'}
+              {fundraiser.createdAt?.toDate ? formatDistanceToNow(fundraiser.createdAt.toDate(), { addSuffix: true }) : 'N/A'}
             </TableCell>
             <TableCell className="text-right">
-              {cause.status === 'pending' && (
+              {fundraiser.status === 'pending' && (
                  <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button aria-haspopup="true" size="icon" variant="ghost">
@@ -118,10 +118,10 @@ export default function AdminCausesPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => handleUpdateStatus(cause.id, 'approved')}>
+                    <DropdownMenuItem onClick={() => handleUpdateStatus(fundraiser.id, 'approved')}>
                       <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Approve
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleUpdateStatus(cause.id, 'rejected')}>
+                    <DropdownMenuItem onClick={() => handleUpdateStatus(fundraiser.id, 'rejected')}>
                       <XCircle className="mr-2 h-4 w-4 text-red-500" /> Reject
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -130,10 +130,10 @@ export default function AdminCausesPage() {
             </TableCell>
           </TableRow>
         ))}
-        {filteredCauses.length === 0 && (
+        {filteredFundraisers.length === 0 && (
             <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground h-24">
-                    No causes in this category.
+                    No fundraisers in this category.
                 </TableCell>
             </TableRow>
         )}
@@ -141,17 +141,17 @@ export default function AdminCausesPage() {
     </Table>
   );
 
-  const pendingCauses = causes?.filter(c => c.status === 'pending') ?? [];
-  const approvedCauses = causes?.filter(c => c.status === 'approved') ?? [];
-  const rejectedCauses = causes?.filter(c => c.status === 'rejected') ?? [];
+  const pendingFundraisers = fundraisers?.filter(c => c.status === 'pending') ?? [];
+  const approvedFundraisers = fundraisers?.filter(c => c.status === 'approved') ?? [];
+  const rejectedFundraisers = fundraisers?.filter(c => c.status === 'rejected') ?? [];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Cause Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Fundraiser Management</h1>
           <p className="text-muted-foreground">
-            Review, approve, and manage all member-submitted causes.
+            Review, approve, and manage all member-submitted fundraisers.
           </p>
         </div>
       </div>
@@ -162,13 +162,13 @@ export default function AdminCausesPage() {
             <div className="px-6 pt-4">
                 <TabsList>
                 <TabsTrigger value="pending">
-                    <Clock className="mr-2 h-4 w-4" /> Pending ({pendingCauses.length})
+                    <Clock className="mr-2 h-4 w-4" /> Pending ({pendingFundraisers.length})
                 </TabsTrigger>
                 <TabsTrigger value="approved">
-                    <CheckCircle className="mr-2 h-4 w-4" /> Approved ({approvedCauses.length})
+                    <CheckCircle className="mr-2 h-4 w-4" /> Approved ({approvedFundraisers.length})
                 </TabsTrigger>
                 <TabsTrigger value="rejected">
-                    <XCircle className="mr-2 h-4 w-4" /> Rejected ({rejectedCauses.length})
+                    <XCircle className="mr-2 h-4 w-4" /> Rejected ({rejectedFundraisers.length})
                 </TabsTrigger>
                 </TabsList>
             </div>
@@ -177,18 +177,18 @@ export default function AdminCausesPage() {
                 {Array.from({length: 5}).map((_, i) => <Skeleton key={i} className="h-12 w-full mt-2" />)}
             </div>}
 
-            {error && <p className="p-6 text-destructive">Failed to load causes.</p>}
+            {error && <p className="p-6 text-destructive">Failed to load fundraisers.</p>}
 
-            {!isLoading && causes && (
+            {!isLoading && fundraisers && (
                 <>
                     <TabsContent value="pending" className="m-0">
-                        {renderTable(pendingCauses)}
+                        {renderTable(pendingFundraisers)}
                     </TabsContent>
                     <TabsContent value="approved" className="m-0">
-                        {renderTable(approvedCauses)}
+                        {renderTable(approvedFundraisers)}
                     </TabsContent>
                     <TabsContent value="rejected" className="m-0">
-                        {renderTable(rejectedCauses)}
+                        {renderTable(rejectedFundraisers)}
                     </TabsContent>
                 </>
             )}

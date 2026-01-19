@@ -52,7 +52,7 @@ const NAV_ITEMS = [
   { id: 'network', label: 'My Network', icon: Network, path: '/network' },
   { id: 'directory', label: 'Member Directory', icon: Users, path: '/directory' },
   { id: 'events', label: 'Events', icon: Calendar, path: '/community/events' },
-  { id: 'causes', label: 'Causes', icon: Heart, path: '/community/causes' },
+  { id: 'fundraise', label: 'Fundraise', icon: Heart, path: '/community/causes' },
   { id: 'matchmaking', label: 'Matchmaking', icon: Sparkles, path: '/matchmaking' },
   { id: 'cohorts', label: 'My Cohorts', icon: Users, path: '/cohorts' },
   { id: 'impact', label: 'Impact', icon: BarChart3, path: '/impact' },
@@ -72,7 +72,7 @@ const ADMIN_NAV_ITEMS = [
     { id: 'programs', label: 'Programs', icon: GraduationCap, path: '/admin/programs' },
     { id: 'events', label: 'Events', icon: Calendar, path: '/admin/events' },
     { id: 'products', label: 'Products', icon: ShoppingBag, path: '/admin/products' },
-    { id: 'causes', label: 'Causes', icon: Heart, path: '/admin/causes' },
+    { id: 'fundraise', label: 'Fundraise', icon: Heart, path: '/admin/causes' },
     { id: 'ads', label: 'Ads', icon: Megaphone, path: '/admin/ads' },
 ];
 

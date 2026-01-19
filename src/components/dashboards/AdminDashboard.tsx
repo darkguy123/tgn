@@ -2,7 +2,7 @@
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Shield, Calendar, ExternalLink, CheckCheck, BarChart3, Users, Megaphone } from 'lucide-react';
+import { Shield, Calendar, ExternalLink, CheckCheck, BarChart3, Users, Megaphone, Heart } from 'lucide-react';
 
 export function AdminDashboard() {
     const router = useRouter();
@@ -30,7 +30,7 @@ export function AdminDashboard() {
                     Manage KYC <CheckCheck className="ml-2 h-4 w-4" />
                 </Button>
                 <Button variant="outline" onClick={() => router.push('/admin/causes')}>
-                    Manage Causes <ExternalLink className="ml-2 h-4 w-4" />
+                    Manage Fundraisers <Heart className="ml-2 h-4 w-4" />
                 </Button>
                 <Button variant="outline" onClick={() => router.push('/admin/analytics')}>
                     View Analytics <BarChart3 className="ml-2 h-4 w-4" />

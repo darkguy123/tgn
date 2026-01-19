@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, doc, updateDoc, runTransaction } from 'firebase/firestore';
-import type { Cause, TGNMember } from '@/lib/types';
+import type { Cause } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Heart, PlusCircle, PackageSearch, Users, Calendar, MapPin, Target } from 'lucide-react';
 import Link from 'next/link';
@@ -28,30 +28,31 @@ const PAYMENT_METHODS = [
   { id: 'card', label: 'Credit/Debit Card', icon: CreditCard },
 ];
 
-export default function CausesPage() {
+export default function FundraisePage() {
   const firestore = useFirestore();
-  const causesQuery = useMemoFirebase(
+  const fundraisersQuery = useMemoFirebase(
     () =>
       query(collection(firestore, 'causes'), where('status', '==', 'approved')),
     [firestore]
   );
-  const { data: causes, isLoading: causesLoading, error } = useCollection<Cause>(causesQuery);
+  const { data: fundraisers, isLoading: fundraisersLoading, error } = useCollection<Cause>(fundraisersQuery);
   
   const { wallet, isLoading: walletLoading } = useWallet();
   const { toast } = useToast();
 
-  const [selectedCause, setSelectedCause] = useState<Cause | null>(null);
+  const [selectedFundraiser, setSelectedFundraiser] = useState<Cause | null>(null);
   const [contributionAmount, setContributionAmount] = useState("");
   const [selectedPayment, setSelectedPayment] = useState("wallet");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isLoading = causesLoading;
+  const isLoading = fundraisersLoading;
 
-  const totalRaised = causes?.reduce((acc, cause) => acc + cause.currentAmount, 0) || 0;
-  const totalBackers = causes?.reduce((acc, cause) => acc + (cause.backersCount || 0), 0) || 0;
+  const totalRaised = fundraisers?.reduce((acc, fundraiser) => acc + fundraiser.currentAmount, 0) || 0;
+  const totalBackers = fundraisers?.reduce((acc, fundraiser) => acc + (fundraiser.backersCount || 0), 0) || 0;
+  const fundedCount = fundraisers?.filter(c => c.currentAmount >= c.goalAmount).length || 0;
 
   const handleContribute = async () => {
-    if (!selectedCause || !contributionAmount) return;
+    if (!selectedFundraiser || !contributionAmount) return;
 
     const amount = parseFloat(contributionAmount);
     if (isNaN(amount) || amount <= 0) {
@@ -69,18 +70,18 @@ export default function CausesPage() {
     setIsSubmitting(true);
 
     try {
-        const causeRef = doc(firestore, 'causes', selectedCause.id);
+        const fundraiserRef = doc(firestore, 'causes', selectedFundraiser.id);
 
         await runTransaction(firestore, async (transaction) => {
-            const causeDoc = await transaction.get(causeRef);
-            if (!causeDoc.exists()) {
-                throw "Cause does not exist!";
+            const fundraiserDoc = await transaction.get(fundraiserRef);
+            if (!fundraiserDoc.exists()) {
+                throw "Fundraiser does not exist!";
             }
 
-            const newCurrentAmount = causeDoc.data().currentAmount + amount;
-            const newBackersCount = (causeDoc.data().backersCount || 0) + 1;
+            const newCurrentAmount = fundraiserDoc.data().currentAmount + amount;
+            const newBackersCount = (fundraiserDoc.data().backersCount || 0) + 1;
             
-            transaction.update(causeRef, { 
+            transaction.update(fundraiserRef, { 
                 currentAmount: newCurrentAmount,
                 backersCount: newBackersCount,
             });
@@ -94,10 +95,10 @@ export default function CausesPage() {
 
         toast({
             title: 'Contribution Successful!',
-            description: `You've contributed ${formatCurrency(amount)} to "${selectedCause.title}".`,
+            description: `You've contributed ${formatCurrency(amount)} to "${selectedFundraiser.title}".`,
         });
 
-        setSelectedCause(null);
+        setSelectedFundraiser(null);
         setContributionAmount("");
 
     } catch (e) {
@@ -127,7 +128,7 @@ export default function CausesPage() {
       <div className="space-y-6">
         <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Community Causes</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Community Fundraisers</h1>
             <p className="text-muted-foreground">
               Support fundraising campaigns from our global community members.
             </p>
@@ -135,7 +136,7 @@ export default function CausesPage() {
           <Button asChild>
             <Link href="/community/causes/new">
               <PlusCircle className="mr-2 h-4 w-4" />
-              Create a Cause
+              Create a Fundraiser
             </Link>
           </Button>
         </header>
@@ -157,8 +158,8 @@ export default function CausesPage() {
                     <div className="flex items-center gap-3">
                         <Target className="h-8 w-8 text-primary" />
                         <div>
-                            <p className="text-2xl font-bold text-foreground">{causes?.length || 0}</p>
-                            <p className="text-sm text-muted-foreground">Active Causes</p>
+                            <p className="text-2xl font-bold text-foreground">{fundraisers?.length || 0}</p>
+                            <p className="text-sm text-muted-foreground">Active Fundraisers</p>
                         </div>
                     </div>
                 </CardContent>
@@ -179,8 +180,8 @@ export default function CausesPage() {
                     <div className="flex items-center gap-3">
                         <Calendar className="h-8 w-8 text-accent" />
                         <div>
-                            <p className="text-2xl font-bold text-foreground">12</p>
-                            <p className="text-sm text-muted-foreground">Causes Funded</p>
+                            <p className="text-2xl font-bold text-foreground">{fundedCount}</p>
+                            <p className="text-sm text-muted-foreground">Fundraisers Funded</p>
                         </div>
                     </div>
                 </CardContent>
@@ -211,14 +212,14 @@ export default function CausesPage() {
           </div>
         )}
 
-        {error && <p className="text-destructive">Failed to load causes.</p>}
+        {error && <p className="text-destructive">Failed to load fundraisers.</p>}
 
-        {!isLoading && causes?.length === 0 && (
+        {!isLoading && fundraisers?.length === 0 && (
            <div className="text-center py-20 border-2 border-dashed rounded-lg">
               <Heart className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-4 text-lg font-medium">No Active Causes</h3>
+              <h3 className="mt-4 text-lg font-medium">No Active Fundraisers</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                  There are no approved fundraising causes at the moment.
+                  There are no approved fundraising campaigns at the moment.
               </p>
               <Button className="mt-6" asChild>
                   <Link href="/community/causes/new">
@@ -230,46 +231,46 @@ export default function CausesPage() {
         )}
 
         <div className="grid md:grid-cols-2 gap-6">
-            {causes?.map(cause => (
-                    <Card key={cause.id} className="hover:shadow-card transition-all duration-300">
+            {fundraisers?.map(fundraiser => (
+                    <Card key={fundraiser.id} className="hover:shadow-card transition-all duration-300">
                     <CardHeader>
                     <div className="flex items-start gap-4">
                         <Avatar className="h-12 w-12 rounded-lg">
-                           <AvatarImage src={cause.creatorAvatarUrl} />
-                           <AvatarFallback>{cause.creatorName.charAt(0)}</AvatarFallback>
+                           <AvatarImage src={fundraiser.creatorAvatarUrl} />
+                           <AvatarFallback>{fundraiser.creatorName.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                        <CardTitle className="text-lg">{cause.title}</CardTitle>
+                        <CardTitle className="text-lg">{fundraiser.title}</CardTitle>
                         <CardDescription className="flex items-center gap-2 mt-1">
-                            <span>by {cause.creatorName}</span>
+                            <span>by {fundraiser.creatorName}</span>
                         </CardDescription>
                         </div>
                     </div>
                     </CardHeader>
                     <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{cause.description}</p>
+                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{fundraiser.description}</p>
                     
                     <div className="mb-4">
                         <div className="flex justify-between text-sm mb-2">
-                        <span className="font-bold text-foreground">{formatCurrency(cause.currentAmount)}</span>
-                        <span className="text-muted-foreground">of {formatCurrency(cause.goalAmount)}</span>
+                        <span className="font-bold text-foreground">{formatCurrency(fundraiser.currentAmount)}</span>
+                        <span className="text-muted-foreground">of {formatCurrency(fundraiser.goalAmount)}</span>
                         </div>
-                        <Progress value={(cause.currentAmount / cause.goalAmount) * 100} />
+                        <Progress value={(fundraiser.currentAmount / fundraiser.goalAmount) * 100} />
                     </div>
 
                     <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
                         <span className="flex items-center gap-1">
-                        <Users className="h-4 w-4" /> {cause.backersCount || 0} backers
+                        <Users className="h-4 w-4" /> {fundraiser.backersCount || 0} backers
                         </span>
                         <span className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" /> {getDaysLeft(cause.createdAt)} days left
+                        <Calendar className="h-4 w-4" /> {getDaysLeft(fundraiser.createdAt)} days left
                         </span>
                     </div>
 
                     <Button 
                         variant="accent" 
                         className="w-full"
-                        onClick={() => setSelectedCause(cause)}
+                        onClick={() => setSelectedFundraiser(fundraiser)}
                     >
                         <Heart className="h-4 w-4 mr-2" /> Contribute
                     </Button>
@@ -280,12 +281,12 @@ export default function CausesPage() {
         </div>
       </div>
       
-       <Dialog open={!!selectedCause} onOpenChange={(open) => !open && setSelectedCause(null)}>
+       <Dialog open={!!selectedFundraiser} onOpenChange={(open) => !open && setSelectedFundraiser(null)}>
         <DialogContent>
-            {selectedCause && (
+            {selectedFundraiser && (
                 <>
                     <DialogHeader>
-                        <DialogTitle>Support {selectedCause.title}</DialogTitle>
+                        <DialogTitle>Support {selectedFundraiser.title}</DialogTitle>
                         <DialogDescription>Choose your contribution amount and payment method</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -357,7 +358,7 @@ export default function CausesPage() {
                             <Button 
                                 variant="outline" 
                                 className="flex-1"
-                                onClick={() => setSelectedCause(null)}
+                                onClick={() => setSelectedFundraiser(null)}
                             >
                                 Cancel
                             </Button>

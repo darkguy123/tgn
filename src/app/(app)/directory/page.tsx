@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -319,8 +320,8 @@ const DirectoryPage = () => {
                       <Send className="h-4 w-4 mr-1" />
                       Connect
                   </Button>
-                  <Button variant="accent" size="sm" className="flex-1 transition-all hover:-translate-y-0.5 hover:shadow-accent" onClick={() => router.push(`/profile/${member.id}`)}>
-                    View Profile
+                  <Button asChild variant="accent" size="sm" className="flex-1 transition-all hover:-translate-y-0.5 hover:shadow-accent">
+                    <Link href={`/profile/${member.id}`}>View Profile</Link>
                   </Button>
                 </div>
               </CardContent>

@@ -20,20 +20,20 @@ const ImpactPage = () => {
 
   const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const newUsersQuery = useMemoFirebase(() => query(collection(firestore, 'users'), where('createdAt', '>=', thirtyDaysAgoTimestamp)), [firestore, thirtyDaysAgoTimestamp]);
-  const causesQuery = useMemoFirebase(() => query(collection(firestore, 'causes'), where('status', '==', 'approved')), [firestore]);
+  const fundraisersQuery = useMemoFirebase(() => query(collection(firestore, 'causes'), where('status', '==', 'approved')), [firestore]);
 
   // --- DATA FETCHING ---
   const { data: allUsers, isLoading: usersLoading } = useCollection<TGNMember>(usersQuery);
   const { data: newUsers, isLoading: newUsersLoading } = useCollection<TGNMember>(newUsersQuery);
-  const { data: causes, isLoading: causesLoading } = useCollection<Cause>(causesQuery);
+  const { data: fundraisers, isLoading: fundraisersLoading } = useCollection<Cause>(fundraisersQuery);
 
-  const isLoading = usersLoading || newUsersLoading || causesLoading;
+  const isLoading = usersLoading || newUsersLoading || fundraisersLoading;
   
   // --- CALCULATIONS ---
   const totalMembers = allUsers?.length || 0;
   const newMembersCount = newUsers?.length || 0;
-  const totalRaised = causes?.reduce((acc, cause) => acc + cause.currentAmount, 0) || 0;
-  const fundedCauses = causes?.filter(c => c.currentAmount >= c.goalAmount).length || 0;
+  const totalRaised = fundraisers?.reduce((acc, fundraiser) => acc + fundraiser.currentAmount, 0) || 0;
+  const fundedFundraisers = fundraisers?.filter(c => c.currentAmount >= c.goalAmount).length || 0;
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -109,7 +109,7 @@ const ImpactPage = () => {
             {renderStatCard("Total Members", totalMembers, <Users className="h-4 w-4" />, isLoading)}
             {renderStatCard("New Members (30d)", newMembersCount, <TrendingUp className="h-4 w-4" />, isLoading)}
             {renderStatCard("Total Raised", formatCurrency(totalRaised), <DollarSign className="h-4 w-4" />, isLoading)}
-            {renderStatCard("Causes Funded", fundedCauses, <Heart className="h-4 w-4" />, isLoading)}
+            {renderStatCard("Fundraisers Funded", fundedFundraisers, <Heart className="h-4 w-4" />, isLoading)}
           </div>
         </CardContent>
       </Card>

@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { ArrowLeft } from 'lucide-react';
 
-const causeSchema = z.object({
+const fundraiserSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters'),
   description: z.string().min(20, 'Description must be at least 20 characters'),
   goalAmount: z.preprocess(
@@ -30,9 +30,9 @@ const causeSchema = z.object({
   ),
 });
 
-type CauseFormData = z.infer<typeof causeSchema>;
+type FundraiserFormData = z.infer<typeof fundraiserSchema>;
 
-export default function NewCausePage() {
+export default function NewFundraiserPage() {
   const router = useRouter();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -43,21 +43,21 @@ export default function NewCausePage() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<CauseFormData>({
-    resolver: zodResolver(causeSchema),
+  } = useForm<FundraiserFormData>({
+    resolver: zodResolver(fundraiserSchema),
   });
 
-  const onSubmit = (data: CauseFormData) => {
+  const onSubmit = (data: FundraiserFormData) => {
     if (!user || !profile || !firestore) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'You must be logged in to create a cause.',
+        description: 'You must be logged in to create a fundraiser.',
       });
       return;
     }
 
-    const causesCollection = collection(firestore, 'causes');
+    const fundraisersCollection = collection(firestore, 'causes');
     const dataToSave = {
       ...data,
       creatorMemberId: profile.id,
@@ -69,18 +69,18 @@ export default function NewCausePage() {
       createdAt: serverTimestamp(),
     };
     
-    addDoc(causesCollection, dataToSave)
+    addDoc(fundraisersCollection, dataToSave)
       .then(() => {
         toast({
-          title: 'Cause Submitted!',
-          description: 'Your cause has been submitted for admin approval.',
+          title: 'Fundraiser Submitted!',
+          description: 'Your fundraiser has been submitted for admin approval.',
         });
         router.push('/community/causes');
       })
       .catch((error) => {
-        console.error('Failed to create cause:', error);
+        console.error('Failed to create fundraiser:', error);
         const permissionError = new FirestorePermissionError({
-          path: causesCollection.path,
+          path: fundraisersCollection.path,
           operation: 'create',
           requestResourceData: dataToSave
         });
@@ -88,7 +88,7 @@ export default function NewCausePage() {
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: 'Failed to create the cause. Please try again.',
+          description: 'Failed to create the fundraiser. Please try again.',
         });
       });
   };
@@ -100,7 +100,7 @@ export default function NewCausePage() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Create a New Cause</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Create a New Fundraiser</h1>
           <p className="text-muted-foreground">
             Share your initiative and start fundraising from the community.
           </p>
@@ -109,14 +109,14 @@ export default function NewCausePage() {
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card>
           <CardHeader>
-            <CardTitle>Cause Details</CardTitle>
+            <CardTitle>Fundraiser Details</CardTitle>
             <CardDescription>
-              Your cause will be reviewed by an admin before it goes live.
+              Your fundraiser will be reviewed by an admin before it goes live.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="title">Cause Title</Label>
+              <Label htmlFor="title">Fundraiser Title</Label>
               <Input
                 id="title"
                 {...register('title')}
@@ -132,7 +132,7 @@ export default function NewCausePage() {
                 id="description"
                 {...register('description')}
                 className="min-h-32"
-                placeholder="Tell the community about your cause. What is the problem, and how will you solve it?"
+                placeholder="Tell the community about your fundraiser. What is the problem, and how will you solve it?"
               />
               {errors.description && (
                 <p className="text-sm text-destructive">
