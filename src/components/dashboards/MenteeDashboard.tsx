@@ -66,13 +66,21 @@ export function MenteeDashboard() {
       !isLoadingRecs
     ) {
       setIsLoadingRecs(true);
+      // Manually serialize the data to remove Firestore Timestamps.
+      const serializableProfile = JSON.parse(JSON.stringify(profile));
+      const serializableMembers = JSON.parse(JSON.stringify(allMembers));
+      const serializablePrograms = JSON.parse(JSON.stringify(allPrograms));
+      const serializableProducts = JSON.parse(JSON.stringify(allProducts));
+      const serializableEvents = JSON.parse(JSON.stringify(allEvents));
+      const serializableSectors = JSON.parse(JSON.stringify(allSectors));
+
       getRecommendations(
-        profile,
-        allMembers,
-        allPrograms,
-        allProducts,
-        allEvents,
-        allSectors
+        serializableProfile,
+        serializableMembers,
+        serializablePrograms,
+        serializableProducts,
+        serializableEvents,
+        serializableSectors
       )
         .then(setRecommendations)
         .finally(() => setIsLoadingRecs(false));
