@@ -39,7 +39,7 @@ export interface UseDocResult<T> {
  * @returns {UseDocResult<T>} Object with data, isLoading, error.
  */
 export function useDoc<T = any>(
-  memoizedDocRef: DocumentReference<DocumentData> | null | undefined,
+  memoizedDocRef: (DocumentReference<DocumentData> & {__memo?: boolean}) | null | undefined,
 ): UseDocResult<T> {
   type StateDataType = WithId<T> | null;
 
@@ -57,17 +57,21 @@ export function useDoc<T = any>(
 
     setIsLoading(true);
     setError(null);
-    // Optional: setData(null); // Clear previous data instantly
 
     const unsubscribe = onSnapshot(
       memoizedDocRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
-        if (snapshot.exists()) {
-          setData({ ...(snapshot.data() as T), id: snapshot.id });
-        } else {
-          // Document does not exist
-          setData(null);
-        }
+        const newDocData: StateDataType = snapshot.exists()
+          ? { ...(snapshot.data() as T), id: snapshot.id }
+          : null;
+
+        setData(prevData => {
+            if (JSON.stringify(prevData) === JSON.stringify(newDocData)) {
+                return prevData;
+            }
+            return newDocData;
+        });
+        
         setError(null); // Clear any previous error on successful snapshot (even if doc doesn't exist)
         setIsLoading(false);
       },
@@ -88,6 +92,10 @@ export function useDoc<T = any>(
 
     return () => unsubscribe();
   }, [memoizedDocRef]); // Re-run if the memoizedDocRef changes.
+
+  if(memoizedDocRef && !memoizedDocRef.__memo) {
+    throw new Error('DocumentReference passed to useDoc was not properly memoized using useMemoFirebase');
+  }
 
   return { data, isLoading, error };
 }
