@@ -214,7 +214,8 @@
         "email",
         "locationContinent",
         "locationCountry",
-        "createdAt"
+        "createdAt",
+        "role"
       ]
     },
     "SavedCard": {

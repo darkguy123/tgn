@@ -67,7 +67,10 @@ export default function MemberProfilePage() {
     return notFound();
   }
 
-  const name = member.name || member.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  const name = member.name || member.email?.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || "TGN Member";
+  const role = member.role?.replace('-', ' ') || 'Member';
+  const location = member.locationCountry || 'Location not set';
+  const avatarFallback = name.charAt(0) || "T";
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -81,10 +84,10 @@ export default function MemberProfilePage() {
             <div className="p-6 pt-20 flex flex-col md:flex-row justify-between items-start">
                 <div>
                   <h1 className="text-2xl font-bold">{name}</h1>
-                  <p className="text-muted-foreground capitalize">{member.role.replace('-', ' ')}</p>
+                  <p className="text-muted-foreground capitalize">{role}</p>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                     <MapPin className="h-4 w-4" />
-                    <span>{member.locationCountry}</span>
+                    <span>{location}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mt-4 md:mt-0 shrink-0">
@@ -97,7 +100,7 @@ export default function MemberProfilePage() {
             </div>
              <Avatar className="absolute -top-16 left-6 h-32 w-32 rounded-full border-4 border-card">
               <AvatarImage src={member.avatarUrl} alt={name} />
-              <AvatarFallback className="text-4xl">{name.charAt(0)}</AvatarFallback>
+              <AvatarFallback className="text-4xl">{avatarFallback}</AvatarFallback>
             </Avatar>
           </div>
         </Card>
