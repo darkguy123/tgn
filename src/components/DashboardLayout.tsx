@@ -24,8 +24,6 @@ import {
   Shield,
   LayoutGrid,
   Network,
-  Globe,
-  Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -39,19 +37,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuGroup,
-  DropdownMenuPortal,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { BottomNav } from './BottomNav';
 import { NotificationsMenu } from './NotificationsMenu';
-import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import type { FriendRequest } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
-import { countries } from '@/lib/data';
 
 
 const NAV_ITEMS = [
@@ -97,7 +88,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { profile } = useMemberProfile();
   const userName = profile?.name || user?.displayName || 'Member';
   const firestore = useFirestore();
-  const { toast } = useToast();
 
   const requestsQuery = useMemoFirebase(
     () => user ? query(collection(firestore, 'friend_requests'), where('recipientId', '==', user.uid), where('status', '==', 'pending')) : null,
@@ -113,26 +103,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
   
   const isAdmin = profile?.role === 'country-manager';
-
-  const languages = [
-    { code: 'en', name: 'English' },
-    { code: 'es', name: 'Español' },
-    { code: 'fr', name: 'Français' },
-    { code: 'pt', name: 'Português' },
-  ];
-
-  const handlePreferenceUpdate = async (field: 'language' | 'locationCountry', value: string) => {
-    if (!profile) return;
-    const userDocRef = doc(firestore, 'users', profile.id);
-    try {
-        await updateDoc(userDocRef, { [field]: value });
-        toast({ title: `${field === 'language' ? 'Language' : 'Region'} Updated`, description: `Your preference has been saved.` });
-        router.refresh();
-    } catch(e) {
-        toast({ variant: 'destructive', title: "Update Failed", description: "Could not save your preference." });
-        console.error("Preference update failed: ", e);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -195,43 +165,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </div>
 
             <div className="flex items-center gap-1 lg:w-full lg:justify-end">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="p-2 hover:bg-muted rounded-lg">
-                    <Globe className="h-5 w-5 text-muted-foreground" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Language</DropdownMenuLabel>
-                  <DropdownMenuGroup>
-                    {languages.map(lang => (
-                        <DropdownMenuItem key={lang.code} onSelect={() => handlePreferenceUpdate('language', lang.code)}>
-                            {lang.name}
-                            {profile?.language === lang.code && <Check className="ml-auto h-4 w-4" />}
-                        </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>
-                          <span>Region</span>
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuPortal>
-                          <DropdownMenuSubContent className="h-72 overflow-y-auto">
-                              <DropdownMenuLabel>Select Country</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              {countries.map(country => (
-                                  <DropdownMenuItem key={country} onSelect={() => handlePreferenceUpdate('locationCountry', country)}>
-                                      {country}
-                                      {profile?.locationCountry === country && <Check className="ml-auto h-4 w-4" />}
-                                  </DropdownMenuItem>
-                              ))}
-                          </DropdownMenuSubContent>
-                      </DropdownMenuPortal>
-                  </DropdownMenuSub>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="p-2 hover:bg-muted rounded-lg relative">

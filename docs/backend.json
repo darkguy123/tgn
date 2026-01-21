@@ -110,10 +110,6 @@
           "type": "string",
           "description": "The member's phone number."
         },
-        "language": {
-          "type": "string",
-          "description": "The user's preferred language, e.g., 'en'."
-        },
         "locationContinent": {
           "type": "string",
           "description": "Continent of the member's location."
