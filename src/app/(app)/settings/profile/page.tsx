@@ -6,14 +6,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Bell, CreditCard, Save, Trash2, Plus, Star, MoreVertical, Loader2 } from "lucide-react";
 import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, serverTimestamp, collection, addDoc, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, collection, addDoc, deleteDoc, runTransaction, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -96,10 +96,14 @@ const SettingsPage = () => {
   const {
     register: registerCard,
     handleSubmit: handleCardSubmit,
+    control: cardControl,
     formState: { errors: cardErrors, isSubmitting: isCardSubmitting },
     reset: resetCardForm
   } = useForm<CardFormData>({
     resolver: zodResolver(cardSchema),
+    defaultValues: {
+        isDefault: false
+    }
   });
   
   useEffect(() => {
@@ -162,39 +166,63 @@ const SettingsPage = () => {
     }
     setIsSavingNotifications(true);
     const userDocRef = doc(firestore, 'users', user.uid);
+    const dataToSave = {
+        notificationPreferences: notifications,
+        updatedAt: serverTimestamp()
+    };
+
     try {
-        await updateDoc(userDocRef, { notificationPreferences: notifications, updatedAt: serverTimestamp() });
+        await updateDoc(userDocRef, dataToSave);
         toast({ title: 'Preferences Saved', description: 'Your notification settings have been updated.' });
     } catch (error) {
         console.error("Failed to save notification preferences: ", error);
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: userDocRef.path, operation: 'update', requestResourceData: { notificationPreferences: notifications } }));
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: userDocRef.path, operation: 'update', requestResourceData: dataToSave }));
         toast({ variant: 'destructive', title: 'Error', description: 'Could not save your preferences.' });
     } finally {
         setIsSavingNotifications(false);
     }
   };
   
-  const handleAddCard = async (data: CardFormData) => {
-    if (!user || !cardsCollectionRef) return;
-    
-    const newCard: Omit<SavedCard, 'id'> = {
-        brand: 'Visa', // Placeholder
-        last4: data.cardNumber.slice(-4),
-        expiryMonth: data.expiryMonth,
-        expiryYear: data.expiryYear,
-        isDefault: data.isDefault,
+  const onAddCardSubmit = async (data: CardFormData) => {
+    if (!user || !cardsCollectionRef || !firestore) return;
+
+    const newCardData: Omit<SavedCard, 'id'> = {
+      brand: 'Visa', // Placeholder
+      last4: data.cardNumber.slice(-4),
+      expiryMonth: data.expiryMonth,
+      expiryYear: data.expiryYear,
+      isDefault: data.isDefault,
     };
 
-    if (data.isDefault && savedCards) {
-        // Unset other defaults
-        const updates = savedCards.filter(c => c.isDefault).map(c => updateDoc(doc(firestore, 'users', user.uid, 'cards', c.id), { isDefault: false }));
-        await Promise.all(updates);
+    try {
+      if (data.isDefault) {
+        await runTransaction(firestore, async (transaction) => {
+          const q = query(cardsCollectionRef, where('isDefault', '==', true));
+          const currentDefaults = await getDocs(q);
+          currentDefaults.forEach((docSnap) => {
+            transaction.update(docSnap.ref, { isDefault: false });
+          });
+
+          const newCardRef = doc(cardsCollectionRef);
+          transaction.set(newCardRef, newCardData);
+        });
+      } else {
+        await addDoc(cardsCollectionRef, newCardData);
+      }
+
+      toast({ title: 'Card Added', description: 'Your new payment method has been saved.' });
+      resetCardForm();
+      setAddCardOpen(false);
+    } catch (error) {
+      console.error('Failed to add card:', error);
+      const permissionError = new FirestorePermissionError({
+          path: cardsCollectionRef.path,
+          operation: 'create',
+          requestResourceData: newCardData
+      });
+      errorEmitter.emit('permission-error', permissionError);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not save your new card.' });
     }
-    
-    await addDoc(cardsCollectionRef, newCard);
-    toast({ title: "Card Added", description: "Your new payment method has been saved." });
-    resetCardForm();
-    setAddCardOpen(false);
   };
   
   const handleRemoveCard = async (cardId: string) => {
@@ -207,6 +235,31 @@ const SettingsPage = () => {
         console.error("Failed to remove card: ", error);
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: cardDocRef.path, operation: 'delete' }));
         toast({ variant: 'destructive', title: 'Error', description: 'Could not remove the card.' });
+    }
+  };
+
+  const handleSetDefault = async (cardIdToSet: string) => {
+    if (!user || !firestore || !cardsCollectionRef) return;
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const q = query(cardsCollectionRef, where('isDefault', '==', true));
+            const currentDefaults = await getDocs(q);
+            
+            currentDefaults.forEach(docSnap => {
+                if (docSnap.id !== cardIdToSet) {
+                    transaction.update(docSnap.ref, { isDefault: false });
+                }
+            });
+
+            const newDefaultRef = doc(cardsCollectionRef, cardIdToSet);
+            transaction.update(newDefaultRef, { isDefault: true });
+        });
+
+        toast({ title: "Default Card Updated" });
+    } catch (error) {
+        console.error("Failed to set default card: ", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not update your default card.' });
     }
   };
 
@@ -386,7 +439,7 @@ const SettingsPage = () => {
                                 <DialogTitle>Add a New Card</DialogTitle>
                                 <DialogDescription>Your card information is stored securely.</DialogDescription>
                             </DialogHeader>
-                            <form onSubmit={handleCardSubmit(handleAddCard)} className="space-y-4">
+                            <form onSubmit={handleCardSubmit(onAddCardSubmit)} className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="cardNumber">Card Number</Label>
                                     <Input id="cardNumber" placeholder="•••• •••• •••• ••••" {...registerCard("cardNumber")} />
@@ -411,14 +464,16 @@ const SettingsPage = () => {
                                  <div className="flex items-center space-x-2">
                                     <Controller
                                         name="isDefault"
-                                        control={control}
+                                        control={cardControl}
                                         render={({ field }) => <Switch id="isDefault" checked={field.value} onCheckedChange={field.onChange} />}
                                     />
                                     <Label htmlFor="isDefault">Set as default payment method</Label>
                                 </div>
                                 <DialogFooter>
                                     <Button type="button" variant="ghost" onClick={() => setAddCardOpen(false)}>Cancel</Button>
-                                    <Button type="submit" disabled={isCardSubmitting}>{isCardSubmitting ? 'Saving...' : 'Save Card'}</Button>
+                                    <Button type="submit" disabled={isCardSubmitting}>
+                                        {isCardSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : 'Save Card'}
+                                    </Button>
                                 </DialogFooter>
                             </form>
                         </DialogContent>
@@ -437,10 +492,24 @@ const SettingsPage = () => {
                             </div>
                             <div className="flex items-center gap-2">
                                 {card.isDefault && <Badge variant="secondary"><Star className="h-3 w-3 mr-1" /> Default</Badge>}
-                                 <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                    </AlertDialogTrigger>
+                                <AlertDialog>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                             {!card.isDefault && (
+                                                <DropdownMenuItem onClick={() => handleSetDefault(card.id)}>
+                                                    <Star className="mr-2 h-4 w-4" /> Set as default
+                                                </DropdownMenuItem>
+                                            )}
+                                            <AlertDialogTrigger asChild>
+                                                <DropdownMenuItem className="text-destructive focus:text-destructive">
+                                                    <Trash2 className="mr-2 h-4 w-4" /> Remove Card
+                                                </DropdownMenuItem>
+                                            </AlertDialogTrigger>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
                                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
