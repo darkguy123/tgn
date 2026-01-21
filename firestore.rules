@@ -87,7 +87,7 @@ service cloud.firestore {
     /**
      * @description Controls access to a TGN Member's profile document.
      * @path /users/{userId}
-     * @allow (read) - Any authenticated user can read user profiles to enable directory and matchmaking features.
+     * @allow (read, list) - Any authenticated user can read/list user profiles to enable directory and matchmaking features.
      * @allow (create) - A new user creating their own profile.
      * @allow (update) - A user can update their own non-sensitive data. An admin can update any user's data. A user can update another user's `connections` array to establish a two-way relationship.
      * @allow (delete) - Only an admin can delete user profiles.
@@ -96,7 +96,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, list: if isSignedIn();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isAdmin() || 
+      allow update: if isAdmin() ||
                     // Case 1: The user is updating their own document.
                     (isOwner(userId)
                       // They are not allowed to change these protected fields.
@@ -104,12 +104,13 @@ service cloud.firestore {
                       && request.resource.data.isVerifiedMentor == resource.data.isVerifiedMentor
                       && request.resource.data.id == resource.data.id
                       && request.resource.data.tgnMemberId == resource.data.tgnMemberId
+                      && request.resource.data.createdAt == resource.data.createdAt
                     ) ||
-                    // Case 2: Another user is updating this document.
+                    // Case 2: Another user is updating this document's connections.
+                    // This is required for accepting friend requests or removing a connection, which is a two-way operation.
                     (!isOwner(userId)
-                      // The request must be from a signed-in user.
                       && isSignedIn()
-                      // And they are ONLY allowed to modify the 'connections' field.
+                      // They are ONLY allowed to modify the 'connections' field.
                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['connections'])
                     );
       allow delete: if isAdmin();
@@ -382,7 +383,7 @@ service cloud.firestore {
       match /messages/{messageId} {
         // A user can read/write messages in a chat they are a member of.
         // This requires a `get` call to the parent chat document to check the `members` array.
-        allow read, write: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+        allow read, write: if isSignedIn() && get(/databases/$(database)/documents/chats/$(chatId)).data.members.hasAny([request.auth.uid]);
       }
     }
 
