@@ -5,6 +5,7 @@ export interface TGNMember {
     signInType: string;
     email: string;
     phone?: string;
+    language?: string;
     locationContinent: string;
     locationCountry: string;
     locationRegion?: string;
