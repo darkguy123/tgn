@@ -402,9 +402,15 @@ service cloud.firestore {
       allow delete: if false;
 
       match /messages/{messageId} {
-        // A user can read/write messages in a chat they are a member of.
-        // This requires a `get` call to the parent chat document to check the `members` array.
-        allow read, write: if isSignedIn() && get(/databases/$(database)/documents/chats/$(chatId)).data.members.hasAny([request.auth.uid]);
+        // Helper function to check if the requester is a member of the chat.
+        // Uses exists() to prevent errors on new chats.
+        function isChatMember() {
+          return exists(/databases/$(database)/documents/chats/$(chatId)) &&
+                 request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+        }
+        
+        // Allow read/write only if the user is authenticated and a member of the chat.
+        allow read, write: if isSignedIn() && isChatMember();
       }
     }
 

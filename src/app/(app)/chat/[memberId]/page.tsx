@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import type { TGNMember, ChatMessage, Chat } from '@/lib/types';
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { doc, collection, query, orderBy, addDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, collection, query, orderBy, addDoc, setDoc, updateDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 
@@ -36,15 +36,22 @@ export default function ChatPage() {
   }, [currentUser?.uid, otherMemberId]);
 
   // Firestore references
-  const otherMemberRef = useMemoFirebase(() => doc(firestore, 'users', otherMemberId), [firestore, otherMemberId]);
-  const chatDocRef = useMemoFirebase(() => chatId ? doc(firestore, 'chats', chatId) : null, [firestore, chatId]);
-  const messagesColRef = useMemoFirebase(() => chatDocRef ? collection(chatDocRef, 'messages') : null, [chatDocRef]);
-  const messagesQuery = useMemoFirebase(() => messagesColRef ? query(messagesColRef, orderBy('createdAt', 'asc')) : null, [messagesColRef]);
+  const otherMemberRef = useMemoFirebase(() => firestore ? doc(firestore, 'users', otherMemberId) : null, [firestore, otherMemberId]);
+  const chatDocRef = useMemoFirebase(() => (firestore && chatId) ? doc(firestore, 'chats', chatId) : null, [firestore, chatId]);
 
   // Data fetching hooks
-  const { data: otherMember, isLoading: isOtherUserLoading } = useDoc<TGNMember>(otherMemberRef);
+  const { data: otherMember, isLoading: isOtherUserLoading, error: otherMemberError } = useDoc<TGNMember>(otherMemberRef);
+  const { data: chatData, isLoading: isChatLoading } = useDoc<Chat>(chatDocRef);
+  
+  const messagesQuery = useMemoFirebase(() => {
+    // Only query for messages if the chat document is known to exist.
+    if (chatData && chatDocRef) {
+        return query(collection(chatDocRef, 'messages'), orderBy('createdAt', 'asc'));
+    }
+    return null;
+  }, [chatDocRef, chatData]);
+
   const { data: messages, isLoading: areMessagesLoading } = useCollection<ChatMessage>(messagesQuery);
-  const { data: chatData } = useDoc<Chat>(chatDocRef);
   
   // Refs and state for UI behavior
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -59,7 +66,7 @@ export default function ChatPage() {
 
   // Typing indicator logic
   useEffect(() => {
-    if (!chatDocRef || !currentUser) return;
+    if (!chatDocRef || !currentUser || isChatLoading) return;
     
     // Clear previous timeout
     if (typingTimeoutRef.current) {
@@ -68,26 +75,21 @@ export default function ChatPage() {
     
     const isTyping = newMessage.length > 0;
     
-    // Set typing status immediately
-    updateDoc(chatDocRef, { [`typing.${currentUser.uid}`]: isTyping }).catch((e) => {
-        const permissionError = new FirestorePermissionError({
-          path: chatDocRef.path,
-          operation: 'update',
-          requestResourceData: { [`typing.${currentUser.uid}`]: isTyping }
+    const typingUpdate = { [`typing.${currentUser.uid}`]: isTyping };
+
+    // Update typing status. If the chat document doesn't exist, this will fail gracefully.
+    // The chat doc will be created on the first message.
+    if(chatData) {
+        updateDoc(chatDocRef, typingUpdate).catch((e) => {
+            console.warn("Could not update typing indicator:", e.message);
         });
-        errorEmitter.emit('permission-error', permissionError);
-    });
+    }
 
     // If user stops typing, set status to false after a delay
-    if (!isTyping) {
+    if (!isTyping && chatData) {
         typingTimeoutRef.current = setTimeout(() => {
             updateDoc(chatDocRef, { [`typing.${currentUser.uid}`]: false }).catch((e) => {
-                const permissionError = new FirestorePermissionError({
-                    path: chatDocRef.path,
-                    operation: 'update',
-                    requestResourceData: { [`typing.${currentUser.uid}`]: false }
-                });
-                errorEmitter.emit('permission-error', permissionError);
+                 console.warn("Could not update typing indicator:", e.message);
             });
         }, 2000);
     }
@@ -97,64 +99,62 @@ export default function ChatPage() {
             clearTimeout(typingTimeoutRef.current);
         }
     }
-  }, [newMessage, chatDocRef, currentUser]);
+  }, [newMessage, chatDocRef, currentUser, chatData, isChatLoading]);
   
   const otherUserIsTyping = chatData?.typing?.[otherMemberId] === true;
   const otherMemberName = otherMember?.name || otherMember?.email?.split('@')[0] || 'User';
-  const isLoading = isOtherUserLoading || areMessagesLoading;
+  const isLoading = isOtherUserLoading || isChatLoading;
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newMessage.trim() === '' || !currentUser || !chatDocRef || !messagesColRef) return;
-
-    const messageData = {
-      senderId: currentUser.uid,
-      content: newMessage,
-      type: 'text' as const,
-      createdAt: serverTimestamp(),
-    };
-    
+    if (newMessage.trim() === '' || !currentUser || !chatDocRef || !firestore) return;
+  
+    const content = newMessage;
     setNewMessage('');
-    
-    // Create chat document if it doesn't exist
-    if (!chatData) {
-        const dataToSave = {
+  
+    try {
+      await runTransaction(firestore, async (transaction) => {
+        const chatDoc = await transaction.get(chatDocRef);
+        const messagesColRef = collection(chatDocRef, 'messages');
+        const newMessageRef = doc(messagesColRef);
+  
+        const messageData = {
+          senderId: currentUser.uid,
+          content: content,
+          type: 'text' as const,
+          createdAt: serverTimestamp(),
+        };
+  
+        // If chat doesn't exist, create it within the transaction
+        if (!chatDoc.exists()) {
+          const newChatData = {
             members: [currentUser.uid, otherMemberId],
             typing: {},
-        };
-        setDoc(chatDocRef, dataToSave).catch((e) => {
-            const permissionError = new FirestorePermissionError({
-                path: chatDocRef.path,
-                operation: 'create',
-                requestResourceData: dataToSave
-            });
-            errorEmitter.emit('permission-error', permissionError);
+          };
+          transaction.set(chatDocRef, newChatData);
+        }
+  
+        // Set the new message
+        transaction.set(newMessageRef, messageData);
+  
+        // Update the lastMessage on the chat doc
+        transaction.update(chatDocRef, {
+          lastMessage: {
+            text: content,
+            senderId: currentUser.uid,
+            timestamp: serverTimestamp(),
+          },
         });
+      });
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      const permissionError = new FirestorePermissionError({
+        path: chatDocRef.path,
+        operation: 'write',
+        requestResourceData: { message: content },
+      });
+      errorEmitter.emit('permission-error', permissionError);
     }
-
-    // Add new message and update the last message on the chat doc
-    addDoc(messagesColRef, messageData).catch((e) => {
-        const permissionError = new FirestorePermissionError({
-            path: messagesColRef.path,
-            operation: 'create',
-            requestResourceData: messageData
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    });
-    updateDoc(chatDocRef, {
-      lastMessage: {
-        text: newMessage,
-        senderId: currentUser.uid,
-        timestamp: serverTimestamp(),
-      }
-    }).catch((e) => {
-        const permissionError = new FirestorePermissionError({
-            path: chatDocRef.path,
-            operation: 'update',
-            requestResourceData: { lastMessage: { text: newMessage, senderId: currentUser.uid } }
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    });
   };
 
   if (isOtherUserLoading) {
@@ -173,7 +173,7 @@ export default function ChatPage() {
     )
   }
   
-  if (!otherMember) {
+  if (otherMemberError || !otherMember) {
       notFound();
   }
 
@@ -191,7 +191,7 @@ export default function ChatPage() {
           <div className="min-w-0">
             <p className="font-semibold truncate">{otherMemberName}</p>
             <p className="text-xs text-green-500 h-4">
-              {otherUserIsTyping ? <span className="italic animate-pulse">typing...</span> : 'Online'}
+              {otherUserIsTyping ? <span className="italic animate-pulse">typing...</span> : (chatData ? 'Online' : '')}
             </p>
           </div>
         </div>
@@ -203,8 +203,8 @@ export default function ChatPage() {
       </CardHeader>
 
       <CardContent ref={scrollRef} className="flex-1 p-4 overflow-y-auto space-y-4 bg-muted/30">
-        {isLoading && <div className="flex justify-center items-center h-full"><Loader2 className="h-6 w-6 animate-spin"/></div>}
-        {!isLoading && messages?.map(msg => (
+        {(isLoading || areMessagesLoading) && !messages && <div className="flex justify-center items-center h-full"><Loader2 className="h-6 w-6 animate-spin"/></div>}
+        {messages?.map(msg => (
           <div key={msg.id} className={cn("flex items-end gap-2", msg.senderId === currentUser?.uid ? "justify-end" : "justify-start")}>
             <div className={cn(
               "p-3 rounded-lg max-w-sm md:max-w-md",
@@ -219,6 +219,11 @@ export default function ChatPage() {
             </div>
           </div>
         ))}
+         {chatData && messages?.length === 0 && !areMessagesLoading && (
+            <div className="text-center text-muted-foreground pt-10">
+                <p>This is the beginning of your conversation with {otherMemberName}.</p>
+            </div>
+        )}
       </CardContent>
 
       <div className="p-2 md:p-4 border-t bg-background shrink-0">
