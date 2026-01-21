@@ -40,7 +40,7 @@ export default function NewProductPage() {
       imageUrl,
       sellerMemberId: user.uid,
       sellerName: profile.name || profile.email.split('@')[0],
-      sellerAvatarUrl: profile.avatarUrl,
+      sellerAvatarUrl: profile.avatarUrl || '',
       approvalStatus: 'pending' as const,
       createdAt: serverTimestamp(),
     };

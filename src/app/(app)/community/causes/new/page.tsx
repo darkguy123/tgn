@@ -62,7 +62,7 @@ export default function NewFundraiserPage() {
       ...data,
       creatorMemberId: profile.id,
       creatorName: profile.name || profile.email.split('@')[0],
-      creatorAvatarUrl: profile.avatarUrl,
+      creatorAvatarUrl: profile.avatarUrl || '',
       currentAmount: 0,
       backersCount: 0,
       status: 'pending' as const,

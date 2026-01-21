@@ -107,7 +107,7 @@ export default function NewAdPage() {
       imageUrl,
       creatorMemberId: profile.id,
       creatorName: profile.name || profile.email.split('@')[0],
-      creatorAvatarUrl: profile.avatarUrl,
+      creatorAvatarUrl: profile.avatarUrl || '',
       status: 'pending' as const,
       amountSpent: 0,
       createdAt: serverTimestamp(),

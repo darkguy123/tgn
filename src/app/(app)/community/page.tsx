@@ -30,6 +30,7 @@ import {
   Bookmark,
   MoreHorizontal,
   Loader2,
+  Heart,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -54,6 +55,7 @@ const communityNavItems = [
   { label: 'Directory', icon: Users, path: '/directory' },
   { label: 'Events', icon: Calendar, path: '/community/events' },
   { label: 'Marketplace', icon: ShoppingBag, path: '/marketplace' },
+  { label: 'Fundraise', icon: Heart, path: '/community/causes' },
 ];
 
 const postSchema = z.object({
@@ -81,7 +83,7 @@ function CreatePostDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
       content: data.content,
       authorId: profile.id,
       authorName: profile.name || profile.email.split('@')[0],
-      authorAvatarUrl: profile.avatarUrl,
+      authorAvatarUrl: profile.avatarUrl || '',
       authorRole: profile.role,
       likes: 0,
       commentsCount: 0,
@@ -171,7 +173,7 @@ function PostComments({ post }: { post: Post }) {
         content: data.content,
         authorId: profile.id,
         authorName: profile.name || profile.email.split('@')[0],
-        authorAvatarUrl: profile.avatarUrl,
+        authorAvatarUrl: profile.avatarUrl || '',
         createdAt: serverTimestamp(),
     };
     
