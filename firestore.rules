@@ -89,25 +89,29 @@ service cloud.firestore {
      * @path /users/{userId}
      * @allow (read) - Any authenticated user can read user profiles to enable directory and matchmaking features.
      * @allow (create) - A new user creating their own profile.
-     * @allow (update) - A user can update their own non-sensitive data. An admin can update any user's data.
+     * @allow (update) - A user can update their own non-sensitive data. An admin can update any user's data. A user can update another user's `connections` array to establish a two-way relationship.
      * @allow (delete) - Only an admin can delete user profiles.
      * @principle Restricts write access to a user's own data tree, but allows reads for social features. Admins have override privileges.
      */
     match /users/{userId} {
-      allow read: if isSignedIn();
+      allow read, list: if isSignedIn();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isAdmin() ||
-                    // A user can update their own profile, but not change protected fields.
-                    (isOwner(userId) &&
-                     request.resource.data.role == resource.data.role &&
-                     request.resource.data.isVerifiedMentor == resource.data.isVerifiedMentor &&
-                     request.resource.data.id == resource.data.id &&
-                     request.resource.data.tgnMemberId == resource.data.tgnMemberId
+      allow update: if isAdmin() || 
+                    // Case 1: The user is updating their own document.
+                    (isOwner(userId)
+                      // They are not allowed to change these protected fields.
+                      && request.resource.data.role == resource.data.role
+                      && request.resource.data.isVerifiedMentor == resource.data.isVerifiedMentor
+                      && request.resource.data.id == resource.data.id
+                      && request.resource.data.tgnMemberId == resource.data.tgnMemberId
                     ) ||
-                    // Allow anyone to update ONLY the connections array of another user.
-                    // This is required for the two-way connection logic to work from the client.
-                    (isSignedIn() && !isOwner(userId) &&
-                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['connections']));
+                    // Case 2: Another user is updating this document.
+                    (!isOwner(userId)
+                      // The request must be from a signed-in user.
+                      && isSignedIn()
+                      // And they are ONLY allowed to modify the 'connections' field.
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['connections'])
+                    );
       allow delete: if isAdmin();
 
       /**
