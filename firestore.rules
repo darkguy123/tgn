@@ -87,24 +87,26 @@ service cloud.firestore {
     /**
      * @description Controls access to a TGN Member's profile document.
      * @path /users/{userId}
-     * @allow (read, list) - Any authenticated user can read/list user profiles to enable directory and matchmaking features.
+     * @allow (get, list) - Any authenticated user can read/list user profiles to enable directory and matchmaking features.
      * @allow (create) - A new user creating their own profile.
      * @allow (update) - A user can update their own non-sensitive data. An admin can update any user's data. A user can update another user's `connections` array to establish a two-way relationship.
      * @allow (delete) - Only an admin can delete user profiles.
      * @principle Restricts write access to a user's own data tree, but allows reads for social features. Admins have override privileges.
      */
     match /users/{userId} {
-      allow read, list: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isAdmin() ||
-                    // Case 1: The user is updating their own document. They cannot change their own role or verification status.
-                    (isOwner(userId) &&
-                     request.resource.data.role == resource.data.role &&
-                     request.resource.data.isVerifiedMentor == resource.data.isVerifiedMentor
-                    ) ||
-                    // Case 2: Someone is updating my connections list (and nothing else). This also covers a user updating their own connections list.
-                    (isSignedIn() &&
-                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['connections']));
+      allow update: if 
+          // Case 1: Updating your own profile. You can't change your role, verification, or connections (connections are handled by Case 2).
+          (isOwner(userId) &&
+            request.resource.data.role == resource.data.role &&
+            request.resource.data.isVerifiedMentor == resource.data.isVerifiedMentor
+          ) ||
+          // Case 2: Another user is ONLY changing your connections array. This is for accepting friend requests or removing friends.
+          (isSignedIn() &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['connections'])
+          );
+
       allow delete: if isAdmin();
 
       /**
@@ -286,12 +288,12 @@ service cloud.firestore {
 
     /**
      * @description Controls access to fundraising causes.
-     * @path /causes/{causeId}
+     * @path /fundraise/{causeId}
      * @allow (read) - Authenticated users can read approved causes. Admins and creators can read any.
      * @allow (create) - Authenticated users can create a new cause for themselves.
      * @allow (update) - Admins can update. Users can contribute, updating amounts.
      */
-    match /causes/{causeId} {
+    match /fundraise/{causeId} {
         allow get: if isSignedIn() && (resource.data.status == 'approved' || isOwner(resource.data.creatorMemberId) || isAdmin());
         allow list: if isSignedIn(); // Allow listing so client can filter by 'approved'
         allow create: if isOwner(request.resource.data.creatorMemberId);

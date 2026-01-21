@@ -243,7 +243,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (memberError || !member) {
+  if (!isLoading && (memberError || !member)) {
     return notFound();
   }
   
