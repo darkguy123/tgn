@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Bell, CreditCard, Save, Trash2, Plus, Star, MoreVertical } from "lucide-react";
+import { User, Bell, CreditCard, Save, Trash2, Plus, Star, MoreVertical, Loader2 } from "lucide-react";
 import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, serverTimestamp, collection, addDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -71,6 +71,7 @@ const SettingsPage = () => {
     marketingEmails: false,
     pushNotifications: true,
   });
+  const [isSavingNotifications, setIsSavingNotifications] = useState(false);
 
   // State for billing
   const [isAddCardOpen, setAddCardOpen] = useState(false);
@@ -155,18 +156,21 @@ const SettingsPage = () => {
   };
 
   const handleSaveNotifications = async () => {
-    if (!user) {
+    if (!user || !firestore) {
         toast({ variant: 'destructive', title: 'Not Authenticated', description: 'You must be logged in to save settings.' });
         return;
     }
+    setIsSavingNotifications(true);
     const userDocRef = doc(firestore, 'users', user.uid);
     try {
-        await updateDoc(userDocRef, { notificationPreferences: notifications });
+        await updateDoc(userDocRef, { notificationPreferences: notifications, updatedAt: serverTimestamp() });
         toast({ title: 'Preferences Saved', description: 'Your notification settings have been updated.' });
     } catch (error) {
         console.error("Failed to save notification preferences: ", error);
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: userDocRef.path, operation: 'update', requestResourceData: { notificationPreferences: notifications } }));
         toast({ variant: 'destructive', title: 'Error', description: 'Could not save your preferences.' });
+    } finally {
+        setIsSavingNotifications(false);
     }
   };
   
@@ -247,6 +251,7 @@ const SettingsPage = () => {
                             onUploadComplete={setAvatarUrl}
                             label="Upload Profile Photo"
                             userId={user.uid}
+                            storagePath="public"
                         />
                     </CardContent>
                     </Card>
@@ -357,8 +362,9 @@ const SettingsPage = () => {
                     ))}
                 </CardContent>
                 <CardFooter>
-                    <Button variant="accent" onClick={handleSaveNotifications}>
-                        <Save className="h-4 w-4 mr-2" /> Save Preferences
+                    <Button variant="accent" onClick={handleSaveNotifications} disabled={isSavingNotifications}>
+                        {isSavingNotifications ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                        {isSavingNotifications ? 'Saving...' : 'Save Preferences'}
                     </Button>
                 </CardFooter>
             </Card>
