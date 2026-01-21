@@ -271,7 +271,7 @@ function PostCard({ post }: { post: Post }) {
               <AvatarFallback>{post.authorName.charAt(0)}</AvatarFallback>
             </Avatar>
             <div>
-              <Link href={`/profile/${post.authorTgnMemberId || post.authorId}`}>
+              <Link href={`/member/${post.authorTgnMemberId || post.authorId}`}>
                 <h4 className="font-semibold hover:underline">{post.authorName}</h4>
               </Link>
               <p className="text-xs text-muted-foreground">

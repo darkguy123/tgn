@@ -181,7 +181,7 @@ export default function MatchmakingPage() {
                 </div>
               </CardContent>
               <CardFooter className="p-4">
-                 <Button className="w-full" onClick={() => router.push(`/profile/${mentor.id}`)}>
+                 <Button className="w-full" onClick={() => router.push(`/member/${mentor.tgnMemberId}`)}>
                     <UserCheck className="mr-2 h-4 w-4" /> View Profile
                 </Button>
               </CardFooter>
