@@ -213,15 +213,15 @@ export default function KycPage() {
             <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <div className="space-y-2">
                     <Label>Your Avatar Photo</Label>
-                    {user && <FileUpload value={avatarUrl} onUploadComplete={setAvatarUrl} label="Upload headshot" userId={user.uid} />}
+                    {user && <FileUpload value={avatarUrl} onUploadComplete={setAvatarUrl} label="Upload headshot" userId={user.uid} storagePath="private" />}
                 </div>
                 <div className="space-y-2">
                     <Label>Professional Certificate</Label>
-                    {user && <FileUpload value={certificateUrl} onUploadComplete={setCertificateUrl} label="Upload certificate" accept={{ 'application/pdf': [], 'image/*': [] }} userId={user.uid} />}
+                    {user && <FileUpload value={certificateUrl} onUploadComplete={setCertificateUrl} label="Upload certificate" accept={{ 'application/pdf': [], 'image/*': [] }} userId={user.uid} storagePath="private" />}
                 </div>
                 <div className="space-y-2">
                     <Label>Highest Degree</Label>
-                    {user && <FileUpload value={degreeUrl} onUploadComplete={setDegreeUrl} label="Upload degree" accept={{ 'application/pdf': [], 'image/*': [] }} userId={user.uid} />}
+                    {user && <FileUpload value={degreeUrl} onUploadComplete={setDegreeUrl} label="Upload degree" accept={{ 'application/pdf': [], 'image/*': [] }} userId={user.uid} storagePath="private" />}
                 </div>
             </div>
           </CardContent>
