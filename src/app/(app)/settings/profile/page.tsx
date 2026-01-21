@@ -108,7 +108,7 @@ const SettingsPage = () => {
         });
   };
   
-  if (isLoading || !profile) {
+  if (isLoading || !profile || !user) {
     return (
         <div className="space-y-6">
             <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Settings</h1>
@@ -148,6 +148,7 @@ const SettingsPage = () => {
                             value={avatarUrl}
                             onUploadComplete={setAvatarUrl}
                             label="Upload Profile Photo"
+                            userId={user.uid}
                         />
                     </CardContent>
                     </Card>

@@ -215,7 +215,7 @@ export default function NewAdPage() {
                         </div>
                         <div className="space-y-2">
                             <Label>Image</Label>
-                            <FileUpload value={imageUrl} onUploadComplete={setImageUrl} />
+                            {profile && <FileUpload value={imageUrl} onUploadComplete={setImageUrl} userId={profile.id} />}
                         </div>
                     </CardContent>
                 </Card>

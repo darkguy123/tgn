@@ -1,23 +1,23 @@
 'use client';
 import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { UploadCloud, Loader2, File as FileIcon, X, CheckCircle, Image as ImageIcon } from 'lucide-react';
-import { useFirestore } from '@/firebase';
+import { UploadCloud, Loader2, File as FileIcon, X } from 'lucide-react';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
+import { Button } from './button';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 interface FileUploadProps {
   onUploadComplete: (url: string) => void;
+  userId: string;
   value?: string;
   label?: string;
   accept?: Record<string, string[]>;
 }
 
-export function FileUpload({ onUploadComplete, value, label, accept = { 'image/*': ['.jpeg', '.png', '.gif'] } }: FileUploadProps) {
+export function FileUpload({ onUploadComplete, userId, value, label, accept = { 'image/*': ['.jpeg', '.png', '.gif'] } }: FileUploadProps) {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [fileUrl, setFileUrl] = useState<string | null>(value || null);
   const [isUploading, setIsUploading] = useState(false);
@@ -41,7 +41,7 @@ export function FileUpload({ onUploadComplete, value, label, accept = { 'image/*
       }
       const file = acceptedFiles[0];
       const storage = getStorage();
-      const storageRef = ref(storage, `uploads/${new Date().getTime()}-${file.name}`);
+      const storageRef = ref(storage, `uploads/${userId}/${new Date().getTime()}-${file.name}`);
       const uploadTask = uploadBytesResumable(storageRef, file);
 
       setIsUploading(true);
@@ -68,7 +68,7 @@ export function FileUpload({ onUploadComplete, value, label, accept = { 'image/*
         }
       );
     },
-    [onUploadComplete, toast]
+    [onUploadComplete, toast, userId]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept, multiple: false });

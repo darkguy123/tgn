@@ -1,6 +1,6 @@
 'use client';
 import { useRouter, useParams } from 'next/navigation';
-import { useFirestore, useDoc, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, errorEmitter, FirestorePermissionError, useUser } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import type { Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +15,7 @@ export default function EditProductPage() {
   const { productId } = params;
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { user } = useUser();
 
   const productRef = useMemoFirebase(
     () => (firestore && productId ? doc(firestore, 'products', productId as string) : null),
@@ -57,7 +58,7 @@ export default function EditProductPage() {
       });
   };
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
@@ -96,7 +97,7 @@ export default function EditProductPage() {
           <p className="text-muted-foreground">Editing &quot;{product.name}&quot;</p>
         </div>
       </div>
-      <ProductForm onSave={handleSave} initialData={product} isEditing />
+      <ProductForm onSave={handleSave} initialData={product} isEditing userId={user.uid} />
     </div>
   );
 }

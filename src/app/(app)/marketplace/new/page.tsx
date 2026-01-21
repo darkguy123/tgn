@@ -82,7 +82,7 @@ export default function NewProductPage() {
           </p>
         </div>
       </div>
-      <ProductForm onSave={handleSave} />
+      {user && <ProductForm onSave={handleSave} userId={user.uid} />}
     </div>
   );
 }

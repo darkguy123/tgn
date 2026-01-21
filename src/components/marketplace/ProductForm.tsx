@@ -41,9 +41,10 @@ interface ProductFormProps {
   initialData?: Omit<Product, 'id'> & { id?: string };
   onSave: (data: ProductFormData, imageUrl: string) => Promise<void>;
   isEditing?: boolean;
+  userId: string;
 }
 
-export function ProductForm({ initialData, onSave, isEditing = false }: ProductFormProps) {
+export function ProductForm({ initialData, onSave, isEditing = false, userId }: ProductFormProps) {
   const router = useRouter();
   const [imageUrl, setImageUrl] = useState(initialData?.imageUrl || '');
 
@@ -160,7 +161,7 @@ export function ProductForm({ initialData, onSave, isEditing = false }: ProductF
               <CardDescription>Add a clear image of your product.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <FileUpload value={imageUrl} onUploadComplete={setImageUrl} />
+              <FileUpload value={imageUrl} onUploadComplete={setImageUrl} userId={userId} />
             </CardContent>
           </Card>
         </div>
