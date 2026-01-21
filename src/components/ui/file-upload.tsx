@@ -2,12 +2,13 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { UploadCloud, Loader2, File as FileIcon, X } from 'lucide-react';
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { Progress } from '@/components/ui/progress';
 import { Button } from './button';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useStorage } from '@/firebase';
 
 interface FileUploadProps {
   onUploadComplete: (url: string) => void;
@@ -23,6 +24,7 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
   const [fileUrl, setFileUrl] = useState<string | null>(value || null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
+  const storage = useStorage();
 
   const isImage = fileUrl && (fileUrl.includes('.png') || fileUrl.includes('.jpg') || fileUrl.includes('.jpeg') || fileUrl.includes('.gif') || fileUrl.startsWith('data:image'));
 
@@ -41,7 +43,6 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
         return;
       }
       const file = acceptedFiles[0];
-      const storage = getStorage();
       const storageRef = ref(storage, `uploads/${storagePath}/${userId}/${new Date().getTime()}-${file.name}`);
       const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -69,7 +70,7 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
         }
       );
     },
-    [onUploadComplete, toast, userId, storagePath]
+    [onUploadComplete, toast, userId, storagePath, storage]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept, multiple: false });

@@ -118,6 +118,15 @@ service cloud.firestore {
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isUpdatingOwnUnprotectedProfile(userId) || isModifyingConnections() || isAdmin();
       allow delete: if isAdmin();
+      
+      /**
+       * @description Controls access to a user's saved payment cards.
+       * @path /users/{userId}/cards/{cardId}
+       * @allow (read, write) - A user can manage their own saved cards.
+       */
+      match /cards/{cardId} {
+        allow read, write: if isOwner(userId);
+      }
 
       /**
        * @description Controls access to a user's private matchmaking recommendations.
@@ -303,7 +312,7 @@ service cloud.firestore {
      * @allow (create) - Authenticated users can create a new cause for themselves.
      * @allow (update) - Admins can update. Users can contribute, updating amounts.
      */
-    match /fundraise/{causeId} {
+    match /causes/{causeId} {
         allow get: if isSignedIn() && (resource.data.status == 'approved' || isOwner(resource.data.creatorMemberId) || isAdmin());
         allow list: if isSignedIn(); // Allow listing so client can filter by 'approved'
         allow create: if isOwner(request.resource.data.creatorMemberId);

@@ -21,6 +21,14 @@ export interface TGNMember {
         planName: string;
         renewsAt: any; // Firestore Timestamp
     };
+    notificationPreferences?: {
+        emailUpdates: boolean;
+        sessionReminders: boolean;
+        communityActivity: boolean;
+        marketingEmails: boolean;
+        pushNotifications: boolean;
+    };
+    language?: string;
 }
 
 export interface MentorKYC {
