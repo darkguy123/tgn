@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import {
@@ -12,17 +13,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Loader2, Sparkles, Send, UserCheck, Users, HelpCircle } from "lucide-react";
+import { CheckCircle2, Loader2, Sparkles, Send, UserCheck, Users, HelpCircle, GraduationCap, ShoppingBag, Calendar, Briefcase } from "lucide-react";
 import { useMemberProfile } from "@/hooks/useMemberProfile";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 import type { TGNMember, Program, Product, Event, Sector } from '@/lib/types';
 import { getRecommendations, type RecommendationResult } from '@/app/actions';
 import { useRouter } from 'next/navigation';
-
-const getNameFromEmail = (email: string) => {
-    return email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-}
 
 export default function MatchmakingPage() {
   const { profile: currentMentee, isLoading: isMenteeLoading } = useMemberProfile();
@@ -74,7 +71,7 @@ export default function MatchmakingPage() {
         <div className="space-y-6">
             <header>
                 <h1 className="text-3xl font-bold tracking-tight">
-                Your Mentor Recommendations
+                Your Recommendations
                 </h1>
                 <p className="text-muted-foreground">
                 AI-powered matches based on your profile and goals.
@@ -94,7 +91,7 @@ export default function MatchmakingPage() {
             <HelpCircle className="mx-auto h-12 w-12 text-muted-foreground" />
             <h3 className="mt-4 text-lg font-medium">Could not load your profile.</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-                We need your profile information to generate mentor recommendations.
+                We need your profile information to generate recommendations.
             </p>
         </div>
     );
@@ -112,25 +109,25 @@ export default function MatchmakingPage() {
     );
   }
 
-  const mentorRecommendations = recommendations?.recommendations.filter(rec => rec.recommendedType === 'Mentor') || [];
+  const allRecs = recommendations?.recommendations || [];
 
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-3xl font-bold tracking-tight">
-          Your Mentor Recommendations
+          Your Recommendations
         </h1>
         <p className="text-muted-foreground">
           AI-powered matches based on your profile and goals.
         </p>
       </header>
 
-      {mentorRecommendations.length === 0 && !isLoadingRecs && (
+      {allRecs.length === 0 && !isLoadingRecs && (
         <div className="text-center py-20 border-2 border-dashed rounded-lg">
             <Users className="mx-auto h-12 w-12 text-muted-foreground" />
             <h3 className="mt-4 text-lg font-medium">No Matches Found Yet</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-                We couldn't find any suitable mentor matches right now.
+                We couldn't find any suitable matches right now.
                 <br/>
                 Make sure your profile is complete to get better recommendations.
             </p>
@@ -141,21 +138,23 @@ export default function MatchmakingPage() {
       )}
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {mentorRecommendations.map((rec) => {
-          const mentor = allMembers?.find(m => m.id === rec.recommendedId);
-          if (!mentor) return null;
-
-          const name = mentor.name || getNameFromEmail(mentor.email);
+        {allRecs.map((rec) => {
+          const mentor = rec.recommendedType === 'Mentor' ? allMembers?.find(m => m.id === rec.recommendedId) : null;
+          
+          const name = rec.name;
+          const avatarUrl = mentor?.avatarUrl;
+          const subtext = mentor ? mentor.locationCountry : rec.recommendedType;
+          
           return (
-            <Card key={mentor.id} className="flex flex-col hover:shadow-lg transition-shadow">
+            <Card key={`${rec.recommendedType}-${rec.recommendedId}`} className="flex flex-col hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-col items-center text-center p-6 bg-muted/30">
                 <Avatar className="h-24 w-24 mb-4 border-4 border-background shadow-md">
-                  <AvatarImage src={mentor.avatarUrl} alt={name} />
+                  <AvatarImage src={avatarUrl} alt={name} />
                   <AvatarFallback className="text-3xl">{name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <CardTitle className="text-xl">{name}</CardTitle>
-                <CardDescription>{mentor.locationCountry}</CardDescription>
-                {mentor.isVerifiedMentor && (
+                <CardDescription>{subtext}</CardDescription>
+                {mentor?.isVerifiedMentor && (
                     <Badge variant="secondary" className="mt-2 border-green-500/50 bg-green-500/10 text-green-700">
                         <CheckCircle2 className="mr-1 h-3 w-3" />
                         Verified Mentor
@@ -174,15 +173,25 @@ export default function MatchmakingPage() {
                     <p className="font-semibold text-foreground/90 flex items-center gap-1.5"><Sparkles className="h-4 w-4 text-accent" /> Why it's a match</p>
                     <p className="mt-1">{rec.explanation}</p>
                  </div>
-                 <div className="flex justify-center gap-1.5 flex-wrap">
-                    {mentor.sectorPreferences?.slice(0,3).map(sector => (
-                        <Badge key={sector} variant="secondary">{sector}</Badge>
-                    ))}
-                </div>
+                 {mentor?.sectorPreferences && (
+                    <div className="flex justify-center gap-1.5 flex-wrap">
+                        {mentor.sectorPreferences?.slice(0,3).map(sector => (
+                            <Badge key={sector} variant="secondary">{sector}</Badge>
+                        ))}
+                    </div>
+                 )}
               </CardContent>
               <CardFooter className="p-4">
-                 <Button className="w-full" onClick={() => router.push(`/member/${mentor.tgnMemberId}`)}>
-                    <UserCheck className="mr-2 h-4 w-4" /> View Profile
+                 <Button className="w-full" onClick={() => {
+                     let path = '#';
+                     if (rec.recommendedType === 'Mentor') path = `/member/${rec.tgnMemberId || rec.id}`;
+                     else if (rec.recommendedType === 'Program') path = `/programs`;
+                     else if (rec.recommendedType === 'Product') path = `/marketplace`;
+                     else if (rec.recommendedType === 'Event') path = `/community/events`;
+                     else if (rec.recommendedType === 'Sector') path = `/directory`;
+                     router.push(path);
+                 }}>
+                    <UserCheck className="mr-2 h-4 w-4" /> View
                 </Button>
               </CardFooter>
             </Card>
@@ -192,4 +201,3 @@ export default function MatchmakingPage() {
     </div>
   );
 }
-    

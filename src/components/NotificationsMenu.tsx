@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -23,6 +24,7 @@ function RequestItem({ request }: { request: FriendRequest & { id: string } }) {
     if (!currentUser) return;
     const requestRef = doc(firestore, 'friend_requests', request.id);
     const currentUserRef = doc(firestore, 'users', currentUser.uid);
+    const senderRef = doc(firestore, 'users', request.senderId);
 
     try {
       await runTransaction(firestore, async (transaction) => {
@@ -32,6 +34,7 @@ function RequestItem({ request }: { request: FriendRequest & { id: string } }) {
         }
         transaction.update(requestRef, { status: 'accepted' });
         transaction.update(currentUserRef, { connections: arrayUnion(request.senderId) });
+        transaction.update(senderRef, { connections: arrayUnion(currentUser.uid) });
       });
       toast({ title: "Connection accepted!" });
     } catch (e: any) {
@@ -57,7 +60,7 @@ function RequestItem({ request }: { request: FriendRequest & { id: string } }) {
 
   return (
     <DropdownMenuItem className="flex justify-between items-center p-2" onSelect={(e) => e.preventDefault()}>
-      <Link href={`/profile/${sender.id}`} className="flex items-center gap-2">
+      <Link href={`/member/${sender.tgnMemberId || sender.id}`} className="flex items-center gap-2">
         <Avatar className="h-8 w-8">
           <AvatarImage src={sender.avatarUrl} />
           <AvatarFallback>{sender.name ? sender.name.charAt(0) : sender.email.charAt(0)}</AvatarFallback>

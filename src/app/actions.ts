@@ -57,6 +57,7 @@ export async function getMatchExplanation(
 export type RecommendationDetails = AIMatchmakingRecommendation & {
     id: string;
     name: string;
+    tgnMemberId?: string;
 };
 
 export type RecommendationResult = {
@@ -123,10 +124,12 @@ export async function getRecommendations(
     const recommendationDetails = result.recommendations.map(rec => {
         let name = 'Unknown';
         let id = rec.recommendedId;
+        let tgnMemberId: string | undefined;
         
         if (rec.recommendedType === 'Mentor') {
             const mentor = allMembers.find(m => m.id === id);
-            name = mentor?.email.split('@')[0] ?? 'Unknown Mentor';
+            name = mentor?.name || mentor?.email.split('@')[0] ?? 'Unknown Mentor';
+            tgnMemberId = mentor?.tgnMemberId;
         } else if (rec.recommendedType === 'Program') {
             const program = allPrograms.find(p => p.id === id);
             name = program?.title ?? 'Unknown Program';
@@ -141,7 +144,7 @@ export async function getRecommendations(
             name = sector?.name ?? 'Unknown Sector';
         }
 
-        return { ...rec, id, name };
+        return { ...rec, id, name, tgnMemberId };
     }).filter(Boolean) as RecommendationDetails[];
 
 
