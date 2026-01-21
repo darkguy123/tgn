@@ -321,7 +321,7 @@ const DirectoryPage = () => {
                       Connect
                   </Button>
                   <Button asChild variant="accent" size="sm" className="flex-1 transition-all hover:-translate-y-0.5 hover:shadow-accent">
-                    <Link href={`/profile/${member.id}`}>View Profile</Link>
+                    <Link href={`/profile/${member.tgnMemberId}`}>View Profile</Link>
                   </Button>
                 </div>
               </CardContent>

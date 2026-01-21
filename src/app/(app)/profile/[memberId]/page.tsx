@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Briefcase } from 'lucide-react';
-import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useDoc, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc, collection, query, where } from 'firebase/firestore';
 import type { TGNMember } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -16,11 +16,25 @@ export default function ProfilePage() {
   const memberId = params.memberId as string;
   const firestore = useFirestore();
 
-  // Data Fetching
-  const memberRef = useMemoFirebase(() => doc(firestore, 'users', memberId), [firestore, memberId]);
-  const { data: member, isLoading: isMemberLoading, error: memberError } = useDoc<TGNMember>(memberRef);
+  const isTgnId = memberId.startsWith('TGN-');
+
+  const memberDocRef = useMemoFirebase(() => {
+    if (isTgnId || !firestore) return null;
+    return doc(firestore, 'users', memberId);
+  }, [firestore, memberId, isTgnId]);
+
+  const memberQuery = useMemoFirebase(() => {
+    if (!isTgnId || !firestore) return null;
+    return query(collection(firestore, 'users'), where('tgnMemberId', '==', memberId));
+  }, [firestore, memberId, isTgnId]);
   
-  if (isMemberLoading) {
+  const { data: memberFromDoc, isLoading: isDocLoading } = useDoc<TGNMember>(memberDocRef);
+  const { data: membersFromQuery, isLoading: isQueryLoading } = useCollection<TGNMember>(memberQuery);
+
+  const member = isTgnId ? membersFromQuery?.[0] : memberFromDoc;
+  const isLoading = isDocLoading || isQueryLoading;
+  
+  if (isLoading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
@@ -44,7 +58,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (!isMemberLoading && (memberError || !member)) {
+  if (!isLoading && !member) {
     return notFound();
   }
 

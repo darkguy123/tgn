@@ -96,7 +96,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { data: pendingRequests } = useCollection<FriendRequest>(requestsQuery);
   const notificationCount = pendingRequests?.length || 0;
   
-  const profilePath = profile ? `/profile/${profile.id}` : '/profile';
+  const profilePath = profile ? `/profile/${profile.tgnMemberId}` : '/profile';
 
   const handleLogout = () => {
     signOut(auth);

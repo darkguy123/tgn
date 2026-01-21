@@ -21,7 +21,7 @@ function ConnectionItem({ member, onRemove }: { member: TGNMember, onRemove: (me
   const name = member.name || member.email.split('@')[0];
   return (
     <div className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg">
-      <Link href={`/profile/${member.id}`} className="flex items-center gap-3">
+      <Link href={`/profile/${member.tgnMemberId}`} className="flex items-center gap-3">
         <Avatar>
           <AvatarImage src={member.avatarUrl} alt={name} />
           <AvatarFallback>{name ? name.charAt(0) : 'U'}</AvatarFallback>
@@ -45,7 +45,7 @@ function RequestItem({ request, type, onAction }: { request: FriendRequest & { u
   const name = userProfile.name || userProfile.email.split('@')[0];
   return (
     <div className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg">
-       <Link href={`/profile/${userProfile.id}`} className="flex items-center gap-3">
+       <Link href={`/profile/${userProfile.tgnMemberId}`} className="flex items-center gap-3">
         <Avatar>
           <AvatarImage src={userProfile.avatarUrl} alt={name} />
           <AvatarFallback>{name ? name.charAt(0) : 'U'}</AvatarFallback>

@@ -82,6 +82,7 @@ function CreatePostDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
     const dataToSave = {
       content: data.content,
       authorId: profile.id,
+      authorTgnMemberId: profile.tgnMemberId,
       authorName: profile.name || profile.email.split('@')[0],
       authorAvatarUrl: profile.avatarUrl || '',
       authorRole: profile.role,
@@ -270,7 +271,7 @@ function PostCard({ post }: { post: Post }) {
               <AvatarFallback>{post.authorName.charAt(0)}</AvatarFallback>
             </Avatar>
             <div>
-              <Link href={`/profile/${post.authorId}`}>
+              <Link href={`/profile/${post.authorTgnMemberId || post.authorId}`}>
                 <h4 className="font-semibold hover:underline">{post.authorName}</h4>
               </Link>
               <p className="text-xs text-muted-foreground">

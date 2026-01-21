@@ -95,6 +95,7 @@ export interface EnrolledProgram {
 export type Post = {
   id: string;
   authorId: string;
+  authorTgnMemberId: string;
   authorName: string;
   authorAvatarUrl: string;
   authorRole: string;

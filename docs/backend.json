@@ -905,6 +905,10 @@
           "type": "string",
           "description": "The UID of the TGN Member who created the post."
         },
+        "authorTgnMemberId": {
+          "type": "string",
+          "description": "Denormalized TGN Member ID for user-friendly URLs."
+        },
         "authorName": {
           "type": "string",
           "description": "Denormalized name of the author for display."
@@ -945,6 +949,7 @@
       },
       "required": [
         "authorId",
+        "authorTgnMemberId",
         "authorName",
         "authorAvatarUrl",
         "authorRole",
