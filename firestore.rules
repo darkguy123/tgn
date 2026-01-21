@@ -388,10 +388,18 @@ service cloud.firestore {
     // ------------------------------------------------------------------------
 
     match /chats/{chatId} {
-      // A user can read or write to a chat if their UID is in the `members` array.
-      // This rule supports both `get` and `list` queries. For `list`, the client
-      // query MUST include `where('members', 'array-contains', request.auth.uid)`.
-      allow read, write: if isSignedIn() && request.auth.uid in resource.data.members;
+      // A user can read a chat document if they are a member of that chat.
+      allow read: if isSignedIn() && request.auth.uid in resource.data.members;
+      
+      // A user can create a chat document if they are including themselves in the members list.
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
+      
+      // A user can update a chat document (e.g. for typing indicators or last message) 
+      // if they are a member and they are not trying to change the list of members.
+      allow update: if isSignedIn() && request.auth.uid in resource.data.members && request.resource.data.members == resource.data.members;
+
+      // Deleting chats is not allowed for clients for data integrity.
+      allow delete: if false;
 
       match /messages/{messageId} {
         // A user can read/write messages in a chat they are a member of.
