@@ -97,22 +97,14 @@ service cloud.firestore {
       allow read, list: if isSignedIn();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isAdmin() ||
-                    // Case 1: The user is updating their own document.
-                    (isOwner(userId)
-                      // They are not allowed to change these protected fields.
-                      && request.resource.data.role == resource.data.role
-                      && request.resource.data.isVerifiedMentor == resource.data.isVerifiedMentor
-                      && request.resource.data.id == resource.data.id
-                      && request.resource.data.tgnMemberId == resource.data.tgnMemberId
-                      && request.resource.data.createdAt == resource.data.createdAt
+                    // Case 1: The user is updating their own document. They cannot change their own role or verification status.
+                    (isOwner(userId) &&
+                     request.resource.data.role == resource.data.role &&
+                     request.resource.data.isVerifiedMentor == resource.data.isVerifiedMentor
                     ) ||
-                    // Case 2: Another user is updating this document's connections.
-                    // This is required for accepting friend requests or removing a connection, which is a two-way operation.
-                    (!isOwner(userId)
-                      && isSignedIn()
-                      // They are ONLY allowed to modify the 'connections' field.
-                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['connections'])
-                    );
+                    // Case 2: Someone is updating my connections list (and nothing else). This also covers a user updating their own connections list.
+                    (isSignedIn() &&
+                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['connections']));
       allow delete: if isAdmin();
 
       /**
