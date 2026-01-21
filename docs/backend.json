@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "AdCampaign": {
@@ -215,7 +216,8 @@
         "locationContinent",
         "locationCountry",
         "createdAt",
-        "role"
+        "role",
+        "timezone"
       ]
     },
     "SavedCard": {

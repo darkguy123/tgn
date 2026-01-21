@@ -8,11 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Logo } from "@/components/icons";
-import { MapPin, Briefcase, User, Target, Check, PartyPopper } from "lucide-react";
+import { Briefcase, Target, Check, PartyPopper } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { continents, countries, sectors as SECTORS, roles as ROLES, goals as GOALS } from "@/lib/data";
+import { sectors as SECTORS, goals as GOALS } from "@/lib/data";
 import { useUser, useFirestore } from "@/firebase";
 import { doc, serverTimestamp, addDoc, collection } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -30,11 +29,7 @@ const Onboarding = () => {
   const { profile, isLoading: isProfileLoading } = useMemberProfile();
 
   // Form state
-  const [continent, setContinent] = useState("");
-  const [country, setCountry] = useState("");
-  const [region, setRegion] = useState("");
   const [selectedSectors, setSelectedSectors] = useState<string[]>([]);
-  const [selectedRole, setSelectedRole] = useState("");
   const [bio, setBio] = useState("");
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
   const [interests, setInterests] = useState("");
@@ -63,7 +58,7 @@ const Onboarding = () => {
   };
 
   const handleNext = async () => {
-    if (step < 4) {
+    if (step < 2) {
       setStep(step + 1);
     } else {
        if (user && firestore) {
@@ -73,11 +68,12 @@ const Onboarding = () => {
             tgnMemberId: newId,
             signInType: user.providerData[0]?.providerId || "password",
             email: user.email,
-            locationContinent: continent,
-            locationCountry: country,
-            locationRegion: region,
+            locationContinent: 'Africa',
+            locationCountry: 'Nigeria',
+            locationRegion: '',
+            timezone: 'Africa/Lagos',
+            role: 'mentee' as const,
             sectorPreferences: selectedSectors,
-            role: selectedRole,
             purpose: bio,
             identityProfile: JSON.stringify({ goals: selectedGoals, interests: interests }),
             createdAt: serverTimestamp(),
@@ -113,10 +109,8 @@ const Onboarding = () => {
   };
 
   const stepIcons = [
-    <MapPin key="1" className="h-5 w-5" />,
-    <Briefcase key="2" className="h-5 w-5" />,
-    <User key="3" className="h-5 w-5" />,
-    <Target key="4" className="h-5 w-5" />
+    <Briefcase key="1" className="h-5 w-5" />,
+    <Target key="2" className="h-5 w-5" />
   ];
   
   if (isProfileLoading || profile) {
@@ -176,9 +170,9 @@ const Onboarding = () => {
       
       {/* Progress indicator */}
       <div className="px-4 py-4">
-        <div className="max-w-md mx-auto">
-          <div className="flex items-center justify-between">
-            {[1, 2, 3, 4].map((s) => (
+        <div className="max-w-xs mx-auto">
+          <div className="flex items-center justify-center">
+            {[1, 2].map((s) => (
               <div key={s} className="flex items-center">
                 <div className={cn(
                   "h-10 w-10 rounded-full flex items-center justify-center transition-all duration-300",
@@ -188,9 +182,9 @@ const Onboarding = () => {
                 )}>
                   {s < step ? <Check className="h-5 w-5" /> : stepIcons[s - 1]}
                 </div>
-                {s < 4 && (
+                {s < 2 && (
                   <div className={cn(
-                    "h-1 w-12 sm:w-16 mx-1",
+                    "h-1 w-24 sm:w-32 mx-1",
                     s < step ? "bg-primary" : "bg-muted"
                   )} />
                 )}
@@ -202,51 +196,8 @@ const Onboarding = () => {
       
       <main className="flex-1 flex items-start justify-center px-4 py-8">
         <Card className="w-full max-w-lg animate-fade-in border-0 shadow-xl">
-          {/* Step 1: Location */}
+          {/* Step 1: Sectors */}
           {step === 1 && (
-            <>
-              <CardHeader>
-                <CardTitle className="text-xl">Where are you joining from?</CardTitle>
-                <CardDescription>This helps personalize your experience.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Continent</Label>
-                  <Select value={continent} onValueChange={setContinent}>
-                    <SelectTrigger className="h-12">
-                      <SelectValue placeholder="Select continent" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {continents.map(c => <SelectItem key={c} value={c.toLowerCase().replace(' ', '-')}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Country</Label>
-                  <Select value={country} onValueChange={setCountry}>
-                    <SelectTrigger className="h-12">
-                      <SelectValue placeholder="Select country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Region / State</Label>
-                  <Input
-                    placeholder="Enter your region or state"
-                    value={region}
-                    onChange={(e) => setRegion(e.target.value)}
-                    className="h-12"
-                  />
-                </div>
-              </CardContent>
-            </>
-          )}
-          
-          {/* Step 2: Sectors */}
-          {step === 2 && (
             <>
               <CardHeader>
                 <CardTitle className="text-xl">Choose your sector(s)</CardTitle>
@@ -276,45 +227,8 @@ const Onboarding = () => {
             </>
           )}
           
-          {/* Step 3: Role */}
-          {step === 3 && (
-            <>
-              <CardHeader>
-                <CardTitle className="text-xl">Select your role</CardTitle>
-                <CardDescription>How do you want to participate?</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-3">
-                  {ROLES.map((role) => (
-                    <button
-                      key={role.id}
-                      onClick={() => setSelectedRole(role.id)}
-                      className={cn(
-                        "p-4 rounded-lg border text-left transition-all duration-200 flex items-center gap-4",
-                        selectedRole === role.id
-                          ? "bg-primary text-primary-foreground border-primary shadow-soft"
-                          : "bg-card border-border hover:border-primary/50 hover:bg-muted"
-                      )}
-                    >
-                      <span className="text-2xl">{role.icon}</span>
-                      <div>
-                        <p className="font-medium">{role.title}</p>
-                        <p className={cn(
-                          "text-sm",
-                          selectedRole === role.id ? "text-primary-foreground/80" : "text-muted-foreground"
-                        )}>
-                          {role.description}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </>
-          )}
-          
-          {/* Step 4: Purpose */}
-          {step === 4 && (
+          {/* Step 2: Purpose */}
+          {step === 2 && (
             <>
               <CardHeader>
                 <CardTitle className="text-xl">Your purpose</CardTitle>
@@ -369,13 +283,11 @@ const Onboarding = () => {
               className="w-full"
               onClick={handleNext}
               disabled={
-                (step === 1 && (!continent || !country)) ||
-                (step === 2 && selectedSectors.length === 0) ||
-                (step === 3 && !selectedRole) ||
-                (step === 4 && !bio)
+                (step === 1 && selectedSectors.length === 0) ||
+                (step === 2 && !bio)
               }
             >
-              {step === 4 ? "Complete Setup" : "Continue"}
+              {step === 2 ? "Complete Setup" : "Continue"}
             </Button>
             {step > 1 && (
               <Button 

@@ -1,3 +1,4 @@
+
 export interface TGNMember {
     id: string;
     tgnMemberId: string;
@@ -8,7 +9,7 @@ export interface TGNMember {
     locationContinent: string;
     locationCountry: string;
     locationRegion?: string;
-    timezone?: string;
+    timezone: string;
     sectorPreferences?: string[];
     role: 'mentee' | 'mentor-candidate' | 'associate-mentor' | 'collaborator' | 'sponsor' | 'country-manager' | 'volunteer' | 'media';
     purpose?: string;
