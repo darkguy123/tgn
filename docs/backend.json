@@ -186,6 +186,21 @@
             "type": "string"
           }
         },
+        "notificationPreferences": {
+          "type": "object",
+          "description": "User's notification settings.",
+          "properties": {
+            "emailUpdates": { "type": "boolean" },
+            "sessionReminders": { "type": "boolean" },
+            "communityActivity": { "type": "boolean" },
+            "marketingEmails": { "type": "boolean" },
+            "pushNotifications": { "type": "boolean" }
+          }
+        },
+        "language": {
+            "type": "string",
+            "description": "The user's preferred language (e.g., 'en')."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
@@ -201,6 +216,21 @@
         "locationCountry",
         "createdAt"
       ]
+    },
+    "SavedCard": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SavedCard",
+      "type": "object",
+      "description": "Represents a saved payment card for a user.",
+      "properties": {
+        "id": { "type": "string" },
+        "brand": { "type": "string", "enum": ["Visa", "Mastercard", "Amex"] },
+        "last4": { "type": "string" },
+        "expiryMonth": { "type": "string" },
+        "expiryYear": { "type": "string" },
+        "isDefault": { "type": "boolean" }
+      },
+      "required": ["brand", "last4", "expiryMonth", "expiryYear", "isDefault"]
     },
     "MentorKYC": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1043,6 +1073,11 @@
         "path": "/users/{userId}",
         "entity": "TGNMember",
         "description": "Stores TGN Member profiles. Path-based ownership for private user data. Includes user's core information and role. The 'userId' param matches the Firebase Auth UID."
+      },
+      {
+        "path": "/users/{userId}/cards/{cardId}",
+        "entity": "SavedCard",
+        "description": "Stores a user's saved payment cards for quick transactions. Owned by the user."
       },
       {
         "path": "/mentor_kyc/{userId}",
