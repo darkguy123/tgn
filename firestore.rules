@@ -78,6 +78,26 @@ service cloud.firestore {
       let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
       return isSignedIn() && userDoc.data != null && (userDoc.data.role == 'country-manager' || isSuperAdmin());
     }
+    
+    /**
+     * Verifies that a user is updating their own profile's unprotected fields.
+     * Users cannot change their own role, verification status, connections, or IDs.
+     */
+    function isUpdatingOwnUnprotectedProfile(userId) {
+      return isOwner(userId)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'id', 'email', 'role', 'isVerifiedMentor', 'tgnMemberId', 'createdAt', 'connections'
+        ]);
+    }
+    
+    /**
+     * Verifies that the update ONLY modifies the 'connections' array.
+     * This is used for accepting/removing connections, which must be a two-way write.
+     */
+    function isModifyingConnections() {
+      return isSignedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['connections']);
+    }
 
 
     // ------------------------------------------------------------------------
@@ -89,24 +109,14 @@ service cloud.firestore {
      * @path /users/{userId}
      * @allow (get, list) - Any authenticated user can read/list user profiles to enable directory and matchmaking features.
      * @allow (create) - A new user creating their own profile.
-     * @allow (update) - A user can update their own non-sensitive data. An admin can update any user's data. A user can update another user's `connections` array to establish a two-way relationship.
+     * @allow (update) - A user can update their own non-sensitive data, or another user can update the connections array. Admins can update anything.
      * @allow (delete) - Only an admin can delete user profiles.
      * @principle Restricts write access to a user's own data tree, but allows reads for social features. Admins have override privileges.
      */
     match /users/{userId} {
       allow get, list: if isSignedIn();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if 
-          // Case 1: Updating your own profile. You can't change your role, verification, or connections (connections are handled by Case 2).
-          (isOwner(userId) &&
-            request.resource.data.role == resource.data.role &&
-            request.resource.data.isVerifiedMentor == resource.data.isVerifiedMentor
-          ) ||
-          // Case 2: Another user is ONLY changing your connections array. This is for accepting friend requests or removing friends.
-          (isSignedIn() &&
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['connections'])
-          );
-
+      allow update: if isUpdatingOwnUnprotectedProfile(userId) || isModifyingConnections() || isAdmin();
       allow delete: if isAdmin();
 
       /**
@@ -239,12 +249,12 @@ service cloud.firestore {
      * @description Controls access to mentor certifications. A mentor can view their own certification status.
      * @path /mentor_certifications/{userId}
      * @allow (read) - Admins can read all certification documents.
-     * @allow (get) - A user reading their own certification document.
+     * @allow (get) - A user can read their own or another user's certification document.
      * @principle Grants read-only access to the document owner. Writes are restricted to prevent self-certification.
      */
     match /mentor_certifications/{userId} {
       allow read: if isAdmin();
-      allow get: if isOwner(userId);
+      allow get: if isSignedIn();
       allow create, update, delete: if isAdmin();
     }
 
