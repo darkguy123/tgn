@@ -9,10 +9,10 @@ export default function MyProfilePage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && profile) {
+    if (!isLoading && profile?.tgnMemberId) {
       router.replace(`/member/${profile.tgnMemberId}`);
     }
-    // If there's an error or no profile after loading, maybe redirect to dashboard
+    // If there's an error or no profile after loading, redirect to dashboard as a fallback.
     if (!isLoading && !profile) {
         router.replace('/dashboard');
     }
