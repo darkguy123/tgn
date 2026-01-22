@@ -24,6 +24,7 @@ import {
   Shield,
   LayoutGrid,
   Network,
+  Menu,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -43,6 +44,7 @@ import { BottomNav } from './BottomNav';
 import { NotificationsMenu } from './NotificationsMenu';
 import { collection, query, where } from 'firebase/firestore';
 import type { FriendRequest } from '@/lib/types';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 
 const NAV_ITEMS = [
@@ -159,9 +161,54 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <header className="sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3 lg:hidden">
-              <Link href="/dashboard">
-                <Logo className="h-8 object-contain" />
-              </Link>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-6 w-6" />
+                    <span className="sr-only">Toggle Menu</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-64 p-0">
+                  <div className="p-4 border-b border-border">
+                    <Link href="/dashboard">
+                      <Logo className="h-10 object-contain" />
+                    </Link>
+                  </div>
+                  <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
+                    {NAV_ITEMS.map((item) => (
+                      <Button
+                        key={item.id}
+                        variant={pathname.startsWith(item.path) ? 'default' : 'ghost'}
+                        onClick={() => {
+                          router.push(item.path);
+                        }}
+                        className="w-full flex items-center justify-start gap-3 px-3 py-2.5"
+                      >
+                        <item.icon className="h-5 w-5" />
+                        {item.label}
+                      </Button>
+                    ))}
+                    {isAdmin && (
+                      <>
+                          <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Admin</div>
+                          {ADMIN_NAV_ITEMS.map((item) => (
+                              <Button
+                              key={item.id}
+                              variant={pathname.startsWith(item.path) ? 'default' : 'ghost'}
+                              onClick={() => {
+                                  router.push(item.path);
+                              }}
+                              className="w-full flex items-center justify-start gap-3 px-3 py-2.5"
+                              >
+                              <item.icon className="h-5 w-5" />
+                              {item.label}
+                              </Button>
+                          ))}
+                      </>
+                    )}
+                  </nav>
+                </SheetContent>
+              </Sheet>
             </div>
 
             <div className="flex items-center gap-1 lg:w-full lg:justify-end">
