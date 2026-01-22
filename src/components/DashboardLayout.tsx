@@ -25,6 +25,7 @@ import {
   LayoutGrid,
   Network,
   Menu,
+  Briefcase,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -45,6 +46,7 @@ import { NotificationsMenu } from './NotificationsMenu';
 import { collection, query, where } from 'firebase/firestore';
 import type { FriendRequest } from '@/lib/types';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { isUserAdmin } from '@/lib/auth-utils';
 
 
 const NAV_ITEMS = [
@@ -71,6 +73,7 @@ const ADMIN_NAV_ITEMS = [
     { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/admin/analytics' },
     { id: 'users', label: 'Users', icon: Users, path: '/admin/users' },
     { id: 'kyc', label: 'KYC', icon: Shield, path: '/admin/kyc' },
+    { id: 'sectors', label: 'Sectors', icon: Briefcase, path: '/admin/sectors' },
     { id: 'programs', label: 'Programs', icon: GraduationCap, path: '/admin/programs' },
     { id: 'events', label: 'Events', icon: Calendar, path: '/admin/events' },
     { id: 'products', label: 'Products', icon: ShoppingBag, path: '/admin/products' },
@@ -104,7 +107,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     signOut(auth);
   };
   
-  const isAdmin = profile?.role === 'country-manager';
+  const isAdmin = isUserAdmin(profile);
 
   return (
     <div className="min-h-screen bg-background">

@@ -62,21 +62,17 @@ service cloud.firestore {
     function isExistingOwner(ownerId) {
       return resource != null && isOwner(ownerId);
     }
-    
-    /**
-     * Verifies if the user is a super admin. This is hardcoded for a specific user.
-     */
-    function isSuperAdmin() {
-      return request.auth.uid == 'Y9ckdC5d2RPQ533s5CfaiiXlKYi1';
-    }
 
     /**
      * Verifies if the user has an admin role (e.g., 'country-manager') or is a super admin.
-     * This requires a read to the user's own profile document.
+     * This requires a read to the user's own profile document for the role check.
      */
     function isAdmin() {
       let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return isSignedIn() && userDoc.data != null && (userDoc.data.role == 'country-manager' || isSuperAdmin());
+      return isSignedIn() && (
+          (userDoc.data != null && userDoc.data.role == 'country-manager') ||
+          request.auth.token.email == 'valentinoboss18@gmail.com'
+      );
     }
     
     /**

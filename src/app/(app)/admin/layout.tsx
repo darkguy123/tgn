@@ -4,6 +4,7 @@ import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { isUserAdmin } from '@/lib/auth-utils';
 
 export default function AdminLayout({
   children,
@@ -13,13 +14,15 @@ export default function AdminLayout({
   const { profile, isLoading: isProfileLoading } = useMemberProfile();
   const router = useRouter();
 
+  const userIsAdmin = isUserAdmin(profile);
+
   useEffect(() => {
-    if (!isProfileLoading && profile?.role !== 'country-manager') {
+    if (!isProfileLoading && !userIsAdmin) {
       router.push('/dashboard');
     }
-  }, [profile, isProfileLoading, router]);
+  }, [profile, isProfileLoading, router, userIsAdmin]);
 
-  if (isProfileLoading || !profile || profile.role !== 'country-manager') {
+  if (isProfileLoading || !profile || !userIsAdmin) {
     return (
       <div className="p-6">
         <div className="space-y-4">

@@ -1095,7 +1095,7 @@
       {
         "path": "/sectors/{sectorId}",
         "entity": "Sector",
-        "description": "Stores information about mentorship sectors. Accessible to all members for reference."
+        "description": "Stores information about mentorship sectors. Publicly readable by all members, but only manageable by admins."
       },
       {
         "path": "/programs/{programId}",
