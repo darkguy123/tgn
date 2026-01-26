@@ -1,16 +1,21 @@
 rules_version = '2';
+
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Public user content (avatars, product images)
+    // This rule allows any authenticated user to write to their OWN folder.
+    // The {userId} wildcard is matched against the authenticated user's UID.
+    // This is secure because a user can't write to another user's folder.
     match /uploads/public/{userId}/{allPaths=**} {
-      allow read; // Anyone can read public content
-      allow write: if request.auth != null && request.auth.uid == userId; // Only owner can write
+      // allow read: Anyone can read public files like avatars and product images.
+      allow read;
+      // allow write: Only the user who owns this folder can upload files here.
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Private user content (KYC documents)
+    // This rule protects private user documents (e.g., KYC uploads).
     match /uploads/private/{userId}/{allPaths=**} {
-      // Only owner and super admin can read/write private content
+      // Only the user who owns the folder and the admin can read or write files.
       allow read, write: if request.auth != null && (request.auth.uid == userId || request.auth.token.email == 'valentinoboss18@gmail.com');
     }
   }

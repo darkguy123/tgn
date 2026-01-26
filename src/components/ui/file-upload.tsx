@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { UploadCloud, Loader2, File as FileIcon, X } from 'lucide-react';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { Progress } from '@/components/ui/progress';
 import { Button } from './button';
 import Image from 'next/image';
@@ -19,34 +19,32 @@ interface FileUploadProps {
   storagePath?: 'public' | 'private';
 }
 
-export function FileUpload({ onUploadComplete, userId, value, label, accept = { 'image/*': ['.jpeg', '.png', '.gif'] }, storagePath = 'public' }: FileUploadProps) {
+export function FileUpload({ onUploadComplete, userId, value, label, accept = { 'image/*': [] }, storagePath = 'public' }: FileUploadProps) {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const [fileUrl, setFileUrl] = useState<string | null>(value || null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
   const { toast } = useToast();
   const storage = useStorage();
 
-  const isImage = fileUrl && (fileUrl.includes('.png') || fileUrl.includes('.jpg') || fileUrl.includes('.jpeg') || fileUrl.includes('.gif') || fileUrl.startsWith('data:image'));
-
-  useEffect(() => {
-    setFileUrl(value || null);
-  }, [value]);
+  const isUploading = uploadProgress !== null;
+  const displayUrl = localPreview || value;
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
-      if (acceptedFiles.length === 0) {
-        toast({
-            variant: 'destructive',
-            title: 'Invalid File',
-            description: `Please upload a valid file type.`,
-        });
+      if (!storage) {
+        toast({ variant: 'destructive', title: 'Storage not available', description: 'Please try again later.' });
         return;
       }
+      if (acceptedFiles.length === 0) {
+        toast({ variant: 'destructive', title: 'Invalid File Type' });
+        return;
+      }
+      
       const file = acceptedFiles[0];
-      const storageRef = ref(storage, `uploads/${storagePath}/${userId}/${new Date().getTime()}-${file.name}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      const previewUrl = URL.createObjectURL(file);
+      setLocalPreview(previewUrl);
 
-      setIsUploading(true);
+      const storageRef = ref(storage, `uploads/${storagePath}/${userId}/${Date.now()}-${file.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
 
       uploadTask.on(
         'state_changed',
@@ -55,58 +53,75 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
           setUploadProgress(progress);
         },
         (error) => {
-          console.error('Upload failed with code:', error.code, 'and message:', error.message);
-          toast({ variant: 'destructive', title: 'Upload Failed', description: `Error: ${error.message || 'Check storage rules and permissions.'}` });
-          setIsUploading(false);
+          console.error('Upload error:', error);
+          toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
           setUploadProgress(null);
+          setLocalPreview(null);
+          URL.revokeObjectURL(previewUrl);
         },
         () => {
-          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-            setFileUrl(downloadURL);
-            onUploadComplete(downloadURL);
-            setIsUploading(false);
-            setUploadProgress(null);
-          }).catch((error) => {
-            console.error("Failed to get download URL with code:", error.code, "and message:", error.message);
-            toast({ variant: 'destructive', title: 'Upload Failed', description: `Could not get file URL. Error: ${error.message || 'Check storage read permissions.'}` });
-            setIsUploading(false);
-            setUploadProgress(null);
-          });
+          getDownloadURL(uploadTask.snapshot.ref)
+            .then((downloadURL) => {
+              onUploadComplete(downloadURL);
+              setUploadProgress(null);
+              setLocalPreview(null);
+              URL.revokeObjectURL(previewUrl);
+            })
+            .catch((error) => {
+              console.error('Get URL error:', error);
+              toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not retrieve file URL.' });
+              setUploadProgress(null);
+              setLocalPreview(null);
+              URL.revokeObjectURL(previewUrl);
+            });
         }
       );
     },
-    [onUploadComplete, toast, userId, storagePath, storage]
+    [onUploadComplete, storage, storagePath, toast, userId]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept, multiple: false });
 
   const handleRemove = () => {
-    setFileUrl(null);
+    if (value && storage) {
+        try {
+            const fileRef = ref(storage, value);
+            deleteObject(fileRef).catch((error) => {
+                console.warn("Could not delete file from storage:", error.message);
+            });
+        } catch (e) {
+            console.warn("Invalid URL for deletion:", e);
+        }
+    }
     onUploadComplete('');
   };
 
-  if (fileUrl) {
+  useEffect(() => {
+    return () => {
+      if (localPreview) {
+        URL.revokeObjectURL(localPreview);
+      }
+    };
+  }, [localPreview]);
+  
+  const isImage = displayUrl && (displayUrl.startsWith('blob:') || (displayUrl.startsWith('http') && /\.(jpg|jpeg|png|gif|webp)/i.test(displayUrl)));
+
+  if (displayUrl && !isUploading) {
     return (
-      <div className="relative group">
+      <div className="relative group aspect-video">
         {isImage ? (
-            <Image
-                src={fileUrl}
-                alt={label || 'Uploaded image'}
-                width={400}
-                height={225}
-                className="rounded-md object-cover w-full aspect-video"
-            />
+          <Image src={displayUrl} alt={label || 'Uploaded content'} fill className="rounded-md object-cover" />
         ) : (
-            <div className="flex flex-col items-center justify-center p-4 border rounded-md aspect-video">
-                <FileIcon className="h-16 w-16 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground mt-2 truncate max-w-full">{fileUrl.split('%2F').pop()?.split('?')[0] || 'File'}</p>
-            </div>
+          <div className="flex flex-col items-center justify-center p-4 border rounded-md h-full">
+            <FileIcon className="h-16 w-16 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground mt-2 truncate max-w-full">{displayUrl.split('%2F').pop()?.split('?')[0] || 'File'}</p>
+          </div>
         )}
         <Button
           type="button"
           variant="destructive"
           size="icon"
-          className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity z-10"
           onClick={handleRemove}
         >
           <X className="h-4 w-4" />
@@ -119,17 +134,20 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
     <div
       {...getRootProps()}
       className={cn(
-        'border-2 border-dashed rounded-md aspect-video flex flex-col items-center justify-center text-center p-4 cursor-pointer hover:border-primary transition-colors',
+        'border-2 border-dashed rounded-md aspect-video flex flex-col items-center justify-center text-center p-4 cursor-pointer hover:border-primary transition-colors relative',
         isDragActive && 'border-primary bg-primary/10'
       )}
     >
       <input {...getInputProps()} />
-      {isUploading ? (
-        <>
-          <Loader2 className="h-10 w-10 text-primary animate-spin" />
-          <p className="text-sm text-muted-foreground mt-2">Uploading...</p>
-          {uploadProgress !== null && <Progress value={uploadProgress} className="w-full max-w-xs mt-2" />}
-        </>
+      {isUploading && displayUrl && isImage ? (
+          <>
+            <Image src={displayUrl} alt="Uploading preview" fill className="object-cover rounded-md opacity-30" />
+            <div className="absolute z-10 flex flex-col items-center w-full px-4">
+                <Loader2 className="h-10 w-10 text-primary animate-spin" />
+                <p className="text-sm text-primary-foreground font-semibold mt-2 bg-black/50 px-2 py-1 rounded">Uploading...</p>
+                <Progress value={uploadProgress} className="w-full max-w-xs mt-2" />
+            </div>
+          </>
       ) : (
         <>
           <UploadCloud className="h-10 w-10 text-muted-foreground" />
