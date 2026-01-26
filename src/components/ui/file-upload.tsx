@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { UploadCloud, Loader2, File as FileIcon, X } from 'lucide-react';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { Progress } from '@/components/ui/progress';
 import { Button } from './button';
 import Image from 'next/image';
@@ -21,12 +21,11 @@ interface FileUploadProps {
 
 export function FileUpload({ onUploadComplete, userId, value, label, accept = { 'image/*': [] }, storagePath = 'public' }: FileUploadProps) {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const { toast } = useToast();
   const storage = useStorage();
 
   const isUploading = uploadProgress !== null;
-  const displayUrl = localPreview || value;
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -40,10 +39,11 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
       }
       
       const file = acceptedFiles[0];
-      const previewUrl = URL.createObjectURL(file);
-      setLocalPreview(previewUrl);
+      setUploadProgress(0);
+      setUploadError(null);
 
-      const storageRef = ref(storage, `uploads/${storagePath}/${userId}/${Date.now()}-${file.name}`);
+      const filePath = `uploads/${storagePath}/${userId}/${Date.now()}-${file.name}`;
+      const storageRef = ref(storage, filePath);
       const uploadTask = uploadBytesResumable(storageRef, file);
 
       uploadTask.on(
@@ -54,22 +54,23 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
         },
         (error) => {
           console.error('Upload error:', error);
+          const errorMessage = 'Upload failed. Please check your network and security rules.';
+          setUploadError(errorMessage);
           toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
           setUploadProgress(null);
-          setLocalPreview(null); // Triggers useEffect cleanup
         },
-        () => {
-          getDownloadURL(uploadTask.snapshot.ref)
-            .then((downloadURL) => {
-              onUploadComplete(downloadURL);
-            })
-            .catch((error) => {
-              console.error('Get URL error:', error);
-              toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not retrieve file URL.' });
-            }).finally(() => {
-                setUploadProgress(null);
-                setLocalPreview(null); // Triggers useEffect cleanup
-            });
+        async () => {
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            onUploadComplete(downloadURL);
+            setUploadProgress(null);
+          } catch (error) {
+            console.error('Get URL error:', error);
+            const errorMessage = 'Upload succeeded but failed to get URL.';
+            setUploadError(errorMessage);
+            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not retrieve file URL.' });
+            setUploadProgress(null);
+          }
         }
       );
     },
@@ -79,33 +80,34 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept, multiple: false });
 
   const handleRemove = () => {
-    // We don't delete from storage because it's complex to get path from download URL.
-    // The file will be orphaned, which is acceptable for now.
+    // This is a best-effort removal. It won't work if the 'value' is not a GCS URL
+    // that contains the full path, which it usually doesn't.
+    // For now, simply clearing the value is safer.
+    if (value && storage) {
+        try {
+            const fileRef = ref(storage, value);
+            deleteObject(fileRef).catch((error) => {
+                // Log error but don't block user. It might be a cross-origin URL.
+                console.warn("Could not delete file from storage. It might be a cross-origin URL or protected.", error);
+            });
+        } catch (e) {
+             console.warn("Could not parse storage URL for deletion.", e);
+        }
+    }
     onUploadComplete('');
   };
-
-  useEffect(() => {
-    // This effect will run when the component unmounts or when `localPreview` changes.
-    // It's responsible for cleaning up the blob URL to prevent memory leaks.
-    const preview = localPreview;
-    return () => {
-      if (preview) {
-        URL.revokeObjectURL(preview);
-      }
-    };
-  }, [localPreview]);
   
-  const isImage = displayUrl && (displayUrl.startsWith('blob:') || (displayUrl.startsWith('http') && /\.(jpg|jpeg|png|gif|webp|svg)/i.test(displayUrl)));
+  const isImage = value && (value.startsWith('http') && /\.(jpg|jpeg|png|gif|webp|svg)/i.test(value));
 
-  if (displayUrl && !isUploading) {
+  if (value && !isUploading) {
     return (
       <div className="relative group aspect-video">
         {isImage ? (
-          <Image src={displayUrl} alt={label || 'Uploaded content'} fill className="rounded-md object-cover" />
+          <Image src={value} alt={label || 'Uploaded content'} fill className="rounded-md object-cover" />
         ) : (
           <div className="flex flex-col items-center justify-center p-4 border rounded-md h-full">
             <FileIcon className="h-16 w-16 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground mt-2 truncate max-w-full">{displayUrl.split('%2F').pop()?.split('?')[0] || 'File'}</p>
+            <p className="text-sm text-muted-foreground mt-2 truncate max-w-full">{value.split('%2F').pop()?.split('?')[0] || 'File'}</p>
           </div>
         )}
         <Button
@@ -130,20 +132,22 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
       )}
     >
       <input {...getInputProps()} />
-      {isUploading && displayUrl && isImage ? (
-          <>
-            <Image src={displayUrl} alt="Uploading preview" fill className="object-cover rounded-md opacity-30" />
-            <div className="absolute z-10 flex flex-col items-center w-full px-4">
-                <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                <p className="text-sm text-primary-foreground font-semibold mt-2 bg-black/50 px-2 py-1 rounded">Uploading...</p>
-                <Progress value={uploadProgress} className="w-full max-w-xs mt-2" />
-            </div>
-          </>
+      {isUploading ? (
+          <div className="flex flex-col items-center w-full px-4">
+              <Loader2 className="h-10 w-10 text-primary animate-spin" />
+              <p className="text-sm text-foreground font-semibold mt-2">Uploading...</p>
+              <Progress value={uploadProgress} className="w-full max-w-xs mt-2" />
+          </div>
+      ) : uploadError ? (
+         <div className="flex flex-col items-center text-destructive">
+            <p>{uploadError}</p>
+            <Button variant="link" size="sm" className="mt-2">Try again</Button>
+         </div>
       ) : (
         <>
           <UploadCloud className="h-10 w-10 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            {label || 'Drag & drop an image, or click to select'}
+          <p className="text-sm text-muted-foreground mt-2">
+            {label || 'Drag & drop a file, or click to select'}
           </p>
         </>
       )}
