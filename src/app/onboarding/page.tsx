@@ -1,8 +1,8 @@
-
 'use client';
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -130,10 +130,17 @@ const Onboarding = () => {
 
   if (completed) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/10 pointer-events-none" />
+      <div className="relative min-h-screen flex items-center justify-center px-4">
+        <Image
+          src="/signinpagebg.jpeg"
+          alt="People collaborating in a modern office"
+          fill={true}
+          className="object-cover"
+          data-ai-hint="collaboration office"
+        />
+        <div className="absolute inset-0 bg-black/50" />
         
-        <Card className="w-full max-w-md text-center animate-scale-in border-0 shadow-xl">
+        <Card className="relative z-10 w-full max-w-md text-center animate-scale-in border-0 shadow-xl">
           <CardHeader className="pb-4 pt-8">
             <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-accent/20 flex items-center justify-center">
               <PartyPopper className="h-10 w-10 text-primary" />
@@ -158,149 +165,158 @@ const Onboarding = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+    <div className="relative min-h-screen flex flex-col text-white">
+      <Image
+        src="/signinpagebg.jpeg"
+        alt="People collaborating in a modern office"
+        fill={true}
+        className="object-cover"
+        data-ai-hint="collaboration office"
+      />
+      <div className="absolute inset-0 bg-black/50" />
       
-      {/* Header */}
-      <header className="py-6 px-4">
-        <div className="flex justify-center">
-          <Logo className="h-12 object-contain" />
-        </div>
-      </header>
-      
-      {/* Progress indicator */}
-      <div className="px-4 py-4">
-        <div className="max-w-xs mx-auto">
-          <div className="flex items-center justify-center">
-            {[1, 2].map((s) => (
-              <div key={s} className="flex items-center">
-                <div className={cn(
-                  "h-10 w-10 rounded-full flex items-center justify-center transition-all duration-300",
-                  s < step ? "bg-primary text-primary-foreground" :
-                  s === step ? "bg-primary text-primary-foreground" :
-                  "bg-muted text-muted-foreground"
-                )}>
-                  {s < step ? <Check className="h-5 w-5" /> : stepIcons[s - 1]}
-                </div>
-                {s < 2 && (
+      <div className="relative z-10 flex flex-col flex-1">
+        {/* Header */}
+        <header className="py-6 px-4">
+          <div className="flex justify-center">
+            <Logo className="h-12 object-contain" />
+          </div>
+        </header>
+        
+        {/* Progress indicator */}
+        <div className="px-4 py-4">
+          <div className="max-w-xs mx-auto">
+            <div className="flex items-center justify-center">
+              {[1, 2].map((s) => (
+                <div key={s} className="flex items-center">
                   <div className={cn(
-                    "h-1 w-24 sm:w-32 mx-1",
-                    s < step ? "bg-primary" : "bg-muted"
-                  )} />
-                )}
-              </div>
-            ))}
+                    "h-10 w-10 rounded-full flex items-center justify-center transition-all duration-300",
+                    s < step ? "bg-primary text-primary-foreground" :
+                    s === step ? "bg-primary text-primary-foreground" :
+                    "bg-white/10 border-2 border-white/30 text-white/80"
+                  )}>
+                    {s < step ? <Check className="h-5 w-5" /> : stepIcons[s - 1]}
+                  </div>
+                  {s < 2 && (
+                    <div className={cn(
+                      "h-1 w-24 sm:w-32 mx-1",
+                      s < step ? "bg-primary" : "bg-white/20"
+                    )} />
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
-      
-      <main className="flex-1 flex items-start justify-center px-4 py-8">
-        <Card className="w-full max-w-lg animate-fade-in border-0 shadow-xl">
-          {/* Step 1: Sectors */}
-          {step === 1 && (
-            <>
-              <CardHeader>
-                <CardTitle className="text-xl">Choose your sector(s)</CardTitle>
-                <CardDescription>Select up to 3 sectors. You can update this later.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {SECTORS.map((sector) => (
-                    <button
-                      key={sector.id}
-                      onClick={() => toggleSector(sector.name)}
-                      className={cn(
-                        "p-3 rounded-lg border text-sm font-medium transition-all duration-200",
-                        selectedSectors.includes(sector.name)
-                          ? "bg-primary text-primary-foreground border-primary shadow-soft"
-                          : "bg-card border-border hover:border-primary/50 hover:bg-muted"
-                      )}
-                    >
-                      {sector.name}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-sm text-muted-foreground mt-4">
-                  {selectedSectors.length}/3 selected
-                </p>
-              </CardContent>
-            </>
-          )}
-          
-          {/* Step 2: Purpose */}
-          {step === 2 && (
-            <>
-              <CardHeader>
-                <CardTitle className="text-xl">Your purpose</CardTitle>
-                <CardDescription>Help us understand your goals.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Short bio</Label>
-                  <Textarea 
-                    placeholder="Tell us about yourself..."
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    className="min-h-[100px]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Goals (select all that apply)</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {GOALS.map((goal) => (
+        
+        <main className="flex-1 flex items-start justify-center px-4 py-8">
+          <Card className="w-full max-w-lg animate-fade-in border-0 shadow-xl">
+            {/* Step 1: Sectors */}
+            {step === 1 && (
+              <>
+                <CardHeader>
+                  <CardTitle className="text-xl">Choose your sector(s)</CardTitle>
+                  <CardDescription>Select up to 3 sectors. You can update this later.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {SECTORS.map((sector) => (
                       <button
-                        key={goal}
-                        onClick={() => toggleGoal(goal)}
+                        key={sector.id}
+                        onClick={() => toggleSector(sector.name)}
                         className={cn(
-                          "px-3 py-2 rounded-full border text-sm font-medium transition-all duration-200",
-                          selectedGoals.includes(goal)
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-card border-border hover:border-primary/50"
+                          "p-3 rounded-lg border text-sm font-medium transition-all duration-200",
+                          selectedSectors.includes(sector.name)
+                            ? "bg-primary text-primary-foreground border-primary shadow-soft"
+                            : "bg-card border-border hover:border-primary/50 hover:bg-muted"
                         )}
                       >
-                        {goal}
+                        {sector.name}
                       </button>
                     ))}
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Interests</Label>
-                  <Input 
-                    placeholder="e.g., AI, Leadership, Sustainability"
-                    value={interests}
-                    onChange={(e) => setInterests(e.target.value)}
-                    className="h-12"
-                  />
-                </div>
-              </CardContent>
-            </>
-          )}
-          
-          {/* Navigation */}
-          <div className="p-6 pt-0">
-            <Button 
-              size="lg" 
-              className="w-full"
-              onClick={handleNext}
-              disabled={
-                (step === 1 && selectedSectors.length === 0) ||
-                (step === 2 && !bio)
-              }
-            >
-              {step === 2 ? "Complete Setup" : "Continue"}
-            </Button>
-            {step > 1 && (
-              <Button 
-                variant="ghost" 
-                className="w-full mt-2"
-                onClick={() => setStep(step - 1)}
-              >
-                Back
-              </Button>
+                  <p className="text-sm text-muted-foreground mt-4">
+                    {selectedSectors.length}/3 selected
+                  </p>
+                </CardContent>
+              </>
             )}
-          </div>
-        </Card>
-      </main>
+            
+            {/* Step 2: Purpose */}
+            {step === 2 && (
+              <>
+                <CardHeader>
+                  <CardTitle className="text-xl">Your purpose</CardTitle>
+                  <CardDescription>Help us understand your goals.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Short bio</Label>
+                    <Textarea 
+                      placeholder="Tell us about yourself..."
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      className="min-h-[100px]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Goals (select all that apply)</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {GOALS.map((goal) => (
+                        <button
+                          key={goal}
+                          onClick={() => toggleGoal(goal)}
+                          className={cn(
+                            "px-3 py-2 rounded-full border text-sm font-medium transition-all duration-200",
+                            selectedGoals.includes(goal)
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-card border-border hover:border-primary/50"
+                          )}
+                        >
+                          {goal}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Interests</Label>
+                    <Input 
+                      placeholder="e.g., AI, Leadership, Sustainability"
+                      value={interests}
+                      onChange={(e) => setInterests(e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                </CardContent>
+              </>
+            )}
+            
+            {/* Navigation */}
+            <div className="p-6 pt-0">
+              <Button 
+                size="lg" 
+                className="w-full"
+                onClick={handleNext}
+                disabled={
+                  (step === 1 && selectedSectors.length === 0) ||
+                  (step === 2 && !bio)
+                }
+              >
+                {step === 2 ? "Complete Setup" : "Continue"}
+              </Button>
+              {step > 1 && (
+                <Button 
+                  variant="ghost" 
+                  className="w-full mt-2"
+                  onClick={() => setStep(step - 1)}
+                >
+                  Back
+                </Button>
+              )}
+            </div>
+          </Card>
+        </main>
+      </div>
     </div>
   );
 };
