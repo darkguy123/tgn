@@ -387,7 +387,7 @@ service cloud.firestore {
       // A user can read a chat document if their UID is in the chat ID.
       // This allows reads even if the document doesn't exist yet, which is needed
       // to initialize a chat on the client.
-      allow read: if isSignedIn() && chatId.matches('.*' + request.auth.uid + '.*');
+      allow read: if isSignedIn() && request.auth.uid in chatId.split('_');
       
       // A user can create a chat document if they are including themselves in the members list.
       allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;

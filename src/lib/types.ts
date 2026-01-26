@@ -1,4 +1,5 @@
 
+
 export interface TGNMember {
     id: string;
     tgnMemberId: string;
@@ -17,6 +18,7 @@ export interface TGNMember {
     avatarUrl?: string;
     isVerifiedMentor?: boolean;
     createdAt?: any;
+    lastSeen?: any;
     connections?: string[];
     subscription?: {
         planName: string;

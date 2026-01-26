@@ -15,10 +15,28 @@ import type { TGNMember, ChatMessage, Chat } from '@/lib/types';
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { doc, collection, query, orderBy, addDoc, setDoc, updateDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 
 // Helper to generate a consistent chat ID
 const createChatId = (uid1: string, uid2: string) => [uid1, uid2].sort().join('_');
+
+const getOnlineStatus = (lastSeen: any) => {
+    if (!lastSeen?.toDate) {
+        return { color: 'bg-red-500', text: 'Offline' };
+    }
+    const lastSeenDate = lastSeen.toDate();
+    const now = new Date();
+    const diffMinutes = (now.getTime() - lastSeenDate.getTime()) / (1000 * 60);
+
+    if (diffMinutes < 2) {
+        return { color: 'bg-green-500', text: 'Online' };
+    }
+    if (diffMinutes < 60) {
+        return { color: 'bg-gray-400', text: `Active ${formatDistanceToNow(lastSeenDate, { addSuffix: true })}` };
+    }
+    return { color: 'bg-red-500', text: 'Offline' };
+};
+
 
 export default function ChatPage() {
   const router = useRouter();
@@ -104,6 +122,8 @@ export default function ChatPage() {
   const otherUserIsTyping = chatData?.typing?.[otherMemberId] === true;
   const otherMemberName = otherMember?.name || (otherMember?.email ? otherMember.email.split('@')[0] : '') || 'User';
   const isLoading = isOtherUserLoading || isChatLoading;
+  const onlineStatus = getOnlineStatus(otherMember?.lastSeen);
+
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,9 +210,19 @@ export default function ChatPage() {
           </Avatar>
           <div className="min-w-0">
             <p className="font-semibold truncate">{otherMemberName}</p>
-            <p className="text-xs text-green-500 h-4">
-              {otherUserIsTyping ? <span className="italic animate-pulse">typing...</span> : (chatData ? 'Online' : '')}
-            </p>
+             <div className="flex items-center gap-1.5">
+                {otherUserIsTyping ? (
+                <>
+                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                    <p className="text-xs text-green-500 italic">typing...</p>
+                </>
+                ) : (
+                <>
+                    <div className={cn("h-2 w-2 rounded-full", onlineStatus.color)} />
+                    <p className="text-xs text-muted-foreground">{onlineStatus.text}</p>
+                </>
+                )}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-1">

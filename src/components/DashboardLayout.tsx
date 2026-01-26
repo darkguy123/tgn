@@ -43,10 +43,11 @@ import {
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { BottomNav } from './BottomNav';
 import { NotificationsMenu } from './NotificationsMenu';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import type { FriendRequest } from '@/lib/types';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { isUserAdmin } from '@/lib/auth-utils';
+import { useEffect } from 'react';
 
 
 const NAV_ITEMS = [
@@ -93,6 +94,29 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { profile } = useMemberProfile();
   const userName = profile?.name || user?.displayName || 'Member';
   const firestore = useFirestore();
+
+  useEffect(() => {
+    if (!user || !firestore) return;
+    const userStatusRef = doc(firestore, 'users', user.uid);
+    
+    const updateLastSeen = () => {
+        // We don't want to show an error for this, as it's a background task
+        // and can fail if offline.
+        updateDoc(userStatusRef, { lastSeen: serverTimestamp() }).catch(() => {});
+    };
+    
+    updateLastSeen(); // Update once on mount
+
+    window.addEventListener('focus', updateLastSeen);
+    
+    // Also update periodically
+    const intervalId = setInterval(updateLastSeen, 5 * 60 * 1000); // every 5 minutes
+
+    return () => {
+        window.removeEventListener('focus', updateLastSeen);
+        clearInterval(intervalId);
+    };
+}, [user, firestore]);
 
   const requestsQuery = useMemoFirebase(
     () => user ? query(collection(firestore, 'friend_requests'), where('recipientId', '==', user.uid), where('status', '==', 'pending')) : null,
