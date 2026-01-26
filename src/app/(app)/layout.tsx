@@ -12,7 +12,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isUserLoading && !user) {
-      router.push("/signin");
+      router.push("/");
     }
   }, [user, isUserLoading, router]);
 

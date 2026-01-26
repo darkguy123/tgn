@@ -83,7 +83,7 @@ const ProgramsPage = () => {
 
   const handleEnrollClick = () => {
     if (!user) {
-      router.push('/signin?redirect=/programs');
+      router.push('/');
       return;
     }
     setEnrollmentStep('confirm');
