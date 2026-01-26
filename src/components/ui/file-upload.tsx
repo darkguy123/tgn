@@ -66,6 +66,11 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
             onUploadComplete(downloadURL);
             setIsUploading(false);
             setUploadProgress(null);
+          }).catch((error) => {
+            console.error("Failed to get download URL:", error);
+            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not get the file URL after upload. Check storage read permissions.' });
+            setIsUploading(false);
+            setUploadProgress(null);
           });
         }
       );

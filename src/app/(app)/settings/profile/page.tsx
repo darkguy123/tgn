@@ -398,7 +398,7 @@ const SettingsPage = () => {
                     {[
                         { key: 'emailUpdates', label: 'Email Updates', desc: 'Receive important account updates via email' },
                         { key: 'sessionReminders', label: 'Session Reminders', desc: 'Get reminded about upcoming mentorship sessions' },
-                        { key: 'communityActivity', label: 'Community Activity', desc: 'Notifications for likes, comments, and mentions' },
+                        { key: 'communityActivity', label: 'Notifications for likes, comments, and mentions' },
                         { key: 'marketingEmails', label: 'Marketing Emails', desc: 'Receive news about new programs and features' },
                         { key: 'pushNotifications', label: 'Push Notifications', desc: 'Browser notifications for real-time updates' },
                     ].map((item) => (
