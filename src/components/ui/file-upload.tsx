@@ -1,14 +1,15 @@
 'use client';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { UploadCloud, Loader2, File as FileIcon, X } from 'lucide-react';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Progress } from '@/components/ui/progress';
 import { Button } from './button';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { useStorage } from '@/firebase';
+import { useStorage, useFirestore } from '@/firebase';
 
 interface FileUploadProps {
   onUploadComplete: (url: string) => void;
@@ -24,13 +25,14 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
   const [uploadError, setUploadError] = useState<string | null>(null);
   const { toast } = useToast();
   const storage = useStorage();
+  const firestore = useFirestore();
 
   const isUploading = uploadProgress !== null;
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
-      if (!storage) {
-        toast({ variant: 'destructive', title: 'Storage not available', description: 'Please try again later.' });
+      if (!storage || !firestore) {
+        toast({ variant: 'destructive', title: 'Services not available', description: 'Please try again later.' });
         return;
       }
       if (acceptedFiles.length === 0) {
@@ -62,19 +64,35 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
         async () => {
           try {
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+
+            // Create a document in Firestore
+            const mediaCollectionRef = collection(firestore, `users/${userId}/media`);
+            const mediaFileData = {
+              uploaderId: userId,
+              fileName: file.name,
+              fileType: file.type,
+              fileSize: file.size,
+              storagePath: filePath,
+              downloadUrl: downloadURL,
+              createdAt: serverTimestamp(),
+            };
+            await addDoc(mediaCollectionRef, mediaFileData);
+
             onUploadComplete(downloadURL);
+            toast({ title: 'Upload Successful', description: `${file.name} has been uploaded.` });
             setUploadProgress(null);
-          } catch (error) {
-            console.error('Get URL error:', error);
-            const errorMessage = 'Upload succeeded but failed to get URL.';
+
+          } catch (error: any) {
+            console.error('Error during post-upload process:', error);
+            const errorMessage = 'Upload succeeded but failed to save file metadata.';
             setUploadError(errorMessage);
-            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not retrieve file URL.' });
+            toast({ variant: 'destructive', title: 'Upload Failed', description: error.message || 'Could not save file details.' });
             setUploadProgress(null);
           }
         }
       );
     },
-    [onUploadComplete, storage, storagePath, toast, userId]
+    [onUploadComplete, storage, firestore, storagePath, toast, userId]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept, multiple: false });
@@ -98,6 +116,11 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
   };
   
   const isImage = value && (value.startsWith('http') && /\.(jpg|jpeg|png|gif|webp|svg)/i.test(value));
+  
+  const onTryAgain = () => {
+    setUploadError(null);
+    setUploadProgress(null);
+  }
 
   if (value && !isUploading) {
     return (
@@ -141,7 +164,7 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
       ) : uploadError ? (
          <div className="flex flex-col items-center text-destructive">
             <p>{uploadError}</p>
-            <Button variant="link" size="sm" className="mt-2">Try again</Button>
+            <Button type="button" variant="link" size="sm" className="mt-2" onClick={onTryAgain}>Try again</Button>
          </div>
       ) : (
         <>
