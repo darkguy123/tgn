@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { UploadCloud, Loader2, File as FileIcon, X } from 'lucide-react';
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { Progress } from '@/components/ui/progress';
 import { Button } from './button';
 import Image from 'next/image';
@@ -56,23 +56,19 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
           console.error('Upload error:', error);
           toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
           setUploadProgress(null);
-          setLocalPreview(null);
-          URL.revokeObjectURL(previewUrl);
+          setLocalPreview(null); // Triggers useEffect cleanup
         },
         () => {
           getDownloadURL(uploadTask.snapshot.ref)
             .then((downloadURL) => {
               onUploadComplete(downloadURL);
-              setUploadProgress(null);
-              setLocalPreview(null);
-              URL.revokeObjectURL(previewUrl);
             })
             .catch((error) => {
               console.error('Get URL error:', error);
               toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not retrieve file URL.' });
-              setUploadProgress(null);
-              setLocalPreview(null);
-              URL.revokeObjectURL(previewUrl);
+            }).finally(() => {
+                setUploadProgress(null);
+                setLocalPreview(null); // Triggers useEffect cleanup
             });
         }
       );
@@ -83,28 +79,23 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept, multiple: false });
 
   const handleRemove = () => {
-    if (value && storage) {
-        try {
-            const fileRef = ref(storage, value);
-            deleteObject(fileRef).catch((error) => {
-                console.warn("Could not delete file from storage:", error.message);
-            });
-        } catch (e) {
-            console.warn("Invalid URL for deletion:", e);
-        }
-    }
+    // We don't delete from storage because it's complex to get path from download URL.
+    // The file will be orphaned, which is acceptable for now.
     onUploadComplete('');
   };
 
   useEffect(() => {
+    // This effect will run when the component unmounts or when `localPreview` changes.
+    // It's responsible for cleaning up the blob URL to prevent memory leaks.
+    const preview = localPreview;
     return () => {
-      if (localPreview) {
-        URL.revokeObjectURL(localPreview);
+      if (preview) {
+        URL.revokeObjectURL(preview);
       }
     };
   }, [localPreview]);
   
-  const isImage = displayUrl && (displayUrl.startsWith('blob:') || (displayUrl.startsWith('http') && /\.(jpg|jpeg|png|gif|webp)/i.test(displayUrl)));
+  const isImage = displayUrl && (displayUrl.startsWith('blob:') || (displayUrl.startsWith('http') && /\.(jpg|jpeg|png|gif|webp|svg)/i.test(displayUrl)));
 
   if (displayUrl && !isUploading) {
     return (
@@ -151,7 +142,7 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
       ) : (
         <>
           <UploadCloud className="h-10 w-10 text-muted-foreground" />
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {label || 'Drag & drop an image, or click to select'}
           </p>
         </>
