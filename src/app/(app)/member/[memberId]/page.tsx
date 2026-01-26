@@ -2,13 +2,14 @@
 
 import { useParams, notFound, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Briefcase, Edit } from 'lucide-react';
+import { MapPin, Briefcase, Edit, Send, Award, ShoppingBag } from 'lucide-react';
 import { useDoc, useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc, collection, query, where } from 'firebase/firestore';
-import type { TGNMember } from '@/lib/types';
+import type { TGNMember, Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import placeholderImages from '@/lib/placeholder-images.json';
@@ -48,6 +49,19 @@ export default function MemberProfilePage() {
   // Consolidate the fetched member data and loading state
   const member = isTgnId ? membersFromQuery?.[0] : memberFromDoc;
   const isLoading = isDocLoading || isQueryLoading;
+  
+  const productsQuery = useMemoFirebase(
+    () =>
+      member
+        ? query(
+            collection(firestore, 'products'),
+            where('sellerMemberId', '==', member.id),
+            where('approvalStatus', '==', 'approved')
+          )
+        : null,
+    [firestore, member]
+  );
+  const { data: products, isLoading: productsLoading } = useCollection<Product>(productsQuery);
 
   const isOwnProfile = currentUser && member && currentUser.uid === member.id;
   
@@ -106,9 +120,13 @@ export default function MemberProfilePage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mt-4 md:mt-0 shrink-0">
-                    {isOwnProfile && (
+                    {isOwnProfile ? (
                         <Button onClick={() => router.push('/settings/profile')}>
                             <Edit className="mr-2 h-4 w-4" /> Edit Profile
+                        </Button>
+                    ) : (
+                        <Button onClick={() => router.push(`/chat/${member.id}`)}>
+                            <Send className="mr-2 h-4 w-4" /> Message
                         </Button>
                     )}
                 </div>
@@ -137,6 +155,43 @@ export default function MemberProfilePage() {
                 </CardContent>
             </Card>
         )}
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-primary" />
+                    Achievements
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+                {member.isVerifiedMentor && <Badge variant="secondary">Verified Mentor</Badge>}
+                <Badge variant="outline">Early Adopter</Badge>
+            </CardContent>
+        </Card>
+
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <ShoppingBag className="h-5 w-5 text-primary" />
+                    Products
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {productsLoading && <p>Loading products...</p>}
+                {!productsLoading && products && products.length > 0 ? (
+                    products.map(product => (
+                        <Link key={product.id} href="/marketplace" className="flex items-center gap-3 group">
+                            <Image src={product.imageUrl} alt={product.name} width={64} height={64} className="rounded-md object-cover h-16 w-16" />
+                            <div className="flex-1">
+                                <p className="font-semibold group-hover:text-primary">{product.name}</p>
+                                <p className="text-sm text-muted-foreground">${product.price.toFixed(2)}</p>
+                            </div>
+                        </Link>
+                    ))
+                ) : (
+                    <p className="text-sm text-muted-foreground">No products listed yet.</p>
+                )}
+            </CardContent>
+        </Card>
       </aside>
     </div>
   );

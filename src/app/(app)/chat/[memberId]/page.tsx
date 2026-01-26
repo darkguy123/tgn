@@ -159,7 +159,7 @@ export default function ChatPage() {
 
   if (isOtherUserLoading) {
      return (
-        <div className="flex flex-col h-[calc(100vh-120px)] bg-card border rounded-lg">
+        <div className="flex flex-col h-full bg-card">
             <CardHeader className="flex flex-row items-center justify-between p-3 border-b">
                  <div className="flex items-center gap-3">
                     <Skeleton className="h-10 w-10 rounded-full" />
@@ -178,10 +178,10 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] bg-card border rounded-lg">
+    <div className="flex flex-col h-full bg-card">
       <CardHeader className="flex flex-row items-center justify-between p-3 border-b shrink-0">
         <div className="flex items-center gap-3 min-w-0">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => router.push('/chat')}>
+          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => router.push('/chat')}>
             <ArrowLeft />
           </Button>
           <Avatar className="h-10 w-10">
@@ -202,7 +202,7 @@ export default function ChatPage() {
         </div>
       </CardHeader>
 
-      <CardContent ref={scrollRef} className="flex-1 p-4 overflow-y-auto space-y-4 bg-muted/30">
+      <div ref={scrollRef} className="flex-1 p-4 overflow-y-auto space-y-4 chat-background">
         {(isLoading || areMessagesLoading) && !messages && <div className="flex justify-center items-center h-full"><Loader2 className="h-6 w-6 animate-spin"/></div>}
         {messages?.map(msg => (
           <div key={msg.id} className={cn("flex items-end gap-2", msg.senderId === currentUser?.uid ? "justify-end" : "justify-start")}>
@@ -224,7 +224,7 @@ export default function ChatPage() {
                 <p>This is the beginning of your conversation with {otherMemberName}.</p>
             </div>
         )}
-      </CardContent>
+      </div>
 
       <div className="p-2 md:p-4 border-t bg-background shrink-0">
         <form className="flex items-center gap-2" onSubmit={handleSendMessage}>

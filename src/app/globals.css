@@ -83,6 +83,10 @@
   body {
     @apply bg-background text-foreground;
   }
+  .chat-background {
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAADFJREFUOBFjZGBgYGD4//+/A8/w+/9/BgYGRgYGBoY9DAwMyxgaGAYxMEwGFAYAp1bb24lM2t0AAAAASUVORK5CYII=');
+    background-color: hsl(var(--muted));
+  }
 }
 
     
