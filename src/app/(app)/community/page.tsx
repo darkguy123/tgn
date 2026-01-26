@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -49,6 +49,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { AdPlacement } from '@/components/AdPlacement';
+import { FileUpload } from '@/components/ui/file-upload';
 
 const communityNavItems = [
   { label: 'Feed', icon: LayoutGrid, path: '/community' },
@@ -59,28 +60,49 @@ const communityNavItems = [
 ];
 
 const postSchema = z.object({
-  content: z.string().min(1, 'Post content cannot be empty.').max(500, 'Post content is too long.'),
+  content: z.string().max(500, 'Post content is too long.').optional(),
 });
 
 type PostFormData = z.infer<typeof postSchema>;
 
-function CreatePostDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
+function CreatePostDialog({ open, onOpenChange, postType }: { open: boolean, onOpenChange: (open: boolean) => void, postType: 'text' | 'image' }) {
   const { profile } = useMemberProfile();
   const firestore = useFirestore();
   const { toast } = useToast();
+  
+  const [imageUrl, setImageUrl] = useState('');
+
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<PostFormData>({
     resolver: zodResolver(postSchema),
   });
+
+  useEffect(() => {
+    if (!open) {
+      reset();
+      setImageUrl('');
+    }
+  }, [open, reset]);
+
 
   const handlePostSubmit = (data: PostFormData) => {
     if (!profile || !firestore) {
       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to post.' });
       return;
     }
+
+    if (postType === 'image' && !imageUrl) {
+      toast({ variant: 'destructive', title: 'Image Required', description: 'Please upload an image to create a media post.' });
+      return;
+    }
+
+    if (!data.content && !imageUrl) {
+        toast({ variant: 'destructive', title: 'Empty Post', description: 'Please write something or upload an image.' });
+        return;
+    }
     
     const postsCollection = collection(firestore, 'posts');
     const dataToSave = {
-      content: data.content,
+      content: data.content || '',
       authorId: profile.id,
       authorTgnMemberId: profile.tgnMemberId,
       authorName: profile.name || profile.email.split('@')[0],
@@ -89,12 +111,12 @@ function CreatePostDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
       likes: 0,
       commentsCount: 0,
       createdAt: serverTimestamp(),
+      imageUrls: imageUrl ? [imageUrl] : undefined,
     };
 
     addDoc(postsCollection, dataToSave)
       .then(() => {
         toast({ title: 'Success', description: 'Your post has been published.' });
-        reset();
         onOpenChange(false);
       })
       .catch((error) => {
@@ -113,8 +135,12 @@ function CreatePostDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create a new post</DialogTitle>
-          <DialogDescription>Share your thoughts with the community.</DialogDescription>
+           <DialogTitle>
+            {postType === 'image' ? 'Create a Media Post' : 'Create a New Post'}
+          </DialogTitle>
+          <DialogDescription>
+            {postType === 'image' ? 'Share an image with the community.' : 'Share your thoughts with the community.'}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(handlePostSubmit)}>
           <div className="py-4 space-y-4">
@@ -132,10 +158,20 @@ function CreatePostDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
                 {errors.content && <p className="text-sm text-destructive">{errors.content.message}</p>}
               </div>
             </div>
-            <div className="flex gap-2 text-muted-foreground">
-                <Button variant="ghost" size="icon" type="button"><ImageIcon /></Button>
-                <Button variant="ghost" size="icon" type="button"><Calendar /></Button>
-            </div>
+
+            {postType === 'image' && (
+                <div className="space-y-2">
+                    <Label>Image (Required)</Label>
+                    {profile && <FileUpload value={imageUrl} onUploadComplete={setImageUrl} userId={profile.id} storagePath='public' />}
+                </div>
+            )}
+
+            {postType === 'text' && (
+              <div className="flex gap-2 text-muted-foreground">
+                  <Button variant="ghost" size="icon" type="button"><ImageIcon /></Button>
+                  <Button variant="ghost" size="icon" type="button"><Calendar /></Button>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <DialogClose asChild>
@@ -283,7 +319,7 @@ function PostCard({ post }: { post: Post }) {
             <MoreHorizontal className="h-5 w-5" />
           </Button>
         </div>
-        <p className="text-sm mb-4 whitespace-pre-wrap">{post.content}</p>
+        {post.content && <p className="text-sm mb-4 whitespace-pre-wrap">{post.content}</p>}
         {post.imageUrls && post.imageUrls.length > 0 && (
           <div className={`grid gap-2 grid-cols-${post.imageUrls.length > 1 ? 2 : 1} mb-4`}>
             {post.imageUrls.map(imageUrl => (
@@ -341,7 +377,8 @@ function PostCard({ post }: { post: Post }) {
 
 export default function CommunityPage() {
   const { profile } = useMemberProfile();
-  const [isCreatePostOpen, setCreatePostOpen] = useState(false);
+  const [isPostDialogOpen, setPostDialogOpen] = useState(false);
+  const [postDialogType, setPostDialogType] = useState<'text' | 'image'>('text');
   const firestore = useFirestore();
 
   const postsQuery = useMemoFirebase(() =>
@@ -389,7 +426,7 @@ export default function CommunityPage() {
 
   return (
     <>
-      <CreatePostDialog open={isCreatePostOpen} onOpenChange={setCreatePostOpen} />
+      <CreatePostDialog open={isPostDialogOpen} onOpenChange={setPostDialogOpen} postType={postDialogType} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Sidebar */}
@@ -440,13 +477,19 @@ export default function CommunityPage() {
                     </Avatar>
                     <button
                     className="w-full text-left h-12 px-4 rounded-full bg-muted border border-input hover:bg-muted/80 transition-colors text-muted-foreground text-sm"
-                    onClick={() => setCreatePostOpen(true)}
+                    onClick={() => {
+                      setPostDialogType('text');
+                      setPostDialogOpen(true);
+                    }}
                     >
                         Start a post
                     </button>
                 </CardContent>
                 <div className="p-2 flex justify-around">
-                    <Button variant="ghost" className="text-muted-foreground font-medium flex-1">
+                    <Button variant="ghost" className="text-muted-foreground font-medium flex-1" onClick={() => {
+                        setPostDialogType('image');
+                        setPostDialogOpen(true);
+                    }}>
                         <ImageIcon className="mr-2" />
                         Media
                     </Button>
