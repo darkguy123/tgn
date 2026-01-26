@@ -11,6 +11,14 @@ import { doc, collection, query, where } from 'firebase/firestore';
 import type { TGNMember } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import placeholderImages from '@/lib/placeholder-images.json';
+
+// Helper to get image URL from placeholder data
+const getImageUrl = (imageId?: string) => {
+  if (!imageId) return "https://images.unsplash.com/photo-1557683316-9ca2a4f4e427?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxhYnN0cmFjdCUyMGJsdWV8ZW58MHx8fHwxNzE3Nzc4MDUwfDA&ixlib=rb-4.1.0&q=80&w=1080";
+  const image = placeholderImages.placeholderImages.find((p) => p.id === imageId);
+  return image?.imageUrl || "https://images.unsplash.com/photo-1557683316-9ca2a4f4e427?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxhYnN0cmFjdCUyMGJsdWV8ZW58MHx8fHwxNzE3Nzc4MDUwfDA&ixlib=rb-4.1.0&q=80&w=1080";
+}
 
 export default function MemberProfilePage() {
   const params = useParams();
@@ -19,21 +27,25 @@ export default function MemberProfilePage() {
   const memberId = params.memberId as string;
   const firestore = useFirestore();
 
-  const isTgnId = memberId.startsWith('TGN-');
+  // Determine if the ID is a TGN ID or a Firebase UID
+  const isTgnId = memberId?.startsWith('TGN-');
 
+  // Set up Firestore references based on the ID type
   const memberDocRef = useMemoFirebase(() => {
-    if (isTgnId || !firestore) return null;
+    if (isTgnId || !firestore || !memberId) return null;
     return doc(firestore, 'users', memberId);
   }, [firestore, memberId, isTgnId]);
 
   const memberQuery = useMemoFirebase(() => {
-    if (!isTgnId || !firestore) return null;
+    if (!isTgnId || !firestore || !memberId) return null;
     return query(collection(firestore, 'users'), where('tgnMemberId', '==', memberId));
   }, [firestore, memberId, isTgnId]);
   
+  // Fetch data using the appropriate hook
   const { data: memberFromDoc, isLoading: isDocLoading } = useDoc<TGNMember>(memberDocRef);
   const { data: membersFromQuery, isLoading: isQueryLoading } = useCollection<TGNMember>(memberQuery);
 
+  // Consolidate the fetched member data and loading state
   const member = isTgnId ? membersFromQuery?.[0] : memberFromDoc;
   const isLoading = isDocLoading || isQueryLoading;
 
@@ -63,21 +75,24 @@ export default function MemberProfilePage() {
     );
   }
 
+  // If after loading, no member is found, show the not-found page.
   if (!member) {
     return notFound();
   }
 
+  // --- Safe defaults for rendering ---
   const name = member.name || member.email?.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || "TGN Member";
   const role = member.role?.replace('-', ' ') || 'Member';
   const location = member.locationCountry || 'Location not set';
-  const avatarFallback = name.charAt(0) || "T";
+  const avatarFallback = name.charAt(0)?.toUpperCase() || "T";
+  const bannerUrl = getImageUrl('profile-banner-default'); // Using a default banner
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
       <main className="lg:col-span-2 space-y-6">
         <Card className="overflow-hidden">
             <Image
-              src="https://images.unsplash.com/photo-1557683316-9ca2a4f4e427?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxhYnN0cmFjdCUyMGJsdWV8ZW58MHx8fHwxNzE3Nzc4MDUwfDA&ixlib=rb-4.1.0&q=80&w=1080"
+              src={bannerUrl}
               alt="Profile banner" width={1200} height={300} className="h-48 w-full object-cover" data-ai-hint="abstract blue"
             />
           <div className="relative">
