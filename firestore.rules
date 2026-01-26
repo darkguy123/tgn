@@ -384,10 +384,13 @@ service cloud.firestore {
     // ------------------------------------------------------------------------
 
     match /chats/{chatId} {
-      // A user can read a chat document if their UID is in the chat ID.
+      // A user can GET a chat document if their UID is in the chat ID.
       // This allows reads even if the document doesn't exist yet, which is needed
       // to initialize a chat on the client.
-      allow read: if isSignedIn() && request.auth.uid in chatId.split('_');
+      allow get: if isSignedIn() && request.auth.uid in chatId.split('_');
+
+      // A user can LIST chats where they are a member. This validates the 'array-contains' query.
+      allow list: if isSignedIn() && request.auth.uid in resource.data.members;
       
       // A user can create a chat document if they are including themselves in the members list.
       allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
