@@ -55,8 +55,8 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
           setUploadProgress(progress);
         },
         (error) => {
-          console.error('Upload failed:', error);
-          toast({ variant: 'destructive', title: 'Upload Failed', description: 'Check storage rules and permissions.' });
+          console.error('Upload failed with code:', error.code, 'and message:', error.message);
+          toast({ variant: 'destructive', title: 'Upload Failed', description: `Error: ${error.message || 'Check storage rules and permissions.'}` });
           setIsUploading(false);
           setUploadProgress(null);
         },
@@ -67,8 +67,8 @@ export function FileUpload({ onUploadComplete, userId, value, label, accept = { 
             setIsUploading(false);
             setUploadProgress(null);
           }).catch((error) => {
-            console.error("Failed to get download URL:", error);
-            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not get the file URL after upload. Check storage read permissions.' });
+            console.error("Failed to get download URL with code:", error.code, "and message:", error.message);
+            toast({ variant: 'destructive', title: 'Upload Failed', description: `Could not get file URL. Error: ${error.message || 'Check storage read permissions.'}` });
             setIsUploading(false);
             setUploadProgress(null);
           });

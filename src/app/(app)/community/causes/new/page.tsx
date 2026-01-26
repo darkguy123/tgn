@@ -78,7 +78,7 @@ export default function NewFundraiserPage() {
         router.push('/community/causes');
       })
       .catch((error) => {
-        console.error('Failed to create fundraiser:', error);
+        console.error('Failed to create fundraiser with code:', error.code, 'and message:', error.message, 'Full error:', error);
         const permissionError = new FirestorePermissionError({
           path: fundraisersCollection.path,
           operation: 'create',
@@ -87,8 +87,8 @@ export default function NewFundraiserPage() {
         errorEmitter.emit('permission-error', permissionError);
         toast({
           variant: 'destructive',
-          title: 'Error',
-          description: 'Failed to create the fundraiser. Please try again.',
+          title: 'Error creating fundraiser',
+          description: error.message || 'Please try again.',
         });
       });
   };

@@ -54,7 +54,7 @@ export default function NewProductPage() {
         router.push('/marketplace/my-products');
       })
       .catch((error) => {
-        console.error('Failed to create product:', error);
+        console.error('Failed to create product with code:', error.code, 'and message:', error.message, 'Full error:', error);
         const permissionError = new FirestorePermissionError({
           path: productsCollection.path,
           operation: 'create',
@@ -63,8 +63,8 @@ export default function NewProductPage() {
         errorEmitter.emit('permission-error', permissionError);
         toast({
           variant: 'destructive',
-          title: 'Error',
-          description: 'Failed to create the product. Please try again.',
+          title: 'Error creating product',
+          description: error.message || 'Please try again.',
         });
       });
   };

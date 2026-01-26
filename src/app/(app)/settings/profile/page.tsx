@@ -144,7 +144,7 @@ const SettingsPage = () => {
             });
         })
         .catch((error) => {
-            console.error('Failed to update profile:', error);
+            console.error('Failed to update profile with code:', error.code, 'and message:', error.message, 'Full error:', error);
             const permissionError = new FirestorePermissionError({
                 path: userDocRef.path,
                 operation: 'update',
@@ -153,8 +153,8 @@ const SettingsPage = () => {
             errorEmitter.emit('permission-error', permissionError);
             toast({
                 variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to update your profile. Please try again.',
+                title: 'Error updating profile',
+                description: error.message || 'Please try again.',
             });
         });
   };
@@ -174,10 +174,10 @@ const SettingsPage = () => {
     try {
         await updateDoc(userDocRef, dataToSave);
         toast({ title: 'Preferences Saved', description: 'Your notification settings have been updated.' });
-    } catch (error) {
-        console.error("Failed to save notification preferences: ", error);
+    } catch (error: any) {
+        console.error("Failed to save notification preferences with code:", error.code, 'and message:', error.message, 'Full error:', error);
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: userDocRef.path, operation: 'update', requestResourceData: dataToSave }));
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not save your preferences.' });
+        toast({ variant: 'destructive', title: 'Error', description: error.message || 'Could not save your preferences.' });
     } finally {
         setIsSavingNotifications(false);
     }
@@ -213,15 +213,15 @@ const SettingsPage = () => {
       toast({ title: 'Card Added', description: 'Your new payment method has been saved.' });
       resetCardForm();
       setAddCardOpen(false);
-    } catch (error) {
-      console.error('Failed to add card:', error);
+    } catch (error: any) {
+      console.error('Failed to add card with code:', error.code, 'and message:', error.message, 'Full error:', error);
       const permissionError = new FirestorePermissionError({
           path: cardsCollectionRef.path,
           operation: 'create',
           requestResourceData: newCardData
       });
       errorEmitter.emit('permission-error', permissionError);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not save your new card.' });
+      toast({ variant: 'destructive', title: 'Error adding card', description: error.message || 'Could not save your new card.' });
     }
   };
   
@@ -231,10 +231,10 @@ const SettingsPage = () => {
     try {
         await deleteDoc(cardDocRef);
         toast({ title: "Card Removed", description: "The payment method has been deleted." });
-    } catch (error) {
-        console.error("Failed to remove card: ", error);
+    } catch (error: any) {
+        console.error("Failed to remove card with code:", error.code, 'and message:', error.message, 'Full error:', error);
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: cardDocRef.path, operation: 'delete' }));
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not remove the card.' });
+        toast({ variant: 'destructive', title: 'Error removing card', description: error.message || 'Could not remove the card.' });
     }
   };
 
@@ -257,9 +257,9 @@ const SettingsPage = () => {
         });
 
         toast({ title: "Default Card Updated" });
-    } catch (error) {
-        console.error("Failed to set default card: ", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not update your default card.' });
+    } catch (error: any) {
+        console.error("Failed to set default card with code:", error.code, 'and message:', error.message, 'Full error:', error);
+        toast({ variant: 'destructive', title: 'Error', description: error.message || 'Could not update your default card.' });
     }
   };
 
