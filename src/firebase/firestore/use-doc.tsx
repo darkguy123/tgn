@@ -41,39 +41,28 @@ export interface UseDocResult<T> {
 export function useDoc<T = any>(
   memoizedDocRef: (DocumentReference<DocumentData> & {__memo?: boolean}) | null | undefined,
 ): UseDocResult<T> {
-  type StateDataType = WithId<T> | null;
-
-  const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [data, setData] = useState<WithId<T> | null>(null);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+
+  // Loading is true if we have a ref but no data and no error yet.
+  const isLoading = !!memoizedDocRef && data === null && error === null;
 
   useEffect(() => {
     if (!memoizedDocRef) {
       setData(null);
-      setIsLoading(false);
       setError(null);
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
-
     const unsubscribe = onSnapshot(
       memoizedDocRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
-        const newDocData: StateDataType = snapshot.exists()
+        const newDocData: WithId<T> | null = snapshot.exists()
           ? { ...(snapshot.data() as T), id: snapshot.id }
           : null;
 
-        setData(prevData => {
-            if (JSON.stringify(prevData) === JSON.stringify(newDocData)) {
-                return prevData;
-            }
-            return newDocData;
-        });
-        
-        setError(null); // Clear any previous error on successful snapshot (even if doc doesn't exist)
-        setIsLoading(false);
+        setData(newDocData);
+        setError(null);
       },
       (error: FirestoreError) => {
         const contextualError = new FirestorePermissionError({
@@ -83,7 +72,6 @@ export function useDoc<T = any>(
 
         setError(contextualError)
         setData(null)
-        setIsLoading(false)
 
         // trigger global error propagation
         errorEmitter.emit('permission-error', contextualError);

@@ -39,7 +39,7 @@ export interface InternalQuery extends Query<DocumentData> {
 
 /**
  * React hook to subscribe to a Firestore collection or query in real-time.
- * Handles nullable references/queries.
+ * Handles nullable references.
  * 
  *
  * IMPORTANT! YOU MUST MEMOIZE the inputted memoizedTargetRefOrQuery or BAD THINGS WILL HAPPEN
@@ -54,42 +54,29 @@ export interface InternalQuery extends Query<DocumentData> {
 export function useCollection<T = any>(
     memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
 ): UseCollectionResult<T> {
-  type ResultItemType = WithId<T>;
-  type StateDataType = ResultItemType[] | null;
-
-  const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [data, setData] = useState<WithId<T>[] | null>(null);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+
+  // Loading is true if we have a query but no data and no error yet.
+  const isLoading = !!memoizedTargetRefOrQuery && data === null && error === null;
 
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
       setData(null);
-      setIsLoading(false);
       setError(null);
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
-
-    // Directly use memoizedTargetRefOrQuery as it's assumed to be the final query
     const unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,
       (snapshot: QuerySnapshot<DocumentData>) => {
-        const results: ResultItemType[] = [];
+        const results: WithId<T>[] = [];
         for (const doc of snapshot.docs) {
           results.push({ ...(doc.data() as T), id: doc.id });
         }
         
-        setData(prevData => {
-            if (JSON.stringify(prevData) === JSON.stringify(results)) {
-                return prevData;
-            }
-            return results;
-        });
-
+        setData(results);
         setError(null);
-        setIsLoading(false);
       },
       (error: FirestoreError) => {
         // This logic extracts the path from either a ref or a query
@@ -105,7 +92,6 @@ export function useCollection<T = any>(
 
         setError(contextualError)
         setData(null)
-        setIsLoading(false)
 
         // trigger global error propagation
         errorEmitter.emit('permission-error', contextualError);
