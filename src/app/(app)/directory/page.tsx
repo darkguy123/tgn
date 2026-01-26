@@ -1,7 +1,8 @@
 
+
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -33,6 +34,7 @@ import {
   Briefcase,
   CheckCircle2,
   Send,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -41,10 +43,11 @@ import {
   mentorTypes,
 } from "@/lib/data";
 import { useCollection, useFirestore, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import type { TGNMember } from "@/lib/types";
+import { collection, addDoc, serverTimestamp, query, where } from "firebase/firestore";
+import type { TGNMember, FriendRequest } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { useMemberProfile } from '@/hooks/useMemberProfile';
 
 const DirectoryPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -58,9 +61,26 @@ const DirectoryPage = () => {
   
   const firestore = useFirestore();
   const { user: currentUser } = useUser();
+  const { profile: currentUserProfile } = useMemberProfile();
   const membersRef = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
-  const { data: members, isLoading, error } = useCollection<TGNMember>(membersRef);
+  const { data: members, isLoading: membersLoading, error } = useCollection<TGNMember>(membersRef);
   const { toast } = useToast();
+
+  const sentRequestsQuery = useMemoFirebase(() =>
+      currentUser
+          ? query(
+              collection(firestore, 'friend_requests'),
+              where('senderId', '==', currentUser.uid),
+              where('status', '==', 'pending')
+            )
+          : null,
+      [firestore, currentUser]
+  );
+  const { data: sentRequests, isLoading: requestsLoading } = useCollection<FriendRequest>(sentRequestsQuery);
+
+  const sentRequestRecipientIds = useMemo(() => {
+    return new Set(sentRequests?.map(req => req.recipientId));
+  }, [sentRequests]);
 
   const handleConnect = (recipientId: string) => {
     if (!currentUser || !firestore) {
@@ -115,6 +135,8 @@ const DirectoryPage = () => {
   const getName = (member: TGNMember) => {
     return member.name || member.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
+
+  const isLoading = membersLoading || requestsLoading;
 
   const filteredMembers = members?.filter((member) => {
     // Don't show the current user in the directory
@@ -269,6 +291,9 @@ const DirectoryPage = () => {
         ))}
         {filteredMembers?.map((member) => {
           const name = getName(member);
+          const isConnected = currentUserProfile?.connections?.includes(member.id);
+          const requestSent = sentRequestRecipientIds.has(member.id);
+
           return (
             <Card
               key={member.id}
@@ -316,10 +341,22 @@ const DirectoryPage = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handleConnect(member.id)}>
-                      <Send className="h-4 w-4 mr-1" />
-                      Connect
-                  </Button>
+                    {isConnected ? (
+                        <Button disabled variant="secondary" size="sm" className="flex-1">
+                            <CheckCircle2 className="h-4 w-4 mr-1" />
+                            Connected
+                        </Button>
+                    ) : requestSent ? (
+                         <Button disabled variant="secondary" size="sm" className="flex-1 bg-green-100 text-green-700 hover:bg-green-100">
+                            <Check className="h-4 w-4 mr-1" />
+                            Request Sent
+                        </Button>
+                    ) : (
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => handleConnect(member.id)}>
+                            <Send className="h-4 w-4 mr-1" />
+                            Connect
+                        </Button>
+                    )}
                   <Button asChild variant="accent" size="sm" className="flex-1 transition-all hover:-translate-y-0.5 hover:shadow-accent">
                     <Link href={`/member/${member.tgnMemberId || member.id}`}>View Profile</Link>
                   </Button>
@@ -349,3 +386,5 @@ const DirectoryPage = () => {
 };
 
 export default DirectoryPage;
+
+    
