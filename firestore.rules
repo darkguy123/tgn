@@ -159,6 +159,15 @@ service cloud.firestore {
       match /enrolled_programs/{enrollmentId} {
         allow read, create, update, delete: if isOwner(userId);
       }
+
+      /**
+       * @description Controls access to a user's uploaded media file metadata.
+       * @path /users/{userId}/media/{mediaId}
+       * @allow (read, write) - A user can manage their own media files.
+       */
+      match /media/{mediaId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
 
