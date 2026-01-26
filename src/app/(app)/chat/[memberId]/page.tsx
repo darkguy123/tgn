@@ -102,7 +102,7 @@ export default function ChatPage() {
   }, [newMessage, chatDocRef, currentUser, chatData, isChatLoading]);
   
   const otherUserIsTyping = chatData?.typing?.[otherMemberId] === true;
-  const otherMemberName = otherMember?.name || otherMember?.email?.split('@')[0] || 'User';
+  const otherMemberName = otherMember?.name || (otherMember?.email ? otherMember.email.split('@')[0] : '') || 'User';
   const isLoading = isOtherUserLoading || isChatLoading;
 
   const handleSendMessage = async (e: React.FormEvent) => {

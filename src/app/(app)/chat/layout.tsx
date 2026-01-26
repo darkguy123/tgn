@@ -43,7 +43,7 @@ function ChatListItem({ chat, isActive }: { chat: Chat, isActive: boolean }) {
     return null;
   }
   
-  const otherUserName = otherUser.name || otherUser.email.split('@')[0];
+  const otherUserName = otherUser.name || (otherUser.email ? otherUser.email.split('@')[0] : '');
 
   return (
     <Link

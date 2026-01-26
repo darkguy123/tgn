@@ -133,7 +133,7 @@ const DirectoryPage = () => {
 
 
   const getName = (member: TGNMember) => {
-    return member.name || member.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return member.name || (member.email ? member.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '');
   }
 
   const isLoading = membersLoading || requestsLoading;

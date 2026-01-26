@@ -95,7 +95,7 @@ export default function MemberProfilePage() {
   }
 
   // --- Safe defaults for rendering ---
-  const name = member.name || member.email?.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || "TGN Member";
+  const name = member.name || (member.email ? member.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '') || "TGN Member";
   const role = member.role?.replace('-', ' ') || 'Member';
   const location = member.locationCountry || 'Location not set';
   const avatarFallback = name.charAt(0)?.toUpperCase() || "T";
