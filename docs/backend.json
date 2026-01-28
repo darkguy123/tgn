@@ -1067,53 +1067,6 @@
         }
       },
       "required": ["senderId", "recipientId", "status", "createdAt"]
-    },
-    "MediaFile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "MediaFile",
-      "type": "object",
-      "description": "Represents a file uploaded by a user to Firebase Storage.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the media file."
-        },
-        "uploaderId": {
-          "type": "string",
-          "description": "The UID of the TGN Member who uploaded the file."
-        },
-        "fileName": {
-          "type": "string",
-          "description": "The original name of the uploaded file."
-        },
-        "fileType": {
-          "type": "string",
-          "description": "The MIME type of the file (e.g., 'image/jpeg')."
-        },
-        "fileSize": {
-          "type": "number",
-          "description": "The size of the file in bytes."
-        },
-        "storagePath": {
-          "type": "string",
-          "description": "The full path to the file in Firebase Storage."
-        },
-        "downloadUrl": {
-          "type": "string",
-          "format": "uri",
-          "description": "The public URL to access the file."
-        },
-        "description": {
-          "type": "string",
-          "description": "An optional description for the file."
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp when the file was uploaded."
-        }
-      },
-      "required": ["uploaderId", "fileName", "fileType", "fileSize", "storagePath", "downloadUrl", "createdAt"]
     }
   },
   "auth": {
@@ -1233,11 +1186,6 @@
         "path": "/friend_requests/{requestId}",
         "entity": "FriendRequest",
         "description": "Stores all member connection requests. Access is controlled by senderId and recipientId."
-      },
-      {
-        "path": "/users/{userId}/media/{mediaId}",
-        "entity": "MediaFile",
-        "description": "Stores metadata for files uploaded by a user. Owned by the user."
       }
     ]
   }
