@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -74,6 +74,11 @@ function CreatePostDialog({ open, onOpenChange, startWithMedia }: { open: boolea
   const [mediaType, setMediaType] = useState('');
   const [showFileUpload, setShowFileUpload] = useState(false);
 
+  const handleUploadComplete = useCallback((url: string, type: string) => {
+    setMediaUrl(url);
+    setMediaType(type);
+  }, []);
+
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<PostFormData>({
     resolver: zodResolver(postSchema),
   });
@@ -97,7 +102,8 @@ function CreatePostDialog({ open, onOpenChange, startWithMedia }: { open: boolea
     }
 
     if (!data.content && !mediaUrl) {
-        toast({ variant: 'destructive', title: 'Empty Post', description: 'Please write something or upload a file.' });
+        const errorMessage = startWithMedia ? 'Please upload an image or video.' : 'Please write something or upload a file.';
+        toast({ variant: 'destructive', title: 'Empty Post', description: errorMessage });
         return;
     }
     
@@ -165,10 +171,7 @@ function CreatePostDialog({ open, onOpenChange, startWithMedia }: { open: boolea
                   <FileUpload
                     value={mediaUrl}
                     mediaType={mediaType}
-                    onUploadComplete={(url, type) => {
-                      setMediaUrl(url);
-                      setMediaType(type);
-                    }}
+                    onUploadComplete={handleUploadComplete}
                     userId={profile.id}
                     storagePath="public"
                     accept={{ 'image/*': [], 'video/*': [] }}
@@ -513,7 +516,6 @@ export default function CommunityPage() {
                         Event
                     </Button>
                     <Button variant="ghost" className="text-muted-foreground font-medium flex-1">
-                        <ImageIcon className="mr-2" />
                         Write article
                     </Button>
                 </div>
