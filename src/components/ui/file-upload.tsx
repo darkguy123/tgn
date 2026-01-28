@@ -11,9 +11,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useStorage } from '@/firebase';
 
 interface FileUploadProps {
-  onUploadComplete: (url: string) => void;
+  onUploadComplete: (url: string, fileType: string) => void;
   userId: string;
   value?: string;
+  mediaType?: string;
   label?: string;
   accept?: Record<string, string[]>;
   storagePath?: 'public' | 'private';
@@ -24,6 +25,7 @@ export function FileUpload({
   onUploadComplete,
   userId,
   value,
+  mediaType,
   label,
   accept = { 'image/*': [] },
   storagePath = 'public',
@@ -70,7 +72,7 @@ export function FileUpload({
         async () => {
           try {
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            onUploadComplete(downloadURL);
+            onUploadComplete(downloadURL, file.type);
             toast({ title: 'Upload Complete' });
           } catch (getUrlError) {
             console.error("Could not get download URL:", getUrlError);
@@ -82,7 +84,7 @@ export function FileUpload({
         }
       );
     },
-    [storage, userId, storagePath, onUploadComplete, toast]
+    [storage, userId, storagePath, onUploadComplete, toast, accept]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -92,7 +94,18 @@ export function FileUpload({
   });
 
   const handleRemove = () => {
-    onUploadComplete('');
+    if (value && storage) {
+        try {
+            const fileRef = ref(storage, value);
+            deleteObject(fileRef).catch((error) => {
+                // It might fail if the rules don't allow delete, but we still want to clear the UI
+                console.warn("Could not delete file from storage:", error);
+            });
+        } catch (error) {
+            console.error("Error creating storage reference for deletion:", error);
+        }
+    }
+    onUploadComplete('', '');
   };
 
   return (
@@ -129,17 +142,24 @@ export function FileUpload({
 
       {value && !isUploading && !error && (
         <div className="relative group aspect-video">
-          <Image
-            src={value}
-            alt="Uploaded content"
-            fill
-            className="rounded-md object-cover"
-          />
+           {mediaType?.startsWith('video/') ? (
+              <video key={value} controls className="rounded-md object-cover w-full h-full bg-black">
+                <source src={value} type={mediaType} />
+                Your browser does not support the video tag.
+              </video>
+            ) : (
+              <Image
+                src={value}
+                alt="Uploaded content"
+                fill
+                className="rounded-md object-cover"
+              />
+            )}
           <Button
             type="button"
             variant="destructive"
             size="icon"
-            className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10"
             onClick={handleRemove}
           >
             <X className="h-4 w-4" />

@@ -103,7 +103,7 @@ export type Post = {
   authorAvatarUrl: string;
   authorRole: string;
   content: string;
-  imageUrls?: string[];
+  media?: { url: string; type: string }[];
   likes: number;
   commentsCount: number;
   createdAt: any; // Firestore Timestamp

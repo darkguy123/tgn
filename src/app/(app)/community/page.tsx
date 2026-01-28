@@ -65,23 +65,29 @@ const postSchema = z.object({
 
 type PostFormData = z.infer<typeof postSchema>;
 
-function CreatePostDialog({ open, onOpenChange, postType }: { open: boolean, onOpenChange: (open: boolean) => void, postType: 'text' | 'image' }) {
+function CreatePostDialog({ open, onOpenChange, startWithMedia }: { open: boolean, onOpenChange: (open: boolean) => void, startWithMedia: boolean }) {
   const { profile } = useMemberProfile();
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [imageUrl, setImageUrl] = useState('');
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaType, setMediaType] = useState('');
+  const [showFileUpload, setShowFileUpload] = useState(false);
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<PostFormData>({
     resolver: zodResolver(postSchema),
   });
 
   useEffect(() => {
-    if (!open) {
+    if (open) {
+        setShowFileUpload(startWithMedia);
+    } else {
       reset();
-      setImageUrl('');
+      setMediaUrl('');
+      setMediaType('');
+      setShowFileUpload(false);
     }
-  }, [open, reset]);
+  }, [open, startWithMedia, reset]);
 
 
   const handlePostSubmit = (data: PostFormData) => {
@@ -90,13 +96,8 @@ function CreatePostDialog({ open, onOpenChange, postType }: { open: boolean, onO
       return;
     }
 
-    if (postType === 'image' && !imageUrl) {
-      toast({ variant: 'destructive', title: 'Image Required', description: 'Please upload an image to create a media post.' });
-      return;
-    }
-
-    if (!data.content && !imageUrl) {
-        toast({ variant: 'destructive', title: 'Empty Post', description: 'Please write something or upload an image.' });
+    if (!data.content && !mediaUrl) {
+        toast({ variant: 'destructive', title: 'Empty Post', description: 'Please write something or upload a file.' });
         return;
     }
     
@@ -111,7 +112,7 @@ function CreatePostDialog({ open, onOpenChange, postType }: { open: boolean, onO
       likes: 0,
       commentsCount: 0,
       createdAt: serverTimestamp(),
-      imageUrls: imageUrl ? [imageUrl] : undefined,
+      media: mediaUrl ? [{ url: mediaUrl, type: mediaType }] : [],
     };
 
     addDoc(postsCollection, dataToSave)
@@ -135,11 +136,9 @@ function CreatePostDialog({ open, onOpenChange, postType }: { open: boolean, onO
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-           <DialogTitle>
-            {postType === 'image' ? 'Create a Media Post' : 'Create a New Post'}
-          </DialogTitle>
+           <DialogTitle>Create a New Post</DialogTitle>
           <DialogDescription>
-            {postType === 'image' ? 'Share an image with the community.' : 'Share your thoughts with the community.'}
+            Share your thoughts, images, or videos with the community.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(handlePostSubmit)}>
@@ -159,19 +158,31 @@ function CreatePostDialog({ open, onOpenChange, postType }: { open: boolean, onO
               </div>
             </div>
 
-            {postType === 'image' && (
-                <div className="space-y-2">
-                    <Label>Image (Required)</Label>
-                    {profile && <FileUpload value={imageUrl} onUploadComplete={setImageUrl} userId={profile.id} storagePath='public' />}
-                </div>
-            )}
-
-            {postType === 'text' && (
-              <div className="flex gap-2 text-muted-foreground">
-                  <Button variant="ghost" size="icon" type="button"><ImageIcon /></Button>
-                  <Button variant="ghost" size="icon" type="button"><Calendar /></Button>
+            {showFileUpload && (
+              <div className="space-y-2">
+                <Label>Image/Video</Label>
+                {profile && (
+                  <FileUpload
+                    value={mediaUrl}
+                    mediaType={mediaType}
+                    onUploadComplete={(url, type) => {
+                      setMediaUrl(url);
+                      setMediaType(type);
+                    }}
+                    userId={profile.id}
+                    storagePath="public"
+                    accept={{ 'image/*': [], 'video/*': [] }}
+                  />
+                )}
               </div>
             )}
+
+            <div className="flex gap-2 text-muted-foreground">
+                <Button variant="ghost" size="icon" type="button" onClick={() => setShowFileUpload(p => !p)}>
+                    <ImageIcon />
+                </Button>
+                <Button variant="ghost" size="icon" type="button"><Calendar /></Button>
+            </div>
           </div>
           <DialogFooter>
             <DialogClose asChild>
@@ -320,17 +331,21 @@ function PostCard({ post }: { post: Post }) {
           </Button>
         </div>
         {post.content && <p className="text-sm mb-4 whitespace-pre-wrap">{post.content}</p>}
-        {post.imageUrls && post.imageUrls.length > 0 && (
-          <div className={`grid gap-2 grid-cols-${post.imageUrls.length > 1 ? 2 : 1} mb-4`}>
-            {post.imageUrls.map(imageUrl => (
-                <Image
-                  key={imageUrl}
-                  src={imageUrl}
-                  alt="Post image"
-                  width={400}
-                  height={300}
-                  className="rounded-lg object-cover w-full aspect-[4/3]"
-                />
+        {post.media && post.media.length > 0 && (
+          <div className={`grid gap-2 grid-cols-${post.media.length > 1 ? 2 : 1} mb-4`}>
+            {post.media.map(mediaItem => (
+                <div key={mediaItem.url} className="aspect-[4/3] w-full rounded-lg overflow-hidden bg-muted">
+                  {mediaItem.type.startsWith('video/') ? (
+                    <video src={mediaItem.url} controls className="object-cover w-full h-full bg-black" />
+                  ) : (
+                    <Image
+                      src={mediaItem.url}
+                      alt="Post content"
+                      fill
+                      className="object-cover w-full h-full"
+                    />
+                  )}
+                </div>
               ))}
           </div>
         )}
@@ -378,7 +393,7 @@ function PostCard({ post }: { post: Post }) {
 export default function CommunityPage() {
   const { profile } = useMemberProfile();
   const [isPostDialogOpen, setPostDialogOpen] = useState(false);
-  const [postDialogType, setPostDialogType] = useState<'text' | 'image'>('text');
+  const [startWithMedia, setStartWithMedia] = useState(false);
   const firestore = useFirestore();
 
   const postsQuery = useMemoFirebase(() =>
@@ -426,7 +441,7 @@ export default function CommunityPage() {
 
   return (
     <>
-      <CreatePostDialog open={isPostDialogOpen} onOpenChange={setPostDialogOpen} postType={postDialogType} />
+      <CreatePostDialog open={isPostDialogOpen} onOpenChange={setPostDialogOpen} startWithMedia={startWithMedia} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Sidebar */}
@@ -478,7 +493,7 @@ export default function CommunityPage() {
                     <button
                     className="w-full text-left h-12 px-4 rounded-full bg-muted border border-input hover:bg-muted/80 transition-colors text-muted-foreground text-sm"
                     onClick={() => {
-                      setPostDialogType('text');
+                      setStartWithMedia(false);
                       setPostDialogOpen(true);
                     }}
                     >
@@ -487,7 +502,7 @@ export default function CommunityPage() {
                 </CardContent>
                 <div className="p-2 flex justify-around">
                     <Button variant="ghost" className="text-muted-foreground font-medium flex-1" onClick={() => {
-                        setPostDialogType('image');
+                        setStartWithMedia(true);
                         setPostDialogOpen(true);
                     }}>
                         <ImageIcon className="mr-2" />
