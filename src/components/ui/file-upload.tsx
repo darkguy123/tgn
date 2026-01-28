@@ -1,7 +1,7 @@
 'use client';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { UploadCloud, Loader2, Image as ImageIcon, X } from 'lucide-react';
+import { UploadCloud, Loader2, X } from 'lucide-react';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { Progress } from '@/components/ui/progress';
 import { Button } from './button';
@@ -36,7 +36,7 @@ export function FileUpload({
   const { toast } = useToast();
   const storage = useStorage();
 
-  const isUploading = uploadProgress !== null;
+  const isUploading = uploadProgress !== null && uploadProgress >= 0;
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -72,13 +72,13 @@ export function FileUpload({
         async () => {
           try {
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            onUploadComplete(downloadURL, file.type);
+            setUploadProgress(null); // Stop loading UI FIRST
+            onUploadComplete(downloadURL, file.type); // THEN notify parent
             toast({ title: 'Upload Complete' });
           } catch (getUrlError) {
             console.error("Could not get download URL:", getUrlError);
             setError('Could not retrieve file URL.');
             toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not get file URL after upload.' });
-          } finally {
             setUploadProgress(null);
           }
         }
@@ -98,7 +98,6 @@ export function FileUpload({
         try {
             const fileRef = ref(storage, value);
             deleteObject(fileRef).catch((error) => {
-                // It might fail if the rules don't allow delete, but we still want to clear the UI
                 console.warn("Could not delete file from storage:", error);
             });
         } catch (error) {
@@ -108,64 +107,68 @@ export function FileUpload({
     onUploadComplete('', '');
   };
 
-  return (
-    <div className={cn("relative", className)}>
-      <div
-        {...getRootProps()}
-        className={cn(
-          'border-2 border-dashed rounded-md aspect-video flex flex-col items-center justify-center text-center p-4 cursor-pointer hover:border-primary transition-colors',
-          isDragActive && 'border-primary bg-primary/10',
-          { 'hidden': value || isUploading }
+  if (value && !isUploading) {
+    return (
+      <div className={cn("relative group aspect-video", className)}>
+        {mediaType?.startsWith('video/') ? (
+          <video key={value} controls className="rounded-md object-cover w-full h-full bg-black">
+            <source src={value} type={mediaType} />
+            Your browser does not support the video tag.
+          </video>
+        ) : (
+          <Image
+            src={value}
+            alt="Uploaded content"
+            fill
+            className="rounded-md object-cover"
+          />
         )}
-      >
-        <input {...getInputProps()} />
-        <UploadCloud className="h-10 w-10 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground mt-2">
-          {label || 'Drag & drop or click to upload'}
-        </p>
+        <Button
+          type="button"
+          variant="destructive"
+          size="icon"
+          className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          onClick={handleRemove}
+        >
+          <X className="h-4 w-4" />
+        </Button>
       </div>
-      
-      {isUploading && (
-        <div className="aspect-video w-full flex flex-col items-center justify-center border rounded-md p-4">
+    )
+  }
+
+  if (isUploading) {
+      return (
+        <div className={cn("aspect-video w-full flex flex-col items-center justify-center border rounded-md p-4", className)}>
             <Loader2 className="h-10 w-10 text-primary animate-spin" />
             <p className="text-sm text-foreground font-semibold mt-4">Uploading...</p>
             <Progress value={uploadProgress} className="w-full max-w-xs mt-2" />
         </div>
-      )}
-
-      {error && !isUploading && (
-        <div className="aspect-video w-full flex flex-col items-center justify-center border border-destructive rounded-md p-4">
+      )
+  }
+  
+  if (error) {
+       return (
+        <div className={cn("aspect-video w-full flex flex-col items-center justify-center border border-destructive rounded-md p-4", className)}>
             <p className="text-sm text-destructive">{error}</p>
             <Button variant="link" size="sm" onClick={() => setError(null)}>Try Again</Button>
         </div>
-      )}
+      )
+  }
 
-      {value && !isUploading && !error && (
-        <div className="relative group aspect-video">
-           {mediaType?.startsWith('video/') ? (
-              <video key={value} controls className="rounded-md object-cover w-full h-full bg-black">
-                <source src={value} type={mediaType} />
-                Your browser does not support the video tag.
-              </video>
-            ) : (
-              <Image
-                src={value}
-                alt="Uploaded content"
-                fill
-                className="rounded-md object-cover"
-              />
-            )}
-          <Button
-            type="button"
-            variant="destructive"
-            size="icon"
-            className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-            onClick={handleRemove}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+  return (
+    <div
+      {...getRootProps()}
+      className={cn(
+        'border-2 border-dashed rounded-md aspect-video flex flex-col items-center justify-center text-center p-4 cursor-pointer hover:border-primary transition-colors',
+        isDragActive && 'border-primary bg-primary/10',
+        className,
       )}
+    >
+      <input {...getInputProps()} />
+      <UploadCloud className="h-10 w-10 text-muted-foreground" />
+      <p className="text-sm text-muted-foreground mt-2">
+        {label || 'Drag & drop or click to upload'}
+      </p>
     </div>
   );
 }
