@@ -107,6 +107,26 @@ service cloud.firestore {
         allow delete: if isExistingOwner(userId);
       }
     }
+    
+    // --------------------------------------------------------------------
+    // Relationships (e.g., Friend Requests)
+    // --------------------------------------------------------------------
+
+    /**
+     * @description A user can manage friend requests they have sent or received. They can create a request, read requests where they are the sender or recipient, update requests they've received (accept/decline), and delete requests they've sent (cancel).
+     * @path /friend_requests/{requestId}
+     * @allow (create) A user 'user123' creating a request where `request.resource.data.senderId == 'user123'`.
+     * @allow (read) User 'user123' reading a request where `resource.data.senderId == 'user123'` or `resource.data.recipientId == 'user123'`. This also allows list queries constrained by senderId or recipientId.
+     * @allow (update) User 'user456' updating a request where `resource.data.recipientId == 'user456'` (e.g., changing status to 'accepted').
+     * @allow (delete) User 'user123' deleting a request they sent where `resource.data.senderId == 'user123'`.
+     * @principle Enforces that users can only interact with their own connection requests, maintaining privacy.
+     */
+    match /friend_requests/{requestId} {
+      allow read: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.recipientId == request.auth.uid;
+      allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
+    }
 
     // --------------------------------------------------------------------
     // Ambiguous Ownership Collections (Secured by Default)
@@ -261,3 +281,4 @@ service cloud.firestore {
 
   }
 }
+    
