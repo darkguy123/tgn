@@ -118,6 +118,17 @@ export interface Comment {
   createdAt: any; // Firestore Timestamp
 }
 
+export interface MediaFile {
+  id: string;
+  ownerId: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  storagePath: string;
+  url: string;
+  createdAt: any; // Firestore Timestamp
+}
+
 export type ChatMessage = {
   id: string;
   senderId: string;

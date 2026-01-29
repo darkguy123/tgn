@@ -1067,6 +1067,23 @@
         }
       },
       "required": ["senderId", "recipientId", "status", "createdAt"]
+    },
+    "MediaFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MediaFile",
+      "type": "object",
+      "description": "Represents a file uploaded by a user to Firebase Storage.",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string", "description": "UID of the user who uploaded the file." },
+        "fileName": { "type": "string" },
+        "fileType": { "type": "string" },
+        "fileSize": { "type": "number" },
+        "storagePath": { "type": "string", "description": "The full path to the file in Firebase Storage." },
+        "url": { "type": "string", "format": "uri" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "fileName", "fileType", "fileSize", "storagePath", "url", "createdAt"]
     }
   },
   "auth": {
@@ -1086,6 +1103,11 @@
         "path": "/users/{userId}/cards/{cardId}",
         "entity": "SavedCard",
         "description": "Stores a user's saved payment cards for quick transactions. Owned by the user."
+      },
+      {
+        "path": "/users/{userId}/media/{mediaId}",
+        "entity": "MediaFile",
+        "description": "Stores metadata for all files uploaded by a user. Owned by the user."
       },
       {
         "path": "/mentor_kyc/{userId}",

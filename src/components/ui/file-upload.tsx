@@ -3,12 +3,13 @@ import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { UploadCloud, Loader2, X } from 'lucide-react';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Progress } from '@/components/ui/progress';
 import { Button } from './button';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { useStorage } from '@/firebase';
+import { useStorage, useFirestore } from '@/firebase';
 
 interface FileUploadProps {
   onUploadComplete: (url: string, fileType: string) => void;
@@ -29,28 +30,30 @@ export function FileUpload({
   value,
   mediaType,
   label,
-  accept = { 'image/*': [] },
+  accept = { 'image/*': [], 'video/*': [] },
   storagePath = 'public',
   className,
 }: FileUploadProps) {
+  const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
   const { toast } = useToast();
   const storage = useStorage();
-
-  const isUploading = uploadProgress !== null && uploadProgress >= 0;
+  const firestore = useFirestore();
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
-      if (!storage) {
-        toast({ variant: 'destructive', title: 'Storage not available' });
-        setError('Storage service is not configured.');
+      if (!storage || !firestore) {
+        toast({ variant: 'destructive', title: 'Services not available' });
+        setError('Storage or database service is not configured.');
         return;
       }
       if (acceptedFiles.length === 0) {
         toast({ variant: 'destructive', title: 'Invalid file type selected.' });
         return;
       }
+
       const file = acceptedFiles[0];
       const fileExtension = file.name.split('.').pop() || '';
       const newFileName = `${generateShortId()}.${fileExtension}`;
@@ -58,6 +61,7 @@ export function FileUpload({
       const storageRef = ref(storage, filePath);
       const uploadTask = uploadBytesResumable(storageRef, file);
 
+      setIsUploading(true);
       setUploadProgress(0);
       setError(null);
 
@@ -69,49 +73,66 @@ export function FileUpload({
         },
         (uploadError) => {
           console.error("Upload failed:", uploadError);
-          setUploadProgress(null); // Stop loading UI FIRST
+          setIsUploading(false);
+          setUploadProgress(null);
           setError('Upload failed. Please try again.');
           toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload your file.' });
         },
         async () => {
           try {
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            setUploadProgress(null); // THEN stop loading
+
+            // Save metadata to Firestore
+            const mediaCollectionRef = collection(firestore, 'users', userId, 'media');
+            const mediaDocData = {
+              ownerId: userId,
+              fileName: file.name,
+              fileType: file.type,
+              fileSize: file.size,
+              storagePath: filePath,
+              url: downloadURL,
+              createdAt: serverTimestamp(),
+            };
+            await addDoc(mediaCollectionRef, mediaDocData);
+
             onUploadComplete(downloadURL, file.type);
             toast({ title: 'Upload Complete' });
-          } catch (getUrlError) {
-            console.error("Could not get download URL:", getUrlError);
-            setUploadProgress(null); // Stop loading UI FIRST
-            setError('Could not retrieve file URL.');
-            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not get file URL after upload.' });
+          } catch (finalError: any) {
+            console.error("Error during upload finalization:", finalError);
+            setError(`Upload failed: ${finalError.message}`);
+            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not save file metadata.' });
+          } finally {
+            setIsUploading(false);
+            setUploadProgress(null);
           }
         }
       );
     },
-    [storage, userId, storagePath, onUploadComplete, toast, accept]
+    [storage, firestore, userId, storagePath, onUploadComplete, toast, accept]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept,
     multiple: false,
+    disabled: isUploading,
   });
 
   const handleRemove = () => {
     if (value && storage) {
-        try {
-            const fileRef = ref(storage, value);
-            deleteObject(fileRef).catch((error) => {
-                console.warn("Could not delete file from storage:", error);
-            });
-        } catch (error) {
-            console.error("Error creating storage reference for deletion:", error);
-        }
+      try {
+        const fileRef = ref(storage, value);
+        deleteObject(fileRef).catch((error) => {
+          console.warn("Could not delete file from storage:", error.message);
+        });
+      } catch (error: any) {
+        console.error("Error creating storage reference for deletion:", error.message);
+      }
     }
     onUploadComplete('', '');
   };
 
-  if (value && !isUploading) {
+  if (value) {
     return (
       <div className={cn("relative group aspect-video", className)}>
         {mediaType?.startsWith('video/') ? (
@@ -137,26 +158,26 @@ export function FileUpload({
           <X className="h-4 w-4" />
         </Button>
       </div>
-    )
+    );
   }
 
   if (isUploading) {
-      return (
-        <div className={cn("aspect-video w-full flex flex-col items-center justify-center border rounded-md p-4", className)}>
-            <Loader2 className="h-10 w-10 text-primary animate-spin" />
-            <p className="text-sm text-foreground font-semibold mt-4">Uploading...</p>
-            <Progress value={uploadProgress} className="w-full max-w-xs mt-2" />
-        </div>
-      )
+    return (
+      <div className={cn("aspect-video w-full flex flex-col items-center justify-center border rounded-md p-4", className)}>
+        <Loader2 className="h-10 w-10 text-primary animate-spin" />
+        <p className="text-sm text-foreground font-semibold mt-4">Uploading...</p>
+        <Progress value={uploadProgress} className="w-full max-w-xs mt-2" />
+      </div>
+    );
   }
   
   if (error) {
-       return (
-        <div className={cn("aspect-video w-full flex flex-col items-center justify-center border border-destructive rounded-md p-4", className)}>
-            <p className="text-sm text-destructive">{error}</p>
-            <Button variant="link" size="sm" onClick={() => setError(null)}>Try Again</Button>
-        </div>
-      )
+    return (
+      <div className={cn("aspect-video w-full flex flex-col items-center justify-center border border-destructive rounded-md p-4", className)}>
+        <p className="text-sm text-destructive text-center">{error}</p>
+        <Button variant="link" size="sm" onClick={() => setError(null)}>Try Again</Button>
+      </div>
+    );
   }
 
   return (
