@@ -21,6 +21,8 @@ interface FileUploadProps {
   className?: string;
 }
 
+const generateShortId = () => Math.random().toString(36).slice(2, 9);
+
 export function FileUpload({
   onUploadComplete,
   userId,
@@ -50,7 +52,9 @@ export function FileUpload({
         return;
       }
       const file = acceptedFiles[0];
-      const filePath = `uploads/${storagePath}/${userId}/${Date.now()}-${file.name}`;
+      const fileExtension = file.name.split('.').pop() || '';
+      const newFileName = `${generateShortId()}.${fileExtension}`;
+      const filePath = `uploads/${storagePath}/${userId}/${newFileName}`;
       const storageRef = ref(storage, filePath);
       const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -65,21 +69,21 @@ export function FileUpload({
         },
         (uploadError) => {
           console.error("Upload failed:", uploadError);
+          setUploadProgress(null); // Stop loading UI FIRST
           setError('Upload failed. Please try again.');
           toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload your file.' });
-          setUploadProgress(null);
         },
         async () => {
           try {
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            setUploadProgress(null); // Stop loading UI FIRST
-            onUploadComplete(downloadURL, file.type); // THEN notify parent
+            setUploadProgress(null); // THEN stop loading
+            onUploadComplete(downloadURL, file.type);
             toast({ title: 'Upload Complete' });
           } catch (getUrlError) {
             console.error("Could not get download URL:", getUrlError);
+            setUploadProgress(null); // Stop loading UI FIRST
             setError('Could not retrieve file URL.');
             toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not get file URL after upload.' });
-            setUploadProgress(null);
           }
         }
       );
