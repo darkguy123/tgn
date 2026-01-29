@@ -39,30 +39,37 @@ export interface UseDocResult<T> {
  * @returns {UseDocResult<T>} Object with data, isLoading, error.
  */
 export function useDoc<T = any>(
-  memoizedDocRef: (DocumentReference<DocumentData> & {__memo?: boolean}) | null | undefined,
+  memoizedDocRef: DocumentReference<DocumentData> | null | undefined,
 ): UseDocResult<T> {
-  const [data, setData] = useState<WithId<T> | null>(null);
-  const [error, setError] = useState<FirestoreError | Error | null>(null);
+  type StateDataType = WithId<T> | null;
 
-  // Loading is true if we have a ref but no data and no error yet.
-  const isLoading = !!memoizedDocRef && data === null && error === null;
+  const [data, setData] = useState<StateDataType>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
     if (!memoizedDocRef) {
       setData(null);
+      setIsLoading(false);
       setError(null);
       return;
     }
 
+    setIsLoading(true);
+    setError(null);
+    // Optional: setData(null); // Clear previous data instantly
+
     const unsubscribe = onSnapshot(
       memoizedDocRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
-        const newDocData: WithId<T> | null = snapshot.exists()
-          ? { ...(snapshot.data() as T), id: snapshot.id }
-          : null;
-
-        setData(newDocData);
-        setError(null);
+        if (snapshot.exists()) {
+          setData({ ...(snapshot.data() as T), id: snapshot.id });
+        } else {
+          // Document does not exist
+          setData(null);
+        }
+        setError(null); // Clear any previous error on successful snapshot (even if doc doesn't exist)
+        setIsLoading(false);
       },
       (error: FirestoreError) => {
         const contextualError = new FirestorePermissionError({
@@ -72,6 +79,7 @@ export function useDoc<T = any>(
 
         setError(contextualError)
         setData(null)
+        setIsLoading(false)
 
         // trigger global error propagation
         errorEmitter.emit('permission-error', contextualError);
@@ -80,10 +88,6 @@ export function useDoc<T = any>(
 
     return () => unsubscribe();
   }, [memoizedDocRef]); // Re-run if the memoizedDocRef changes.
-
-  if(memoizedDocRef && !memoizedDocRef.__memo) {
-    throw new Error('DocumentReference passed to useDoc was not properly memoized using useMemoFirebase');
-  }
 
   return { data, isLoading, error };
 }

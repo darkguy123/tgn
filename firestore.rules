@@ -1,448 +1,263 @@
 /**
- * Core Philosophy:
- * This ruleset enforces a user-centric security model where users have full control
- * over their own data, while interacting with shared or public data in a controlled manner.
- * The primary principle is "Authorization Independence," where authorization data is
- * denormalized onto documents to create simple, performant, and secure rules without
- * needing cross-document reads (`get()`).
+ * Core Philosophy: This ruleset enforces a strict user-ownership model for personal data and a shared-access model for collaborative entities. The primary goal is to ensure that users can only access and manage their own information while allowing controlled read access to shared resources they are a part of.
  *
- * Data Structure:
- * The data is organized into a mix of a primary user-owned tree and several top-level
- * collections.
- * - /users/{userId}: The root for all data strictly private to a single user.
- * - Top-Level Collections (/products, /wallets, /events, etc.): These collections
- *   contain shared or global data. Access is governed by denormalized ownership fields
- *   (e.g., `sellerMemberId`, `memberId`) within each document.
+ * Data Structure: The data is organized into two main categories:
+ * 1. User-Private Data: All data exclusively owned by a user (like their profile and learning history) is nested under the `/users/{userId}` path. This creates a secure, hierarchical data tree for each user.
+ * 2. Shared/Public Data: Top-level collections like `/programs`, `/communities`, and `/marketplaceListings` store data that can be accessed by multiple users, with access controlled by denormalized fields on each document.
  *
  * Key Security Decisions:
- * - Controlled User Visibility: Users can only update their own data. For features like
- *   matchmaking and member directories to work, profiles are readable by other signed-in members.
- * - Denormalized Authorization: Collections like `/products` and `/wallets` rely on
- *   internal fields (`sellerMemberId`, `memberId`) to grant access. This is faster and
- *   more secure than using `get()` calls to check permissions on related documents.
- * - Public vs. Private Data: Structural segregation is used. Publicly readable
- *   information like events and sectors is stored in top-level collections with open
- *   read access. Private user data is nested under `/users`.
- * - Default to Secure: Writes to public collections (`/events`, `/sectors`) and
- *   sensitive collections (`/wallets`) are disabled by default for clients. These
- *   operations are expected to be handled by a trusted backend or an admin role,
- *   which is now implemented.
- * - No Client-Side Financial Transactions: All write operations on `/wallets` are
- *   explicitly disabled to prevent tampering. All wallet modifications must be
- *   performed by a secure backend server.
+ * - User Isolation: Users are strictly forbidden from reading or listing other users' profiles or private subcollections. The `/users` collection is not listable.
+ * - Shared Access via Membership: Access to collaborative documents (like `/programs`, `/communities`, `/events`) is granted if a user's UID is present in the `memberIds` array on the document. Client-side writes to these collections are disabled by default, assuming they are managed by backend processes or admins.
+ * - Owner-Only Writes for Public Content: The `/marketplaceListings` collection is publicly readable, but write operations (create, update, delete) are restricted to the user whose UID matches the `sellerMemberId` field on the document.
+ * - Secure Default for Ambiguous Ownership: Collections like `/mentorCertifications` and `/affiliateReferrals` lack a direct, verifiable ownership field (like a `userId`). To prevent potential data leaks, all client access to these collections is disabled until a secure ownership model is implemented.
+ * - Denormalization for Authorization: The rules rely on denormalized authorization fields (e.g., `sellerMemberId`, `memberIds`) directly on the documents being secured. This avoids slow and costly `get()` calls in rules, leading to better performance and simpler logic.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ------------------------------------------------------------------------
+    // --------------------------------------------------------------------
     // Helper Functions
-    // ------------------------------------------------------------------------
+    // --------------------------------------------------------------------
 
     /**
-     * Verifies that the request is from an authenticated user.
+     * Checks if the user is authenticated.
      */
     function isSignedIn() {
       return request.auth != null;
     }
 
     /**
-     * Verifies that the requesting user's UID matches the provided userId.
-     * This is the core function for enforcing document ownership.
+     * Checks if the authenticated user's UID matches the provided userId.
+     * This is the foundation of the ownership model.
      */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
     /**
-     * Verifies ownership for an existing document. Used for safe updates and deletes.
-     * Checks that the document exists (`resource != null`) and that the requester
-     * is the owner based on the document's owner field.
+     * Ensures a document exists before allowing a state-changing operation (update, delete).
+     * This prevents unauthorized writes on non-existent paths.
      */
-    function isExistingOwner(ownerId) {
-      return resource != null && isOwner(ownerId);
+    function docExists() {
+      return resource != null;
     }
 
     /**
-     * Verifies if the user has an admin role (e.g., 'country-manager') or is a super admin.
-     * This requires a read to the user's own profile document for the role check.
+     * Combines ownership check with an existence check for update/delete operations.
      */
-    function isAdmin() {
-      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return isSignedIn() && (
-          (userDoc.data != null && userDoc.data.role == 'country-manager') ||
-          request.auth.token.email == 'valentinoboss18@gmail.com'
-      );
+    function isExistingOwner(userId) {
+      return isOwner(userId) && docExists();
     }
     
     /**
-     * Verifies that a user is updating their own profile's unprotected fields.
-     * Users cannot change their own role, verification status, connections, or IDs.
+     * Checks if the authenticated user's UID is in a list of member IDs.
+     * Used for shared documents like programs, communities, and events.
      */
-    function isUpdatingOwnUnprotectedProfile(userId) {
-      return isOwner(userId)
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-          'id', 'email', 'role', 'isVerifiedMentor', 'tgnMemberId', 'createdAt', 'connections'
-        ]);
+    function isMember(docData) {
+      return isSignedIn() && request.auth.uid in docData.memberIds;
     }
-    
+
     /**
-     * Verifies that the update ONLY modifies the 'connections' array.
-     * This is used for accepting/removing connections, which must be a two-way write.
+     * Validates that the user's root document is being created correctly.
+     * Enforces that the internal 'id' field matches the user's Auth UID.
      */
-    function isModifyingConnections() {
-      return isSignedIn()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['connections']);
+    function createUserValidation(userId) {
+      return isOwner(userId) && request.resource.data.id == userId;
     }
 
+    /**
+     * Validates updates to a user's root document.
+     * Enforces ownership and makes the internal 'id' field immutable.
+     */
+    function updateUserValidation(userId) {
+      return isOwner(userId) && docExists() && request.resource.data.id == resource.data.id;
+    }
 
-    // ------------------------------------------------------------------------
+    // --------------------------------------------------------------------
     // User Data (/users)
-    // ------------------------------------------------------------------------
+    // --------------------------------------------------------------------
 
     /**
-     * @description Controls access to a TGN Member's profile document.
+     * @description A user can create, read, and update their own profile document. They cannot delete their own profile or view others' profiles.
      * @path /users/{userId}
-     * @allow (get, list) - Any authenticated user can read/list user profiles to enable directory and matchmaking features.
-     * @allow (create) - A new user creating their own profile.
-     * @allow (update) - A user can update their own non-sensitive data, or another user can update the connections array. Admins can update anything.
-     * @allow (delete) - Only an admin can delete user profiles.
-     * @principle Restricts write access to a user's own data tree, but allows reads for social features. Admins have override privileges.
+     * @allow (create) A newly authenticated user (auth.uid='user123') creating their own document at `/users/user123` with `{id: 'user123', ...}`.
+     * @deny (get) User 'user456' trying to read the document at `/users/user123`.
+     * @principle Restricts access to a user's own data tree, enforcing strict data privacy and ownership.
      */
     match /users/{userId} {
-      allow get, list: if isSignedIn();
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isUpdatingOwnUnprotectedProfile(userId) || isModifyingConnections() || isAdmin();
-      allow delete: if isAdmin();
-      
-      /**
-       * @description Controls access to a user's saved payment cards.
-       * @path /users/{userId}/cards/{cardId}
-       * @allow (read, write) - A user can manage their own saved cards.
-       */
-      match /cards/{cardId} {
-        allow read, write: if isOwner(userId);
-      }
-
-      /**
-       * @description Controls access to a user's private matchmaking recommendations.
-       * @path /users/{userId}/matchmaking_recommendations/{recommendationId}
-       * @allow (list) - An authenticated user listing their own recommendations.
-       * @deny (get) - An authenticated user trying to read recommendations of another user.
-       * @principle Enforces path-based ownership for subcollections. Writes are disallowed as recommendations are system-generated.
-       */
-      match /matchmaking_recommendations/{recommendationId} {
-        allow get, list: if isOwner(userId);
-        allow create: if false; // Recommendations are created by a backend service
-        allow update: if false; // Recommendations are immutable
-        allow delete: if false; // Recommendations are not deleted by users
-      }
-      
-      /**
-       * @description Controls access to a user's wallet transactions.
-       * @path /users/{userId}/transactions/{transactionId}
-       * @allow (get, list) - A user can read their own transaction history.
-       * @allow (create) - A user can create their own transaction log (for sending money, withdrawals, etc.).
-       * @deny (update, delete) - Transactions are immutable by the user.
-       */
-      match /transactions/{transactionId} {
-        allow get, list: if isOwner(userId);
-        allow create: if isOwner(userId);
-        allow update, delete: if false;
-      }
-      
-      /**
-       * @description Controls access to a user's enrolled programs.
-       * @path /users/{userId}/enrolled_programs/{enrollmentId}
-       * @allow (read, create, update, delete) - A user can manage their own program enrollments.
-       */
-      match /enrolled_programs/{enrollmentId} {
-        allow read, create, update, delete: if isOwner(userId);
-      }
-      
-      /**
-       * @description Controls access to a user's uploaded media files.
-       * @path /users/{userId}/media/{mediaId}
-       * @allow (read, write) - A user can manage their own media file records.
-       */
-      match /media/{mediaId} {
-        allow read, write: if isOwner(userId);
-      }
-    }
-
-
-    // ------------------------------------------------------------------------
-    // Public Read-Only Collections
-    // ------------------------------------------------------------------------
-
-    /**
-     * @description Controls access to mentorship sectors. Data is public for all to read.
-     * @path /sectors/{sectorId}
-     * @allow (get, list) - Any client, authenticated or not, can read sector data.
-     * @deny (create) - A signed-in user trying to create a new sector.
-     * @principle Provides public read access for reference data. Writes are restricted to prevent unauthorized modifications.
-     */
-    match /sectors/{sectorId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
-    
-    /**
-     * @description Controls access to learning programs. Data is public for all to read.
-     * @path /programs/{programId}
-     * @allow (get, list) - Any client can read program information.
-     * @allow (create, delete) - Only admins can manage programs.
-     * @allow (update) - Admins can update. Users can update only the 'enrolled' count by exactly 1.
-     */
-    match /programs/{programId} {
-      allow get, list: if true;
-      allow create, delete: if isAdmin();
-      allow update: if isAdmin() || 
-                      (isSignedIn() && 
-                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['enrolled']) &&
-                       request.resource.data.enrolled == resource.data.enrolled + 1);
-    }
-
-    /**
-     * @description Controls access to events. Event data is public for all to read.
-     * @path /events/{eventId}
-     * @allow (get, list) - Any client, authenticated or not, can read event information.
-     * @deny (update) - A signed-in user trying to modify an event.
-     * @principle Provides public read access for global data. Writes are restricted to trusted roles.
-     */
-    match /events/{eventId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-
-    // ------------------------------------------------------------------------
-    // Collections with Denormalized Ownership
-    // ------------------------------------------------------------------------
-
-    /**
-     * @description Controls access to mentor KYC submissions.
-     * @path /mentor_kyc/{userId}
-     * @allow (read) - Only the user who submitted and admins can read it.
-     * @allow (create) - A user can create their own KYC submission.
-     * @allow (update) - Only admins can update the status (approve/reject).
-     */
-    match /mentor_kyc/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.memberId == userId;
-      allow update: if isAdmin();
-      allow delete: if false; // KYC records should not be deleted
-    }
-
-    /**
-     * @description Controls access to affiliate referrals.
-     * @path /affiliate_referrals/{referralId}
-     * @allow (read) - A user can read a referral if they are the referrer or the one referred. Admins can read all.
-     * @principle Secures data based on participation. Only the referrer can create the record. Updates/deletes are disallowed.
-     */
-    match /affiliate_referrals/{referralId} {
-        allow read: if (isSignedIn() && (request.auth.uid == resource.data.referrerMemberId || request.auth.uid == resource.data.referredMemberId)) || isAdmin();
-        allow create: if isSignedIn() && request.resource.data.referrerMemberId == request.auth.uid;
-        allow update, delete: if false;
-    }
-    
-    /**
-     * @description Controls access to commission records.
-     * @path /commissions/{commissionId}
-     * @allow (read) - A user can read their own commission records.
-     * @allow (create) - A buyer can create a commission record for their referrer at the time of purchase.
-     * @principle Secures commission data by linking creation to the buyer and reading to the referrer.
-     */
-    match /commissions/{commissionId} {
-        allow read: if isSignedIn() && request.auth.uid == resource.data.referrerId;
-        allow create: if isSignedIn() && request.auth.uid == request.resource.data.buyerId;
-        allow update, delete: if false;
-    }
-
-    /**
-     * @description Controls access to mentor certifications. A mentor can view their own certification status.
-     * @path /mentor_certifications/{userId}
-     * @allow (read) - Admins can read all certification documents.
-     * @allow (get) - A user can read their own or another user's certification document.
-     * @principle Grants read-only access to the document owner. Writes are restricted to prevent self-certification.
-     */
-    match /mentor_certifications/{userId} {
-      allow read: if isAdmin();
-      allow get: if isSignedIn();
-      allow create, update, delete: if isAdmin();
-    }
-
-
-    /**
-     * @description Controls access to user wallets. Extremely restricted.
-     * @path /wallets/{userId}
-     * @allow (read) - Admins and the owner can read a wallet.
-     * @allow (create) - A signed-in user can create a wallet for themselves.
-     * @allow (update) - Allows for secure P2P transfers and simulated deposits between clients.
-     * @principle Secures sensitive financial data by only allowing balance changes under specific conditions.
-     */
-    match /wallets/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.memberId == userId;
-      allow update: if isAdmin() ||
-                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance']) && (
-                        // Allow user to DECREASE their own balance (sending funds)
-                        (isOwner(userId) && request.resource.data.balance < resource.data.balance) ||
-                        // Allow user to INCREASE their own balance (simulated deposit)
-                        (isOwner(userId) && request.resource.data.balance > resource.data.balance) ||
-                        // Allow other users to INCREASE this user's balance (receiving funds)
-                        (!isOwner(userId) && request.resource.data.balance > resource.data.balance)
-                    ));
-      allow delete: if false; // Wallets should never be deleted
-    }
-
-    /**
-     * @description Controls access to products in the marketplace. Products are publicly viewable.
-     * @path /products/{productId}
-     * @allow (create) - A signed-in user creating a product listing and setting themselves as the seller.
-     * @deny (update) - A user trying to update a product owned by another user.
-     * @principle Enforces document ownership for writes while allowing public reads, a common pattern for marketplaces.
-     */
-    match /products/{productId} {
-      allow get, list: if true;
-      allow create: if isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid;
-      allow update: if (isExistingOwner(resource.data.sellerMemberId) && request.resource.data.sellerMemberId == resource.data.sellerMemberId) || isAdmin();
-      allow delete: if isExistingOwner(resource.data.sellerMemberId) || isAdmin();
-    }
-
-    /**
-     * @description Controls access to fundraising causes.
-     * @path /fundraise/{causeId}
-     * @allow (read) - Authenticated users can read approved causes. Admins and creators can read any.
-     * @allow (create) - Authenticated users can create a new cause for themselves.
-     * @allow (update) - Admins can update. Users can contribute, updating amounts.
-     */
-    match /causes/{causeId} {
-        allow get: if isSignedIn() && (resource.data.status == 'approved' || isOwner(resource.data.creatorMemberId) || isAdmin());
-        allow list: if isSignedIn(); // Allow listing so client can filter by 'approved'
-        allow create: if isOwner(request.resource.data.creatorMemberId);
-        allow update: if isAdmin() || 
-                        (isSignedIn() && 
-                         request.resource.data.status == resource.data.status && // Prevent users from changing status
-                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentAmount', 'backersCount']));
-        allow delete: if isAdmin();
-    }
-
-    /**
-     * @description Controls access to ad campaigns.
-     * @path /ads/{adId}
-     * @allow (get) - A single ad can be read if it is active, or by its owner, or by an admin.
-     * @allow (list) - An authenticated user can perform list queries. Queries will be validated against 'get' rules.
-     * @allow (create) - The ad creator can create a campaign.
-     * @allow (update) - Owner can update (but not status), admin can update anything.
-     * @allow (delete) - Owner and admin can delete.
-     */
-     match /ads/{adId} {
-      allow get: if (resource.data.status == 'active') || isOwner(resource.data.creatorMemberId) || isAdmin();
-      allow list: if isSignedIn();
-      allow create: if isOwner(request.resource.data.creatorMemberId);
-      allow update: if isAdmin() || (isOwner(resource.data.creatorMemberId) && request.resource.data.status == resource.data.status);
-      allow delete: if isOwner(resource.data.creatorMemberId) || isAdmin();
-    }
-
-    /**
-     * @description Controls access to community posts.
-     * @path /posts/{postId}
-     * @allow (list, get) - Any authenticated user can read posts.
-     * @allow (create) - A user can create their own post.
-     * @allow (update) - A user can update their own post (e.g., edit content). For likes, a more granular rule or backend function is recommended.
-     * @allow (delete) - A user can delete their own post, or an admin can.
-     */
-    match /posts/{postId} {
-      allow list, get: if isSignedIn();
-      allow create: if isOwner(request.resource.data.authorId);
-      allow update: if isOwner(resource.data.authorId) || isAdmin(); // Simplified for now.
-      allow delete: if isOwner(resource.data.authorId) || isAdmin();
-      
-      /**
-       * @description Controls access to comments on a post.
-       * @path /posts/{postId}/comments/{commentId}
-       * @allow (read) - Any authenticated user can read comments.
-       * @allow (create) - A user can create their own comment.
-       * @allow (update, delete) - The comment author or an admin can modify/delete.
-       */
-      match /comments/{commentId} {
-        allow read: if isSignedIn();
-        allow create: if isOwner(request.resource.data.authorId);
-        allow update, delete: if isOwner(resource.data.authorId) || isAdmin();
-      }
-    }
-
-    /**
-     * @description Controls access to matchmaking recommendations stored at the top level.
-     * @path /matchmaking_recommendations/{recommendationId}
-     * @allow (read) - Admins can read all recommendations.
-     * @allow (get) - A user can read a recommendation made for them.
-     * @principle Enforces ownership via a denormalized field. Writes are disallowed as recommendations are system-generated.
-     */
-    match /matchmaking_recommendations/{recommendationId} {
-      allow read: if isAdmin();
-      allow get: if isOwner(resource.data.memberId);
-      allow create: if false; // Recommendations are created by a backend service
-      allow update: if false; // Recommendations are immutable
-      allow delete: if false; // Recommendations are not deleted by users
-    }
-    
-    // ------------------------------------------------------------------------
-    // Chat Data
-    // ------------------------------------------------------------------------
-
-    match /chats/{chatId} {
-      // A user can GET a chat document if their UID is in the chat ID.
-      // This allows reads even if the document doesn't exist yet, which is needed
-      // to initialize a chat on the client.
-      allow get: if isSignedIn() && request.auth.uid in chatId.split('_');
-
-      // A user can LIST chats where they are a member. This validates the 'array-contains' query.
-      allow list: if isSignedIn() && request.auth.uid in resource.data.members;
-      
-      // A user can create a chat document if they are including themselves in the members list.
-      allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
-      
-      // A user can update a chat document (e.g. for typing indicators or last message) 
-      // if they are a member and they are not trying to change the list of members.
-      allow update: if isSignedIn() && request.auth.uid in resource.data.members && request.resource.data.members == resource.data.members;
-
-      // Deleting chats is not allowed for clients for data integrity.
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if createUserValidation(userId);
+      allow update: if updateUserValidation(userId);
       allow delete: if false;
 
-      match /messages/{messageId} {
-        // Helper function to check if the requester is a member of the chat.
-        // Uses exists() to prevent errors on new chats.
-        function isChatMember() {
-          return exists(/databases/$(database)/documents/chats/$(chatId)) &&
-                 request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
-        }
-        
-        // Allow read/write only if the user is authenticated and a member of the chat.
-        allow read, write: if isSignedIn() && isChatMember();
+      /**
+       * @description A user can fully manage their own learning history entries.
+       * @path /users/{userId}/learningHistories/{learningHistoryId}
+       * @allow (list) User 'user123' listing all documents in their `/users/user123/learningHistories` collection.
+       * @deny (get) User 'user456' trying to read a document at `/users/user123/learningHistories/history_abc`.
+       * @principle Enforces that access to subcollection data is governed by ownership of the parent document.
+       */
+      match /learningHistories/{learningHistoryId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId);
+        allow update: if isExistingOwner(userId);
+        allow delete: if isExistingOwner(userId);
       }
     }
 
-    // ------------------------------------------------------------------------
-    // Friend Requests
-    // ------------------------------------------------------------------------
-    match /friend_requests/{requestId} {
-      // A user can create a request where they are the sender.
-      allow create: if isOwner(request.resource.data.senderId);
+    // --------------------------------------------------------------------
+    // Ambiguous Ownership Collections (Secured by Default)
+    // --------------------------------------------------------------------
 
-      // The sender and recipient can read the request.
-      allow read: if isOwner(resource.data.senderId) || isOwner(resource.data.recipientId);
-
-      // The recipient can update the status to 'accepted' or 'declined'.
-      // Sender and recipient cannot be changed.
-      allow update: if isOwner(resource.data.recipientId)
-                      && request.resource.data.senderId == resource.data.senderId
-                      && request.resource.data.recipientId == resource.data.recipientId;
-
-      // The sender can delete a pending request (cancel it).
-      // The recipient can delete a request they have received.
-      allow delete: if isOwner(resource.data.senderId) || isOwner(resource.data.recipientId);
+    /**
+     * @description Stores mentor certifications. All client access is disabled because the document lacks a direct `ownerId` or `userId` field linked to Firebase Auth, making secure rules impossible.
+     * @path /mentorCertifications/{mentorCertificationId}
+     * @allow None. All client requests are denied.
+     * @deny (get) Any user attempting to read a certification document.
+     * @principle Defaults to a secure posture by denying access to collections where ownership cannot be definitively verified.
+     */
+    match /mentorCertifications/{mentorCertificationId} {
+      // CRITICAL: Cannot implement secure rules. The 'MentorCertification' entity is missing an 'ownerId' or 'userId' field linked to Firebase Auth.
+      allow get: if false; // TODO: Add owner validation once the schema is updated.
+      allow list: if false; // TODO: Add owner validation once the schema is updated.
+      allow create: if false; // TODO: Add owner validation once the schema is updated.
+      allow update: if false; // TODO: Add owner validation once the schema is updated.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated.
     }
+    
+    /**
+     * @description Stores affiliate referral data. All client access is disabled due to the lack of a verifiable ownership field linked to Firebase Auth.
+     * @path /affiliateReferrals/{affiliateReferralId}
+     * @allow None. All client requests are denied.
+     * @deny (create) Any user attempting to create a new referral document.
+     * @principle Defaults to a secure posture by denying access to collections where ownership cannot be definitively verified.
+     */
+    match /affiliateReferrals/{affiliateReferralId} {
+      // CRITICAL: Cannot implement secure rules. The 'AffiliateReferral' entity is missing ownerId fields linked to Firebase Auth UIDs.
+      allow get: if false; // TODO: Add owner validation once the schema is updated.
+      allow list: if false; // TODO: Add owner validation once the schema is updated.
+      allow create: if false; // TODO: Add owner validation once the schema is updated.
+      allow update: if false; // TODO: Add owner validation once the schema is updated.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated.
+    }
+
+    // --------------------------------------------------------------------
+    // Shared Data (Programs, Communities, Events)
+    // --------------------------------------------------------------------
+    
+    /**
+     * @description Signed-in users can discover programs. Only members of a program can read its specific details. All client-side writes are disabled.
+     * @path /programs/{programId}
+     * @allow (get) User 'user123' reading a program where `resource.data.memberIds` contains 'user123'.
+     * @deny (get) User 'user456' reading a program where they are not in the `memberIds` list.
+     * @deny (update) Any user trying to modify a program's details.
+     * @principle Implements a closed collaborator model where read access is granted based on membership.
+     */
+    match /programs/{programId} {
+      allow get: if isMember(resource.data);
+      allow list: if isSignedIn();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+    
+    /**
+     * @description Signed-in users can discover communities. Only members of a community can read its specific details. All client-side writes are disabled.
+     * @path /communities/{communityId}
+     * @allow (get) User 'user123' reading a community where `resource.data.memberIds` contains 'user123'.
+     * @deny (get) User 'user456' reading a community where they are not in the `memberIds` list.
+     * @principle Implements a closed collaborator model where read access is granted based on membership.
+     */
+    match /communities/{communityId} {
+      allow get: if isMember(resource.data);
+      allow list: if isSignedIn();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Signed-in users can discover events. Only members of an event can read its specific details. All client-side writes are disabled.
+     * @path /events/{eventId}
+     * @allow (get) User 'user123' reading an event where `resource.data.memberIds` contains 'user123'.
+     * @deny (get) User 'user456' reading an event where they are not in the `memberIds` list.
+     * @principle Implements a closed collaborator model where read access is granted based on membership.
+     */
+    match /events/{eventId} {
+      allow get: if isMember(resource.data);
+      allow list: if isSignedIn();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // --------------------------------------------------------------------
+    // Public/Reference Data
+    // --------------------------------------------------------------------
+    
+    /**
+     * @description Course information is readable by any signed-in user but cannot be modified by clients.
+     * @path /courses/{courseId}
+     * @allow (list) Any authenticated user listing all available courses.
+     * @deny (create) A regular user attempting to add a new course document.
+     * @principle Provides secure, read-only access to public reference data.
+     */
+    match /courses/{courseId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Marketplace listings are publicly readable. Only the seller can create, update, or delete their own listings.
+     * @path /marketplaceListings/{marketplaceListingId}
+     * @allow (create) User 'seller123' creating a new listing with `{ sellerMemberId: 'seller123', ... }`.
+     * @allow (list) Any user, signed-in or not, viewing all marketplace listings.
+     * @deny (update) User 'user456' attempting to change the price on a listing owned by 'seller123'.
+     * @principle Enforces a "Public Read with Owner-Only Writes" model, ideal for public content creation platforms.
+     */
+    match /marketplaceListings/{marketplaceListingId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid;
+      allow update: if isExistingOwner(resource.data.sellerMemberId);
+      allow delete: if isExistingOwner(resource.data.sellerMemberId);
+    }
+    
+    /**
+     * @description Package benefit information is readable by any signed-in user but cannot be modified by clients.
+     * @path /packageBenefits/{packageBenefitId}
+     * @allow (get) Any authenticated user reading the details of a package benefit.
+     * @deny (delete) A regular user attempting to delete a package benefit document.
+     * @principle Provides secure, read-only access to public reference data.
+     */
+    match /packageBenefits/{packageBenefitId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+    
+    /**
+     * @description Sector information is readable by any signed-in user but cannot be modified by clients.
+     * @path /sectors/{sectorId}
+     * @allow (list) Any authenticated user listing all available business sectors.
+     * @deny (update) A regular user attempting to change a sector's description.
+     * @principle Provides secure, read-only access to public reference data.
+     */
+    match /sectors/{sectorId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
   }
 }
