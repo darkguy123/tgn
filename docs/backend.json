@@ -477,21 +477,17 @@
         }
       },
       {
-        "path": "/users/{userId}/mentorCertifications/{mentorCertificationId}",
+        "path": "/mentor_certifications/{memberId}",
         "definition": {
           "entityName": "MentorCertification",
           "schema": {
             "$ref": "#/backend/entities/MentorCertification"
           },
-          "description": "Stores mentor certifications for each user. Path-based ownership.",
+          "description": "Stores mentor certifications for each user. The document ID is the user's UID.",
           "params": [
             {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "mentorCertificationId",
-              "description": "The unique identifier of the mentor certification."
+              "name": "memberId",
+              "description": "The unique identifier of the member."
             }
           ]
         }

@@ -121,17 +121,12 @@ service cloud.firestore {
 
     /**
      * @description Rules for user-specific mentor certifications.
-     * @path /users/{userId}/mentorCertifications/{mentorCertificationId}
-     * @allow (get) A user (userId: 'user_abc') can get their own certification.
-     * @deny (get) A user (userId: 'user_xyz') cannot get 'user_abc's certification.
-     * @principle Restricts access to a user's own private data tree.
+     * @path /mentor_certifications/{memberId}
+     * @allow (read, write) A user can manage their own certification document.
+     * @principle Restricts access to a user's own private data using the document ID.
      */
-    match /users/{userId}/mentorCertifications/{mentorCertificationId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && relationalDataIsValidOnCreate(userId);
-      allow update: if isExistingOwner(userId) && relationalDataIsImmutableOnUpdate();
-      allow delete: if isExistingOwner(userId);
+    match /mentor_certifications/{memberId} {
+      allow read, write: if isOwner(memberId);
     }
 
     /**
