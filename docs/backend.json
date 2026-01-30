@@ -474,6 +474,134 @@
         "status",
         "createdAt"
       ]
+    },
+    "Post": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Post",
+      "type": "object",
+      "description": "Represents a post in the community feed.",
+      "properties": {
+        "authorId": {
+          "type": "string",
+          "description": "The UID of the member who created the post."
+        },
+        "authorTgnMemberId": {
+          "type": "string"
+        },
+        "authorName": {
+          "type": "string"
+        },
+        "authorAvatarUrl": {
+          "type": "string"
+        },
+        "authorRole": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string",
+          "description": "The text content of the post."
+        },
+        "media": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "likes": {
+          "type": "number"
+        },
+        "commentsCount": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the post was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "authorId",
+        "authorName",
+        "content",
+        "createdAt"
+      ]
+    },
+    "Comment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Comment",
+      "description": "A comment on a post.",
+      "type": "object",
+      "properties": {
+        "authorId": {
+          "type": "string"
+        },
+        "authorName": {
+          "type": "string"
+        },
+        "authorAvatarUrl": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "authorId",
+        "authorName",
+        "content",
+        "createdAt"
+      ]
+    },
+    "MediaFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MediaFile",
+      "type": "object",
+      "description": "Represents a user-uploaded file.",
+      "properties": {
+        "ownerId": {
+          "type": "string"
+        },
+        "fileName": {
+          "type": "string"
+        },
+        "fileType": {
+          "type": "string"
+        },
+        "fileSize": {
+          "type": "number"
+        },
+        "storagePath": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerId",
+        "fileName",
+        "fileType",
+        "fileSize",
+        "storagePath",
+        "url",
+        "createdAt"
+      ]
     }
   },
   "auth": {
@@ -679,9 +807,64 @@
             }
           ]
         }
+      },
+      {
+        "path": "/posts/{postId}",
+        "definition": {
+          "entityName": "Post",
+          "schema": {
+            "$ref": "#/backend/entities/Post"
+          },
+          "description": "Stores community feed posts. Readable by all authenticated users, but writable only by the author.",
+          "params": [
+            {
+              "name": "postId",
+              "description": "The unique identifier of the post."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/posts/{postId}/comments/{commentId}",
+        "definition": {
+          "entityName": "Comment",
+          "schema": {
+            "$ref": "#/backend/entities/Comment"
+          },
+          "description": "Stores comments for a specific post. Readable by all, writable by any authenticated user.",
+          "params": [
+            {
+              "name": "postId",
+              "description": "The post ID."
+            },
+            {
+              "name": "commentId",
+              "description": "The comment ID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/media/{mediaId}",
+        "definition": {
+          "entityName": "MediaFile",
+          "schema": {
+            "$ref": "#/backend/entities/MediaFile"
+          },
+          "description": "Stores metadata for user-uploaded files. Only accessible by the owner.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "mediaId",
+              "description": "The unique identifier of the media file."
+            }
+          ]
+        }
       }
     ],
     "reasoning": "This Firestore structure prioritizes authorization independence and QAPs through denormalization. User-owned data is stored in hierarchical paths under the `/users/{userId}` collection to simplify ownership-based security rules. Collaborative data uses membership maps for authorization. Each document includes necessary authorization context (e.g., `members` map) to avoid `get()` calls in security rules. This supports atomic operations and makes debugging easier. The segregation of data based on access control needs further simplifies the rules."
   }
 }
-    

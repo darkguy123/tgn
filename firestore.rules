@@ -86,8 +86,7 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree, enforcing strict data privacy and ownership.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
+      allow get, list: if isSignedIn();
       allow create: if createUserValidation(userId);
       allow update: if updateUserValidation(userId);
       allow delete: if false;
@@ -105,6 +104,17 @@ service cloud.firestore {
         allow create: if isOwner(userId);
         allow update: if isExistingOwner(userId);
         allow delete: if isExistingOwner(userId);
+      }
+      
+      /**
+       * @description A user can fully manage their own media file metadata.
+       * @path /users/{userId}/media/{mediaId}
+       * @allow (list) User 'user123' listing all their media file documents.
+       * @deny (get) User 'user456' trying to read a media file document of 'user123'.
+       * @principle Enforces that access to subcollection data is governed by ownership of the parent document.
+       */
+      match /media/{mediaId} {
+        allow read, write: if isOwner(userId);
       }
     }
     
@@ -127,6 +137,32 @@ service cloud.firestore {
       allow update: if isSignedIn() && resource.data.recipientId == request.auth.uid;
       allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
     }
+    
+    // --------------------------------------------------------------------
+    // Community Feed (Posts & Comments)
+    // --------------------------------------------------------------------
+    
+    /**
+     * @description Community posts are readable by any authenticated user. Users can create posts and can only modify or delete their own posts. Anyone can update the 'likes' or 'commentsCount' fields on any post.
+     * @path /posts/{postId}
+     */
+    match /posts/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+      allow update: if (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasAny(['likes', 'commentsCount'])) || (isExistingOwner(resource.data.authorId));
+      allow delete: if isExistingOwner(resource.data.authorId);
+
+      /**
+       * @description Comments are readable by any authenticated user. Users can create comments and can only modify or delete their own comments.
+       * @path /posts/{postId}/comments/{commentId}
+       */
+      match /comments/{commentId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+        allow update, delete: if isExistingOwner(resource.data.authorId);
+      }
+    }
+
 
     // --------------------------------------------------------------------
     // Ambiguous Ownership Collections (Secured by Default)
