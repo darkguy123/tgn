@@ -30,7 +30,7 @@ export function FileUpload({
   value,
   mediaType,
   label,
-  accept = { 'image/*': [], 'video/*': [] },
+  accept = { 'image/jpeg': [], 'image/png': [], 'image/webp': [] },
   storagePath = 'public',
   className,
 }: FileUploadProps) {

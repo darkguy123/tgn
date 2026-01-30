@@ -174,7 +174,7 @@ function CreatePostDialog({ open, onOpenChange, startWithMedia }: { open: boolea
                     onUploadComplete={handleUploadComplete}
                     userId={profile.id}
                     storagePath="public"
-                    accept={{ 'image/*': [], 'video/*': [] }}
+                    accept={{ 'image/jpeg': [], 'image/png': [], 'image/webp': [], 'video/mp4': [], 'video/quicktime': [] }}
                   />
                 )}
               </div>
