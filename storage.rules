@@ -13,13 +13,13 @@ service firebase.storage {
 
     // --- Public User Uploads ---
     // Avatars, product images, post media, etc.
+    // This rule is currently open for any authenticated user to write for testing purposes.
     match /uploads/public/{userId}/{allPaths=**} {
       // Anyone can read public files.
       allow read;
 
-      // Writes are allowed if you are the owner of the folder, OR you are an admin.
-      // This allows users to upload their own files and admins to manage public content.
-      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      // Any authenticated user can write to the public folder.
+      allow write: if request.auth != null;
     }
 
     // --- Private User Documents ---
