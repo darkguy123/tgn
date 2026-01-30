@@ -235,6 +235,13 @@ service cloud.firestore {
       // to show the admin panel only to admins.
       allow write: if isSignedIn();
     }
+    
+    match /sectors/{sectorId} {
+        allow read: if isSignedIn();
+        // This is insecure and relies on client-side routing to restrict
+        // access to admin pages.
+        allow write: if isSignedIn();
+    }
 
     match /wallets/{userId} {
       allow read, write: if isOwner(userId);

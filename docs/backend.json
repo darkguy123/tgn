@@ -475,6 +475,17 @@
             "deactivatedAt": { "type": "string", "format": "date-time" }
         },
         "required": ["title", "mentor", "duration", "description", "format", "type", "imageId"]
+    },
+    "Sector": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Sector",
+      "type": "object",
+      "description": "Represents an industry sector for mentorship and programs.",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["name"]
     }
   },
   "auth": {
@@ -653,6 +664,22 @@
             {
               "name": "programId",
               "description": "The unique identifier of the program."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/sectors/{sectorId}",
+        "definition": {
+          "entityName": "Sector",
+          "schema": {
+            "$ref": "#/backend/entities/Sector"
+          },
+          "description": "Stores mentorship and program sectors. Writable by admins.",
+          "params": [
+            {
+              "name": "sectorId",
+              "description": "The unique identifier of the sector."
             }
           ]
         }
