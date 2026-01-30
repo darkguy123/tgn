@@ -1,32 +1,11 @@
 rules_version = '2';
 
 service firebase.storage {
-  // Helper function to check for admin users.
-  function isAdmin() {
-    return request.auth != null && request.auth.token.email in {
-      'valentinoboss18@gmail.com': 1,
-      'akpbassey@gmail.com': 1
-    };
-  }
-
   match /b/{bucket}/o {
-
-    // --- Public User Uploads ---
-    // Avatars, product images, post media, etc.
-    // This rule is currently open for any authenticated user to write for testing purposes.
-    match /uploads/public/{userId}/{allPaths=**} {
-      // Anyone can read public files.
-      allow read;
-
-      // Any authenticated user can write to the public folder.
-      allow write: if request.auth != null;
-    }
-
-    // --- Private User Documents ---
-    // Sensitive documents like KYC uploads.
-    match /uploads/private/{userId}/{allPaths=**} {
-      // Only the owner or an admin can read or write private files.
-      allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+    // Allow read and write access for all authenticated users to all paths.
+    // This is for debugging purposes and should be secured before production.
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }

@@ -135,23 +135,29 @@ export function FileUpload({
       setIsUploading(true);
       setUploadProgress(0);
       setError(null);
+      
+      console.log('Starting upload for path:', filePath);
 
       uploadTask.on(
         'state_changed',
         (snapshot) => {
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log('Upload is ' + progress + '% done');
           setUploadProgress(progress);
         },
         (uploadError) => {
-          console.error("Upload failed:", uploadError);
+          console.error("Upload failed with error object:", uploadError);
+          console.error("Full error object:", JSON.stringify(uploadError, null, 2));
           setIsUploading(false);
           setUploadProgress(null);
           setError('Upload failed. Please try again.');
           toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload your file.' });
         },
         async () => {
+          console.log('Upload complete. Getting download URL...');
           try {
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            console.log('Got download URL:', downloadURL);
             
             const mediaCollectionRef = collection(firestore, 'users', userId, 'media');
             const mediaDocData = {
@@ -163,7 +169,9 @@ export function FileUpload({
               url: downloadURL,
               createdAt: serverTimestamp(),
             };
+            console.log('Adding document to Firestore media collection...');
             await addDoc(mediaCollectionRef, mediaDocData);
+            console.log('Firestore document added.');
 
             onUploadComplete(downloadURL, originalFile.type);
             toast({ title: 'Upload Complete' });
@@ -172,6 +180,7 @@ export function FileUpload({
             setError(`Upload failed: ${finalError.message}`);
             toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not save file metadata.' });
           } finally {
+            console.log('Upload process finished (in finally block).');
             setIsUploading(false);
             setUploadProgress(null);
           }
