@@ -128,7 +128,10 @@ export async function getRecommendations(
         
         if (rec.recommendedType === 'Mentor') {
             const mentor = allMembers.find(m => m.id === id);
-            name = mentor?.name || mentor?.email.split('@')[0] ?? 'Unknown Mentor';
+            name =
+              mentor?.name ??
+              mentor?.email?.split('@')[0] ??
+              'Unknown Mentor';
             tgnMemberId = mentor?.tgnMemberId;
         } else if (rec.recommendedType === 'Program') {
             const program = allPrograms.find(p => p.id === id);
