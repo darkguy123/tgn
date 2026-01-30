@@ -17,7 +17,7 @@ export function BottomNav() {
   const pathname = usePathname();
   const { profile } = useMemberProfile();
   
-  const profileHref = profile ? `/member/${profile.tgnMemberId}` : '/member';
+  const profileHref = profile ? `/member/${profile.tgnMemberId || profile.id}` : '/member';
 
   const allNavItems = [...navItems, { href: profileHref, icon: User, label: 'Profile' }];
 
