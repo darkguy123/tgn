@@ -275,8 +275,7 @@ service cloud.firestore {
      * @principle Enforces a "Public Read with Owner-Only Writes" model, ideal for public content creation platforms.
      */
     match /products/{productId} {
-      allow get: if true;
-      allow list: if true;
+      allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid;
       allow update: if isExistingOwner(resource.data.sellerMemberId);
       allow delete: if isExistingOwner(resource.data.sellerMemberId);
