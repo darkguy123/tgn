@@ -1,30 +1,32 @@
 rules_version = '2';
 
 service firebase.storage {
+  // Helper function to check for admin users.
+  function isAdmin() {
+    return request.auth != null && request.auth.token.email in {
+      'valentinoboss18@gmail.com': 1,
+      'akpbassey@gmail.com': 1
+    };
+  }
+
   match /b/{bucket}/o {
 
     // --- Public User Uploads ---
-    // This path is for files that should be publicly readable, like user avatars,
-    // product images, or post images.
+    // Avatars, product images, post media, etc.
     match /uploads/public/{userId}/{allPaths=**} {
-      // Any user or client can read files from this path.
-      // This is necessary so that anyone can see profile pictures, etc.
+      // Anyone can read public files.
       allow read;
 
-      // Only the authenticated user whose UID matches {userId} can write to this folder.
-      // This prevents users from uploading files into another user's public directory.
-      allow write: if request.auth != null && request.auth.uid == userId;
+      // Writes are allowed if you are the owner of the folder, OR you are an admin.
+      // This allows users to upload their own files and admins to manage public content.
+      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
     }
 
     // --- Private User Documents ---
-    // This path is for sensitive, private files, such as KYC documents or
-    // other personal information that should not be publicly accessible.
+    // Sensitive documents like KYC uploads.
     match /uploads/private/{userId}/{allPaths=**} {
-      // Read and write access is restricted to two groups:
-      // 1. The authenticated user whose UID matches the {userId} in the path.
-      // 2. The designated super-admin account.
-      // This ensures that a user's private documents can only be seen by them and by an admin.
-      allow read, write: if request.auth != null && (request.auth.uid == userId || request.auth.token.email == 'valentinoboss18@gmail.com');
+      // Only the owner or an admin can read or write private files.
+      allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
     }
   }
 }
