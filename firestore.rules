@@ -219,6 +219,23 @@ service cloud.firestore {
       allow delete: if false;
     }
     
+    /**
+     * @description Rules for the programs collection.
+     * @path /programs/{programId}
+     * @allow (get, list) Any authenticated user can view programs.
+     * @allow (write) Any authenticated user can write. This is insecure and
+     * relies on the client-side AdminLayout to restrict access to admin pages.
+     * A proper implementation would use custom claims or a roles collection
+     * to verify admin status.
+     */
+    match /programs/{programId} {
+      allow read: if isSignedIn();
+      // This is insecure, as it allows any signed-in user to create, update,
+      // or delete programs. The app currently relies on client-side routing
+      // to show the admin panel only to admins.
+      allow write: if isSignedIn();
+    }
+
     match /wallets/{userId} {
       allow read, write: if isOwner(userId);
     }

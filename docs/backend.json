@@ -450,6 +450,31 @@
             "createdAt": { "type": "string", "format": "date-time" }
         },
         "required": ["authorId", "authorName", "content"]
+    },
+    "Program": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Program",
+        "type": "object",
+        "description": "Represents a learning program or mentorship path.",
+        "properties": {
+            "title": { "type": "string" },
+            "mentor": { "type": "string" },
+            "duration": { "type": "string" },
+            "enrolled": { "type": "number" },
+            "rating": { "type": "number" },
+            "certified": { "type": "boolean" },
+            "price": { "type": "number" },
+            "imageId": { "type": "string" },
+            "description": { "type": "string" },
+            "format": { "type": "string", "enum": ["Live", "Pre-recorded", "Self-paced", "Hybrid"] },
+            "type": { "type": "string", "enum": ["Free", "Paid", "Executive"] },
+            "googleMeetUrl": { "type": "string", "format": "uri" },
+            "preRecordedVideoUrl": { "type": "string", "format": "uri" },
+            "createdAt": { "type": "string", "format": "date-time" },
+            "updatedAt": { "type": "string", "format": "date-time" },
+            "deactivatedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["title", "mentor", "duration", "description", "format", "type", "imageId"]
     }
   },
   "auth": {
@@ -612,6 +637,22 @@
             {
               "name": "eventId",
               "description": "The unique identifier of the event."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/programs/{programId}",
+        "definition": {
+          "entityName": "Program",
+          "schema": {
+            "$ref": "#/backend/entities/Program"
+          },
+          "description": "Stores learning programs. Publicly readable but should only be writable by admins.",
+          "params": [
+            {
+              "name": "programId",
+              "description": "The unique identifier of the program."
             }
           ]
         }
