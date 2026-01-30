@@ -1,7 +1,7 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { UploadCloud, Loader2, X } from 'lucide-react';
+import { UploadCloud, Loader2, X, CropIcon } from 'lucide-react';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Progress } from '@/components/ui/progress';
@@ -10,6 +10,9 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useStorage, useFirestore } from '@/firebase';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import ReactCrop, { centerCrop, makeAspectCrop, type Crop as CropType } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 
 interface FileUploadProps {
   onUploadComplete: (url: string, fileType: string) => void;
@@ -20,9 +23,51 @@ interface FileUploadProps {
   accept?: Record<string, string[]>;
   storagePath?: 'public' | 'private';
   className?: string;
+  crop?: {
+    aspect: number;
+  };
 }
 
 const generateShortId = () => Math.random().toString(36).slice(2, 9);
+
+// Helper function to get the cropped image blob
+async function getCroppedBlob(image: HTMLImageElement, crop: CropType): Promise<Blob | null> {
+    const canvas = document.createElement("canvas");
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+    
+    // Ensure crop dimensions are not zero
+    if (crop.width === 0 || crop.height === 0) {
+        return null;
+    }
+
+    canvas.width = crop.width;
+    canvas.height = crop.height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+        return null;
+    }
+
+    ctx.drawImage(
+        image,
+        crop.x * scaleX,
+        crop.y * scaleY,
+        crop.width * scaleX,
+        crop.height * scaleY,
+        0,
+        0,
+        crop.width,
+        crop.height
+    );
+
+    return new Promise((resolve) => {
+        canvas.toBlob((blob) => {
+            resolve(blob);
+        }, "image/png", 1); // Use PNG for quality, quality factor 1
+    });
+}
+
 
 export function FileUpload({
   onUploadComplete,
@@ -33,10 +78,17 @@ export function FileUpload({
   accept = { 'image/jpeg': [], 'image/png': [], 'image/webp': [] },
   storagePath = 'public',
   className,
+  crop: cropConfig,
 }: FileUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [imgSrc, setImgSrc] = useState('');
+  const [crop, setCrop] = useState<CropType>();
+  const [isCropModalOpen, setCropModalOpen] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const fileRef = useRef<File | null>(null);
 
   const { toast } = useToast();
   const storage = useStorage();
@@ -44,22 +96,41 @@ export function FileUpload({
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
+      if (acceptedFiles.length === 0) {
+        toast({ variant: 'destructive', title: 'Invalid file type selected.' });
+        return;
+      }
+      
+      const file = acceptedFiles[0];
+      fileRef.current = file;
+
+      if (cropConfig && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.addEventListener('load', () => setImgSrc(reader.result?.toString() || ''));
+        reader.readAsDataURL(file);
+        setCropModalOpen(true);
+      } else {
+        startUpload(file);
+      }
+    },
+    [cropConfig, toast]
+  );
+  
+  const startUpload = (fileToUpload: File | Blob) => {
       if (!storage || !firestore) {
         toast({ variant: 'destructive', title: 'Services not available' });
         setError('Storage or database service is not configured.');
         return;
       }
-      if (acceptedFiles.length === 0) {
-        toast({ variant: 'destructive', title: 'Invalid file type selected.' });
-        return;
-      }
 
-      const file = acceptedFiles[0];
-      const fileExtension = file.name.split('.').pop() || '';
+      const originalFile = fileRef.current;
+      if(!originalFile) return;
+
+      const fileExtension = originalFile.name.split('.').pop() || '';
       const newFileName = `${generateShortId()}.${fileExtension}`;
       const filePath = `uploads/${storagePath}/${userId}/${newFileName}`;
       const storageRef = ref(storage, filePath);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
 
       setIsUploading(true);
       setUploadProgress(0);
@@ -81,21 +152,20 @@ export function FileUpload({
         async () => {
           try {
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-
-            // Save metadata to Firestore
+            
             const mediaCollectionRef = collection(firestore, 'users', userId, 'media');
             const mediaDocData = {
               ownerId: userId,
-              fileName: file.name,
-              fileType: file.type,
-              fileSize: file.size,
+              fileName: originalFile.name,
+              fileType: originalFile.type,
+              fileSize: originalFile.size,
               storagePath: filePath,
               url: downloadURL,
               createdAt: serverTimestamp(),
             };
             await addDoc(mediaCollectionRef, mediaDocData);
 
-            onUploadComplete(downloadURL, file.type);
+            onUploadComplete(downloadURL, originalFile.type);
             toast({ title: 'Upload Complete' });
           } catch (finalError: any) {
             console.error("Error during upload finalization:", finalError);
@@ -107,9 +177,7 @@ export function FileUpload({
           }
         }
       );
-    },
-    [storage, firestore, userId, storagePath, onUploadComplete, toast, accept]
-  );
+  }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -132,6 +200,27 @@ export function FileUpload({
     onUploadComplete('', '');
   };
 
+  const handleCrop = async () => {
+    if (imgRef.current && crop) {
+      const croppedBlob = await getCroppedBlob(imgRef.current, crop);
+      if (croppedBlob) {
+        setCropModalOpen(false);
+        setImgSrc('');
+        startUpload(croppedBlob);
+      } else {
+        toast({variant: 'destructive', title: 'Crop failed', description: 'Could not generate cropped image.'})
+      }
+    }
+  }
+  
+  function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
+    if (cropConfig?.aspect) {
+      const { width, height } = e.currentTarget;
+      setCrop(centerCrop(makeAspectCrop({ unit: '%', width: 90 }, cropConfig.aspect, width, height), width, height));
+    }
+  }
+
+  // Preview for existing image
   if (value) {
     return (
       <div className={cn("relative group aspect-video", className)}>
@@ -161,6 +250,7 @@ export function FileUpload({
     );
   }
 
+  // Uploading state
   if (isUploading) {
     return (
       <div className={cn("aspect-video w-full flex flex-col items-center justify-center border rounded-md p-4", className)}>
@@ -171,6 +261,7 @@ export function FileUpload({
     );
   }
   
+  // Error state
   if (error) {
     return (
       <div className={cn("aspect-video w-full flex flex-col items-center justify-center border border-destructive rounded-md p-4", className)}>
@@ -179,21 +270,47 @@ export function FileUpload({
       </div>
     );
   }
-
+  
+  // Default dropzone view
   return (
-    <div
-      {...getRootProps()}
-      className={cn(
-        'border-2 border-dashed rounded-md aspect-video flex flex-col items-center justify-center text-center p-4 cursor-pointer hover:border-primary transition-colors',
-        isDragActive && 'border-primary bg-primary/10',
-        className,
-      )}
-    >
-      <input {...getInputProps()} />
-      <UploadCloud className="h-10 w-10 text-muted-foreground" />
-      <p className="text-sm text-muted-foreground mt-2">
-        {label || 'Drag & drop or click to upload'}
-      </p>
-    </div>
+    <>
+      <div
+        {...getRootProps()}
+        className={cn(
+          'border-2 border-dashed rounded-md aspect-video flex flex-col items-center justify-center text-center p-4 cursor-pointer hover:border-primary transition-colors',
+          isDragActive && 'border-primary bg-primary/10',
+          className,
+        )}
+      >
+        <input {...getInputProps()} />
+        <UploadCloud className="h-10 w-10 text-muted-foreground" />
+        <p className="text-sm text-muted-foreground mt-2">
+          {label || 'Drag & drop or click to upload'}
+        </p>
+      </div>
+
+      <Dialog open={isCropModalOpen} onOpenChange={setCropModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Crop Image</DialogTitle>
+          </DialogHeader>
+          {imgSrc && (
+            <div className="flex justify-center p-4 bg-muted rounded-md">
+              <ReactCrop
+                crop={crop}
+                onChange={c => setCrop(c)}
+                aspect={cropConfig?.aspect}
+              >
+                <img ref={imgRef} alt="Crop preview" src={imgSrc} onLoad={onImageLoad} style={{ maxHeight: '70vh' }} />
+              </ReactCrop>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCropModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleCrop}><CropIcon className="mr-2 h-4 w-4" /> Crop & Upload</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

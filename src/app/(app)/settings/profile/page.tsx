@@ -305,6 +305,7 @@ const SettingsPage = () => {
                             label="Upload Profile Photo"
                             userId={user.uid}
                             storagePath="public"
+                            crop={{ aspect: 1 }}
                         />
                     </CardContent>
                     </Card>
