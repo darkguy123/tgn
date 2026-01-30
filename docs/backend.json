@@ -168,6 +168,62 @@
         "adSize"
       ]
     },
+    "Cause": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Cause",
+      "type": "object",
+      "description": "Represents a fundraising cause created by a member.",
+      "properties": {
+        "creatorMemberId": {
+          "type": "string",
+          "description": "The UID of the member who created the cause."
+        },
+        "creatorName": {
+          "type": "string"
+        },
+        "creatorAvatarUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "goalAmount": {
+          "type": "number"
+        },
+        "currentAmount": {
+          "type": "number"
+        },
+        "backersCount": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "approved",
+            "rejected"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "creatorMemberId",
+        "creatorName",
+        "title",
+        "description",
+        "goalAmount",
+        "currentAmount",
+        "status",
+        "createdAt"
+      ]
+    },
     "MentorCertification": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MentorCertification",
@@ -913,6 +969,22 @@
         }
       },
       {
+        "path": "/causes/{causeId}",
+        "definition": {
+          "entityName": "Cause",
+          "schema": {
+            "$ref": "#/backend/entities/Cause"
+          },
+          "description": "Stores fundraising causes. Readable by all signed-in users, creatable by members, and manageable by admins.",
+          "params": [
+            {
+              "name": "causeId",
+              "description": "The unique identifier of the cause."
+            }
+          ]
+        }
+      },
+      {
         "path": "/packageBenefits/{packageBenefitId}",
         "definition": {
           "entityName": "PackageBenefits",
@@ -1020,3 +1092,4 @@
     "reasoning": "This Firestore structure prioritizes authorization independence and QAPs through denormalization. User-owned data is stored in hierarchical paths under the `/users/{userId}` collection to simplify ownership-based security rules. Collaborative data uses membership maps for authorization. Each document includes necessary authorization context (e.g., `members` map) to avoid `get()` calls in security rules. This supports atomic operations and makes debugging easier. The segregation of data based on access control needs further simplifies the rules."
   }
 }
+    

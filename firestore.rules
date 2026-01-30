@@ -304,6 +304,18 @@ service cloud.firestore {
     }
     
     /**
+     * @description Community fundraisers can be read by any signed-in user, but only
+     * created by members and managed by admins.
+     * @path /causes/{causeId}
+     */
+    match /causes/{causeId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.creatorMemberId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    /**
      * @description Package benefit information is readable by any signed-in user but cannot be modified by clients.
      * @path /packageBenefits/{packageBenefitId}
      * @allow (get) Any authenticated user reading the details of a package benefit.
@@ -337,4 +349,6 @@ service cloud.firestore {
 }
     
     
+    
+
     
