@@ -79,6 +79,95 @@
         "role"
       ]
     },
+    "AdCampaign": {
+      "title": "AdCampaign",
+      "description": "Represents an advertisement campaign created by a member.",
+      "type": "object",
+      "properties": {
+        "creatorMemberId": {
+          "type": "string",
+          "description": "The UID of the member who created the ad."
+        },
+        "creatorName": {
+          "type": "string"
+        },
+        "creatorAvatarUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "name": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "in_review",
+            "active",
+            "paused",
+            "rejected"
+          ]
+        },
+        "budget": {
+          "type": "number"
+        },
+        "amountSpent": {
+          "type": "number"
+        },
+        "headline": {
+          "type": "string"
+        },
+        "bodyText": {
+          "type": "string"
+        },
+        "imageUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "callToActionText": {
+          "type": "string"
+        },
+        "callToActionUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "rejectionReason": {
+          "type": "string"
+        },
+        "adSize": {
+          "type": "string",
+          "enum": [
+            "350x350",
+            "128x90",
+            "skyscraper"
+          ]
+        },
+        "promotedProductId": {
+          "type": "string"
+        },
+        "promotedProgramId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "creatorMemberId",
+        "creatorName",
+        "name",
+        "status",
+        "budget",
+        "headline",
+        "bodyText",
+        "imageUrl",
+        "callToActionText",
+        "callToActionUrl",
+        "createdAt",
+        "adSize"
+      ]
+    },
     "MentorCertification": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MentorCertification",
@@ -808,6 +897,22 @@
         }
       },
       {
+        "path": "/ads/{adId}",
+        "definition": {
+          "entityName": "AdCampaign",
+          "schema": {
+            "$ref": "#/backend/entities/AdCampaign"
+          },
+          "description": "Stores ad campaigns. Readable by admins and creators, creatable/updatable by creators and admins.",
+          "params": [
+            {
+              "name": "adId",
+              "description": "The unique identifier of the ad campaign."
+            }
+          ]
+        }
+      },
+      {
         "path": "/packageBenefits/{packageBenefitId}",
         "definition": {
           "entityName": "PackageBenefits",
@@ -915,6 +1020,3 @@
     "reasoning": "This Firestore structure prioritizes authorization independence and QAPs through denormalization. User-owned data is stored in hierarchical paths under the `/users/{userId}` collection to simplify ownership-based security rules. Collaborative data uses membership maps for authorization. Each document includes necessary authorization context (e.g., `members` map) to avoid `get()` calls in security rules. This supports atomic operations and makes debugging easier. The segregation of data based on access control needs further simplifies the rules."
   }
 }
-    
-
-    
