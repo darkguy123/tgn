@@ -14,7 +14,7 @@
  * - /users/{userId}/...: Private, user-specific data (certifications, earnings)
  *   is nested under a user-owned path. Access is strictly limited to the
  *   document owner.
- * - /members, /products, /events, /matches: Top-level collections for data that
+ * - /products, /events, /matches: Top-level collections for data that
  *   is either public, shared, or managed by specific roles. This structure
  *   simplifies rules for listing and public access.
  *
@@ -116,7 +116,10 @@ service cloud.firestore {
     }
     
     match /users/{userId} {
-      allow get, update: if isOwner(userId);
+      // Allow signed-in users to view profiles and list users for directories.
+      allow get, list: if isSignedIn();
+      // Only the owner can create or update their own user document.
+      allow create, update: if isOwner(userId);
     }
 
     /**
@@ -259,4 +262,3 @@ service cloud.firestore {
     }
   }
 }
-    
