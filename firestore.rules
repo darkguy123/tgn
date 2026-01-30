@@ -169,19 +169,15 @@ service cloud.firestore {
     // --------------------------------------------------------------------
 
     /**
-     * @description Stores mentor certifications. All client access is disabled because the document lacks a direct `ownerId` or `userId` field linked to Firebase Auth, making secure rules impossible.
-     * @path /mentorCertifications/{mentorCertificationId}
-     * @allow None. All client requests are denied.
-     * @deny (get) Any user attempting to read a certification document.
-     * @principle Defaults to a secure posture by denying access to collections where ownership cannot be definitively verified.
+     * @description Stores mentor certifications. A user can read their own certification status.
+     * @path /mentor_certifications/{userId}
+     * @allow (get) User 'user123' reading their own certification document at `/mentor_certifications/user123`.
+     * @deny (list) Any user trying to list all certification documents.
+     * @principle Enforces that a user can only see their own certification progress.
      */
-    match /mentorCertifications/{mentorCertificationId} {
-      // CRITICAL: Cannot implement secure rules. The 'MentorCertification' entity is missing an 'ownerId' or 'userId' field linked to Firebase Auth.
-      allow get: if false; // TODO: Add owner validation once the schema is updated.
-      allow list: if false; // TODO: Add owner validation once the schema is updated.
-      allow create: if false; // TODO: Add owner validation once the schema is updated.
-      allow update: if false; // TODO: Add owner validation once the schema is updated.
-      allow delete: if false; // TODO: Add owner validation once the schema is updated.
+    match /mentor_certifications/{userId} {
+      allow get: if isOwner(userId);
+      allow list, create, update, delete: if false;
     }
     
     /**
@@ -317,4 +313,5 @@ service cloud.firestore {
 
   }
 }
+    
     

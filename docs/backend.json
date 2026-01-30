@@ -85,33 +85,48 @@
       "type": "object",
       "description": "Represents the certification status of a mentor.",
       "properties": {
-        "id": {
+        "memberId": {
           "type": "string",
-          "description": "Unique identifier for the Mentor Certification.",
-          "format": "uuid"
+          "description": "The UID of the member this certification belongs to. This should match the document ID."
         },
-        "programCompletion": {
-          "type": "boolean",
-          "description": "Indicates if the mentor has completed the certification program."
-        },
-        "platformActivityScore": {
+        "paidProgramsCompleted": {
           "type": "number",
-          "description": "Mentor's platform activity score."
+          "description": "Number of paid programs completed by the member."
         },
-        "evaluationScore": {
+        "accountAgeInMonths": {
           "type": "number",
-          "description": "Mentor's evaluation score."
+          "description": "Number of months the member has been active."
         },
-        "isAssociateVerified": {
+        "menteeBadgeLevel": {
+          "type": "number",
+          "description": "The member's badge level as a mentee."
+        },
+        "curriculumCompleted": {
           "type": "boolean",
-          "description": "Indicates if the mentor (Associate) is verified."
+          "description": "Indicates if the member has completed the certification curriculum."
+        },
+        "evaluationPassed": {
+          "type": "boolean",
+          "description": "Indicates if the member has passed the TGN evaluation."
+        },
+        "isCertified": {
+          "type": "boolean",
+          "description": "Indicates if the member is a certified mentor."
+        },
+        "certificationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date the certification was awarded."
         }
       },
       "required": [
-        "id",
-        "programCompletion",
-        "platformActivityScore",
-        "evaluationScore"
+        "memberId",
+        "paidProgramsCompleted",
+        "accountAgeInMonths",
+        "menteeBadgeLevel",
+        "curriculumCompleted",
+        "evaluationPassed",
+        "isCertified"
       ]
     },
     "LearningHistory": {
@@ -649,17 +664,17 @@
         }
       },
       {
-        "path": "/mentorCertifications/{mentorCertificationId}",
+        "path": "/mentor_certifications/{userId}",
         "definition": {
           "entityName": "MentorCertification",
           "schema": {
             "$ref": "#/backend/entities/MentorCertification"
           },
-          "description": "Stores mentor certifications. The document ID is the mentorCertificationId",
+          "description": "Stores mentor certification progress. The document ID is the user's UID.",
           "params": [
             {
-              "name": "mentorCertificationId",
-              "description": "The unique identifier of the mentor certification."
+              "name": "userId",
+              "description": "The unique identifier of the user this certification belongs to."
             }
           ]
         }
@@ -868,3 +883,4 @@
     "reasoning": "This Firestore structure prioritizes authorization independence and QAPs through denormalization. User-owned data is stored in hierarchical paths under the `/users/{userId}` collection to simplify ownership-based security rules. Collaborative data uses membership maps for authorization. Each document includes necessary authorization context (e.g., `members` map) to avoid `get()` calls in security rules. This supports atomic operations and makes debugging easier. The segregation of data based on access control needs further simplifies the rules."
   }
 }
+    
