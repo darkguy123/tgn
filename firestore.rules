@@ -127,6 +127,17 @@ service cloud.firestore {
       match /media/{mediaId} {
         allow read, write: if isOwner(userId);
       }
+
+      /**
+       * @description A user can manage their own saved payment cards.
+       * @path /users/{userId}/cards/{cardId}
+       * @allow (list) User 'user123' listing all their saved cards.
+       * @deny (get) User 'user456' trying to read a card of 'user123'.
+       * @principle Enforces that users can only manage their own payment methods.
+       */
+      match /cards/{cardId} {
+        allow read, write: if isOwner(userId);
+      }
     }
     
     // --------------------------------------------------------------------

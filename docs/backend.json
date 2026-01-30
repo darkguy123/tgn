@@ -819,6 +819,31 @@
         "currency",
         "balance"
       ]
+    },
+    "SavedCard": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SavedCard",
+      "type": "object",
+      "description": "Represents a user's saved payment card.",
+      "properties": {
+        "brand": {
+          "type": "string",
+          "enum": ["Visa", "Mastercard", "Amex"]
+        },
+        "last4": {
+          "type": "string"
+        },
+        "expiryMonth": {
+          "type": "string"
+        },
+        "expiryYear": {
+          "type": "string"
+        },
+        "isDefault": {
+          "type": "boolean"
+        }
+      },
+      "required": ["brand", "last4", "expiryMonth", "expiryYear", "isDefault"]
     }
   },
   "auth": {
@@ -1125,6 +1150,26 @@
             {
               "name": "userId",
               "description": "The unique identifier of the user this wallet belongs to."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/cards/{cardId}",
+        "definition": {
+          "entityName": "SavedCard",
+          "schema": {
+            "$ref": "#/backend/entities/SavedCard"
+          },
+          "description": "Stores user's saved payment cards. Only accessible by the owner.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "cardId",
+              "description": "The unique identifier of the saved card."
             }
           ]
         }
