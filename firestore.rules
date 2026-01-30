@@ -1,15 +1,16 @@
+
 /**
  * Core Philosophy: This ruleset enforces a strict user-ownership model for personal data and a shared-access model for collaborative entities. The primary goal is to ensure that users can only access and manage their own information while allowing controlled read access to shared resources they are a part of.
  *
  * Data Structure: The data is organized into two main categories:
  * 1. User-Private Data: All data exclusively owned by a user (like their profile and learning history) is nested under the `/users/{userId}` path. This creates a secure, hierarchical data tree for each user.
- * 2. Shared/Public Data: Top-level collections like `/programs`, `/communities`, and `/marketplaceListings` store data that can be accessed by multiple users, with access controlled by denormalized fields on each document.
+ * 2. Shared/Public Data: Top-level collections like `/programs`, `/communities`, and `/products` store data that can be accessed by multiple users, with access controlled by denormalized fields on each document.
  *
  * Key Security Decisions:
  * - User Isolation: Users are strictly forbidden from reading or listing other users' profiles or private subcollections. The `/users` collection is not listable.
  * - Shared Access via Membership: Access to collaborative documents (like `/programs`, `/communities`, `/events`) is granted if a user's UID is present in the `memberIds` array on the document. Client-side writes to these collections are disabled by default, assuming they are managed by backend processes or admins.
- * - Owner-Only Writes for Public Content: The `/marketplaceListings` collection is publicly readable, but write operations (create, update, delete) are restricted to the user whose UID matches the `sellerMemberId` field on the document.
- * - Secure Default for Ambiguous Ownership: Collections like `/mentorCertifications` and `/affiliateReferrals` lack a direct, verifiable ownership field (like a `userId`). To prevent potential data leaks, all client access to these collections is disabled until a secure ownership model is implemented.
+ * - Owner-Only Writes for Public Content: The `/products` collection is publicly readable, but write operations (create, update, delete) are restricted to the user whose UID matches the `sellerMemberId` field on the document.
+ * - Secure Default for Ambiguous Ownership: Collections like `/mentor_certifications` and `/affiliateReferrals` lack a direct, verifiable ownership field (like a `userId`). To prevent potential data leaks, all client access to these collections is disabled until a secure ownership model is implemented.
  * - Denormalization for Authorization: The rules rely on denormalized authorization fields (e.g., `sellerMemberId`, `memberIds`) directly on the documents being secured. This avoids slow and costly `get()` calls in rules, leading to better performance and simpler logic.
  */
 rules_version = '2';
@@ -266,14 +267,14 @@ service cloud.firestore {
     }
 
     /**
-     * @description Marketplace listings are publicly readable. Only the seller can create, update, or delete their own listings.
-     * @path /marketplaceListings/{marketplaceListingId}
+     * @description Product listings are publicly readable. Only the seller can create, update, or delete their own listings.
+     * @path /products/{productId}
      * @allow (create) User 'seller123' creating a new listing with `{ sellerMemberId: 'seller123', ... }`.
-     * @allow (list) Any user, signed-in or not, viewing all marketplace listings.
+     * @allow (list) Any user, signed-in or not, viewing all product listings.
      * @deny (update) User 'user456' attempting to change the price on a listing owned by 'seller123'.
      * @principle Enforces a "Public Read with Owner-Only Writes" model, ideal for public content creation platforms.
      */
-    match /marketplaceListings/{marketplaceListingId} {
+    match /products/{productId} {
       allow get: if true;
       allow list: if true;
       allow create: if isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid;
@@ -313,5 +314,6 @@ service cloud.firestore {
 
   }
 }
+    
     
     
