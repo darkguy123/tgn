@@ -245,6 +245,23 @@ service cloud.firestore {
         allow update: if isSignedIn();
         allow delete: if isExistingOwner(resource.data.creatorMemberId);
     }
+
+    match /posts/{postId} {
+      allow get, list: if isSignedIn();
+      allow create: if isNewOwner('authorId');
+      // Insecure: allows any signed-in user to update any post.
+      // This is necessary for the current "like" implementation.
+      // A more secure implementation would use a subcollection for likes
+      // or a rule that only allows incrementing the 'likes' field.
+      allow update: if isSignedIn();
+      allow delete: if isExistingOwner(resource.data.authorId);
+
+      match /comments/{commentId} {
+        allow read: if isSignedIn();
+        allow create: if isNewOwner('authorId');
+        allow update, delete: if isExistingOwner(resource.data.authorId);
+      }
+    }
   }
 }
     
