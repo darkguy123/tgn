@@ -7,12 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Briefcase, Edit, Send, Award, ShoppingBag } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, documentId } from 'firebase/firestore';
+import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
 import type { TGNMember, Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import placeholderImages from '@/lib/placeholder-images.json';
+import { useMemo } from 'react';
 
 // Helper to get image URL from placeholder data
 const getImageUrl = (imageId?: string) => {
@@ -28,18 +29,27 @@ export default function MemberProfilePage() {
   const memberId = params.memberId as string;
   const firestore = useFirestore();
 
-  const memberQuery = useMemoFirebase(() => {
-    if (!firestore || !memberId) return null;
-    const isTgnId = memberId.startsWith('TGN-');
-    if (isTgnId) {
-        return query(collection(firestore, 'users'), where('tgnMemberId', '==', memberId));
-    }
-    return query(collection(firestore, 'users'), where(documentId(), '==', memberId));
-  }, [firestore, memberId]);
+  const isTgnId = useMemo(() => memberId.startsWith('TGN-'), [memberId]);
 
-  const { data: members, isLoading } = useCollection<TGNMember>(memberQuery);
-  const member = members?.[0];
+  // Fetching logic based on ID type
+  const memberQueryByTgnId = useMemoFirebase(() => {
+    if (!firestore || !isTgnId) return null;
+    return query(collection(firestore, 'users'), where('tgnMemberId', '==', memberId));
+  }, [firestore, memberId, isTgnId]);
 
+  const memberRefByUid = useMemoFirebase(() => {
+    if (!firestore || isTgnId) return null;
+    return doc(firestore, 'users', memberId);
+  }, [firestore, memberId, isTgnId]);
+  
+  const { data: membersByTgnId, isLoading: isLoadingByTgnId } = useCollection<TGNMember>(memberQueryByTgnId);
+  const { data: memberByUid, isLoading: isLoadingByUid } = useDoc<TGNMember>(memberRefByUid);
+
+  // Determine the final member and loading state
+  const member = isTgnId ? membersByTgnId?.[0] : memberByUid;
+  const isLoading = isTgnId ? isLoadingByTgnId : isLoadingByUid;
+  
+  // Use a separate useMemoFirebase for products query
   const productsQuery = useMemoFirebase(
     () =>
       member
@@ -81,7 +91,7 @@ export default function MemberProfilePage() {
 
   // If after loading, no member is found, show the not-found page.
   if (!member) {
-    return notFound();
+    notFound();
   }
 
   // --- Safe defaults for rendering ---
