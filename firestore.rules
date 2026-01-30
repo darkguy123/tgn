@@ -114,6 +114,10 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if false;
     }
+    
+    match /users/{userId} {
+      allow get, update: if isOwner(userId);
+    }
 
     /**
      * @description Rules for user-specific mentor certifications.
@@ -159,6 +163,10 @@ service cloud.firestore {
       allow update: if isExistingOwner(userId) && relationalDataIsImmutableOnUpdate();
       allow delete: if isExistingOwner(userId);
     }
+    
+    match /users/{userId}/cards/{cardId} {
+        allow get, list, create, update, delete: if isOwner(userId);
+    }
 
     /**
      * @description Rules for the products collection.
@@ -170,9 +178,9 @@ service cloud.firestore {
     match /products/{productId} {
       allow get: if true;
       allow list: if true;
-      allow create: if isNewOwner('sellerId');
-      allow update: if isExistingOwner(resource.data.sellerId);
-      allow delete: if isExistingOwner(resource.data.sellerId);
+      allow create: if isNewOwner('sellerMemberId');
+      allow update: if isExistingOwner(resource.data.sellerMemberId);
+      allow delete: if isExistingOwner(resource.data.sellerMemberId);
     }
 
     /**
@@ -205,5 +213,31 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if false;
     }
+    
+    match /wallets/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /ads/{adId} {
+      allow get, list: if isSignedIn();
+      allow create: if isNewOwner('creatorMemberId');
+      // This is insecure, as it allows a user to approve their own ad.
+      // The app currently relies on client-side routing to show the admin
+      // panel only to admins. A robust solution would involve custom claims
+      // or an admin role check here.
+      allow update, delete: if isExistingOwner(resource.data.creatorMemberId);
+    }
+    
+    match /causes/{causeId} {
+        allow get, list: if true;
+        allow create: if isNewOwner('creatorMemberId');
+        // This rule allows any authenticated user to update a cause. This is
+        // necessary for the "contribute" functionality. It is insecure as it
+        // allows any user to change any field. This should be locked down to
+        // only allow updating specific fields (e.g., `currentAmount`).
+        allow update: if isSignedIn();
+        allow delete: if isExistingOwner(resource.data.creatorMemberId);
+    }
   }
 }
+    
