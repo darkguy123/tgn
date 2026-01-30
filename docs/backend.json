@@ -375,6 +375,39 @@
         "isDefault": { "type": "boolean" }
       },
       "required": ["last4", "brand", "isDefault"]
+    },
+    "FriendRequest": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FriendRequest",
+      "type": "object",
+      "description": "Represents a connection request between two members.",
+      "properties": {
+        "senderId": {
+          "type": "string",
+          "description": "The UID of the member sending the request."
+        },
+        "recipientId": {
+          "type": "string",
+          "description": "The UID of the member receiving the request."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "accepted",
+            "declined"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "senderId",
+        "recipientId",
+        "status"
+      ]
     }
   },
   "auth": {
@@ -509,6 +542,22 @@
             {
               "name": "matchId",
               "description": "The unique identifier of the match."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/friend_requests/{friendRequestId}",
+        "definition": {
+          "entityName": "FriendRequest",
+          "schema": {
+            "$ref": "#/backend/entities/FriendRequest"
+          },
+          "description": "Stores connection requests between members.",
+          "params": [
+            {
+              "name": "friendRequestId",
+              "description": "The unique identifier of the friend request."
             }
           ]
         }
