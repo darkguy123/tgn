@@ -130,6 +130,21 @@ service cloud.firestore {
     }
     
     // --------------------------------------------------------------------
+    // Wallets
+    // --------------------------------------------------------------------
+
+    /**
+     * @description A user can read and write to their own wallet document.
+     * @path /wallets/{userId}
+     * @allow (get) User 'user123' reading their own wallet at `/wallets/user123`.
+     * @deny (get) User 'user456' trying to read the wallet of 'user123'.
+     * @principle Enforces strict ownership of financial data.
+     */
+    match /wallets/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // --------------------------------------------------------------------
     // Relationships (e.g., Friend Requests)
     // --------------------------------------------------------------------
 
@@ -351,4 +366,5 @@ service cloud.firestore {
     
     
 
+    
     
