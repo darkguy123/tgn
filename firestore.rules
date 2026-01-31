@@ -34,12 +34,14 @@ service cloud.firestore {
     }
 
     function isRoleAdmin() {
+      // Note: This rule depends on a 'role' field in the user's document.
+      // Make sure this is being set correctly in your application.
       return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'country-manager';
     }
-
+    
     function isAdmin() {
-      return isHardcodedAdmin() || isRoleAdmin();
+        return isHardcodedAdmin() || isRoleAdmin();
     }
     
     function isNewOwner(ownerField) {
@@ -53,9 +55,9 @@ service cloud.firestore {
       allow get, list: if isSignedIn();
       allow create: if isOwner(userId);
       // Allow user to update their own document.
-      // Allow admin to update ONLY the 'role' of another user.
+      // Allow admin to update 'role' or 'connections' of another user.
       allow update: if isOwner(userId) || 
-                    (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']));
+                    (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'connections']));
 
       match /media/{mediaId} {
         allow read: if true;
@@ -133,7 +135,8 @@ service cloud.firestore {
     match /friend_requests/{friendRequestId} {
         allow read: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
         allow create: if isNewOwner('senderId');
-        allow update: if isSignedIn() && resource.data.recipientId == request.auth.uid;
+        // Allow recipient or an admin to update (accept/decline)
+        allow update: if isSignedIn() && (resource.data.recipientId == request.auth.uid || isAdmin());
         allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
     }
     
@@ -141,7 +144,7 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && request.auth.uid in resource.data.members;
 
         match /messages/{messageId} {
-             allow read, write: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+             allow read, write: if isSignedIn() && get(/databases/$(database)/documents/chats/$(chatId)).data.members;
         }
     }
     
