@@ -4,6 +4,7 @@ import { useDropzone } from 'react-dropzone';
 import { UploadCloud, Loader2, X, CropIcon } from 'lucide-react';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { Progress } from '@/components/ui/progress';
 import { Button } from './button';
 import Image from 'next/image';
@@ -117,6 +118,18 @@ export function FileUpload({
   );
   
   const startUpload = (fileToUpload: File | Blob) => {
+      const auth = getAuth();
+      if (!auth.currentUser) {
+        toast({ variant: 'destructive', title: 'You must be logged in' });
+        setError('You must be logged in to upload files.');
+        return;
+      }
+      if (auth.currentUser.uid !== userId) {
+        toast({ variant: 'destructive', title: 'Invalid user session' });
+        setError('User ID mismatch. Please refresh and try again.');
+        return;
+      }
+      
       if (!storage || !firestore) {
         toast({ variant: 'destructive', title: 'Services not available' });
         setError('Storage or database service is not configured.');
@@ -126,11 +139,22 @@ export function FileUpload({
       const originalFile = fileRef.current;
       if(!originalFile) return;
 
-      const fileExtension = originalFile.name.split('.').pop() || '';
+      const isBlob = fileToUpload instanceof Blob && !(fileToUpload instanceof File);
+      const fileExtension = isBlob
+        ? 'png'
+        : originalFile.name.split('.').pop() || 'bin';
+      const contentType = isBlob
+        ? 'image/png'
+        : originalFile.type;
+
       const newFileName = `${generateShortId()}.${fileExtension}`;
       const filePath = `uploads/${storagePath}/${userId}/${newFileName}`;
       const storageRef = ref(storage, filePath);
-      const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
+      const uploadTask = uploadBytesResumable(
+        storageRef, 
+        fileToUpload,
+        { contentType }
+      );
 
       setIsUploading(true);
       setUploadProgress(0);
@@ -163,8 +187,8 @@ export function FileUpload({
             const mediaDocData = {
               ownerId: userId,
               fileName: originalFile.name,
-              fileType: originalFile.type,
-              fileSize: originalFile.size,
+              fileType: contentType,
+              fileSize: fileToUpload.size,
               storagePath: filePath,
               url: downloadURL,
               createdAt: serverTimestamp(),
@@ -173,7 +197,7 @@ export function FileUpload({
             await addDoc(mediaCollectionRef, mediaDocData);
             console.log('Firestore document added.');
 
-            onUploadComplete(downloadURL, originalFile.type);
+            onUploadComplete(downloadURL, contentType);
             toast({ title: 'Upload Complete' });
           } catch (finalError: any) {
             console.error("Error during upload finalization:", finalError);

@@ -117,9 +117,16 @@ service cloud.firestore {
     
     match /users/{userId} {
       // Allow signed-in users to view profiles and list users for directories.
-      allow get, list: if isSignedIn();
-      // Only the owner can create or update their own user document.
-      allow create, update: if isOwner(userId);
+      allow get, list, create, update: if isOwner(userId);
+      
+      match /media/{mediaId} {
+        allow read: if true;
+        allow create: if request.auth != null
+          && request.auth.uid == userId;
+        allow delete: if request.auth != null
+          && request.auth.uid == userId;
+        allow update: if false;
+      }
     }
 
     /**
