@@ -1,26 +1,9 @@
-/**
- * This ruleset is designed for the Transcend Global Network Hub application.
- * It enforces a security model that distinguishes between regular users and
- * administrators, providing granular control over data access and modification.
- *
- * Core Philosophy:
- * - Admin-based control: Administrators, identified by a specific role or a
- *   hardcoded email address, are granted wider permissions to manage content
- *   and users across the platform.
- * - User data privacy: A user's private data is strictly controlled and can
- *   only be accessed or modified by the user themselves, with specific
- *   exceptions for administrative actions.
- * - Secure public listings: Publicly readable collections (like products,
- *   events) have strict, ownership-based write rules to prevent unauthorized
- *   modifications.
- */
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // HELPER FUNCTIONS
-    // ---------------------------------
-
+    // --- HELPER FUNCTIONS ---
     function isSignedIn() {
       return request.auth != null;
     }
@@ -29,117 +12,111 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isHardcodedAdmin() {
-      return request.auth.token.email == 'valentinoboss18@gmail.com';
-    }
-
-    function isRoleAdmin() {
-      // Note: This rule depends on a 'role' field in the user's document.
-      // Make sure this is being set correctly in your application.
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'country-manager';
-    }
-    
-    function isAdmin() {
-        return isHardcodedAdmin() || isRoleAdmin();
-    }
-    
     function isNewOwner(ownerField) {
       return isSignedIn() && request.resource.data[ownerField] == request.auth.uid;
     }
 
-    // COLLECTION RULES
-    // ---------------------------------
+    function isAdmin() {
+      // Hardcoded admin email + role-based admin
+      return (request.auth.token.email == 'valentinoboss18@gmail.com') ||
+             (
+               exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'country-manager'
+             );
+    }
 
+    // --- GLOBAL ADMIN RULE ---
+    // Admins have universal read/write access to all data.
+    match /{path=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // --- USER-SPECIFIC RULES (for non-admins) ---
+
+    // USERS collection and subcollections
     match /users/{userId} {
       allow get, list: if isSignedIn();
-      allow create: if isOwner(userId);
-      // Allow user to update their own document.
-      // Allow admin to update 'role' or 'connections' of another user.
-      allow update: if isOwner(userId) || 
-                    (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'connections']));
+      allow create, update: if isOwner(userId);
 
       match /media/{mediaId} {
         allow read: if true;
         allow create, delete: if isOwner(userId);
         allow update: if false;
       }
-      
       match /enrolled_programs/{programId} {
         allow read, create: if isOwner(userId);
       }
-      
       match /transactions/{transactionId} {
         allow read, create: if isOwner(userId);
       }
-
       match /cards/{cardId} {
-          allow read, list, create, update, delete: if isOwner(userId);
+        allow read, list, create, update, delete: if isOwner(userId);
       }
     }
 
+    // PROGRAMS collection
     match /programs/{programId} {
       allow read: if isSignedIn();
-      // Only admins can create, update, or delete programs.
-      allow write: if isAdmin();
+      allow write: if false; // Admins only
     }
 
+    // EVENTS collection
     match /events/{eventId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if false; // Admins only
     }
 
+    // SECTORS collection
     match /sectors/{sectorId} {
-        allow read: if isSignedIn();
-        allow write: if isAdmin();
+      allow read: if isSignedIn();
+      allow write: if false; // Admins only
     }
 
+    // PRODUCTS collection
     match /products/{productId} {
       allow read: if true;
       allow create: if isNewOwner('sellerMemberId');
-      // Owner can edit their own product, admin can update any product (e.g., for approval).
-      allow update: if isOwner(resource.data.sellerMemberId) || isAdmin();
-      allow delete: if isOwner(resource.data.sellerMemberId) || isAdmin();
+      allow update, delete: if isOwner(resource.data.sellerMemberId);
     }
     
+    // CAUSES collection
     match /causes/{causeId} {
         allow read: if true;
         allow create: if isNewOwner('creatorMemberId');
-        // Any signed-in user can update (to contribute), but only owner or admin can delete.
-        allow update: if isSignedIn();
-        allow delete: if isOwner(resource.data.creatorMemberId) || isAdmin();
+        allow update: if isSignedIn(); // Allow contributions
+        allow delete: if isOwner(resource.data.creatorMemberId);
     }
     
+    // ADS collection
     match /ads/{adId} {
         allow read: if true;
         allow create: if isNewOwner('creatorMemberId');
-        // Only owner or admin can update/delete.
-        allow update, delete: if isOwner(resource.data.creatorMemberId) || isAdmin();
+        allow update, delete: if isOwner(resource.data.creatorMemberId);
     }
 
+    // POSTS and COMMENTS
     match /posts/{postId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create: if isNewOwner('authorId');
-      // Any signed-in user can update a post (for liking).
-      // A more secure rule would restrict this to only incrementing likes.
-      allow update: if isSignedIn();
-      allow delete: if isOwner(resource.data.authorId) || isAdmin();
+      allow update: if isSignedIn(); // For likes
+      allow delete: if isOwner(resource.data.authorId);
 
       match /comments/{commentId} {
         allow read, list: if isSignedIn();
         allow create: if isNewOwner('authorId');
-        allow update, delete: if isOwner(resource.data.authorId) || isAdmin();
+        allow update, delete: if isOwner(resource.data.authorId);
       }
     }
     
+    // FRIEND REQUESTS
     match /friend_requests/{friendRequestId} {
         allow read: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
         allow create: if isNewOwner('senderId');
-        // Allow recipient or an admin to update (accept/decline)
-        allow update: if isSignedIn() && (resource.data.recipientId == request.auth.uid || isAdmin());
+        allow update: if isSignedIn() && resource.data.recipientId == request.auth.uid;
         allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
     }
     
+    // CHATS
     match /chats/{chatId} {
         allow read, write: if isSignedIn() && request.auth.uid in resource.data.members;
 
@@ -148,22 +125,28 @@ service cloud.firestore {
         }
     }
     
+    // MENTOR KYC
     match /mentor_kyc/{userId} {
         allow create: if isOwner(userId);
-        allow read, update: if isAdmin();
+        allow read, update, delete: if false; // Admins only
     }
 
+    // WALLETS
     match /wallets/{userId} {
       allow read, write: if isOwner(userId);
     }
     
+    // COMMISSIONS
     match /commissions/{commissionId} {
-        allow create: if isSignedIn(); // Allow server-side process to create
+        allow create: if isSignedIn(); // Server-side process
         allow read: if isOwner(resource.data.referrerId);
+        allow write: if false;
     }
 
+    // AFFILIATE REFERRALS
     match /affiliate_referrals/{referralId} {
         allow create: if isSignedIn();
+        allow read, write: if false;
     }
   }
 }
