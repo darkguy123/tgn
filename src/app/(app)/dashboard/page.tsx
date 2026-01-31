@@ -2,6 +2,7 @@
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AdminDashboard, MenteeDashboard, MentorDashboard, PartnerDashboard } from '@/components/dashboards';
+import { isUserAdmin } from '@/lib/auth-utils';
 
 const Dashboard = () => {
   const { profile, isLoading: isProfileLoading } = useMemberProfile();
@@ -31,8 +32,13 @@ const Dashboard = () => {
       </div>
     );
   }
+  
+  const userIsAdmin = isUserAdmin(profile);
 
   const renderDashboardByRole = () => {
+    if (userIsAdmin) {
+        return <AdminDashboard />;
+    }
     switch (profile.role) {
       case 'mentee':
         return <MenteeDashboard />;
@@ -44,13 +50,6 @@ const Dashboard = () => {
       case 'volunteer':
       case 'media':
         return <PartnerDashboard />;
-      case 'country-manager':
-        return (
-          <>
-            <AdminDashboard />
-            <MenteeDashboard /> 
-          </>
-        );
       default:
         return <MenteeDashboard />; // Default to mentee dashboard
     }

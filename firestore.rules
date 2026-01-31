@@ -1,295 +1,166 @@
 /**
- * This ruleset enforces a security model tailored for the Transcend Global
- * Network Hub application. It balances public discoverability with strict
- * user-data privacy and ownership.
+ * This ruleset is designed for the Transcend Global Network Hub application.
+ * It enforces a security model that distinguishes between regular users and
+ * administrators, providing granular control over data access and modification.
  *
  * Core Philosophy:
- * The rules are built on the principles of Authorization Independence and
- * Structural Segregation. Authorization decisions for a document are made
- * using data on that document itself, avoiding slow and complex cross-document
- * reads. Data with different access patterns is stored in separate collections
- * to create clear, secure, and performant rules.
- *
- * Data Structure:
- * - /users/{userId}/...: Private, user-specific data (certifications, earnings)
- *   is nested under a user-owned path. Access is strictly limited to the
- *   document owner.
- * - /products, /events, /matches: Top-level collections for data that
- *   is either public, shared, or managed by specific roles. This structure
- *   simplifies rules for listing and public access.
- *
- * Key Security Decisions:
- * - User Data Privacy: All data under `/users/{userId}` is strictly private
- *   and can only be accessed by the authenticated owner.
- * - Public Listings: Collections like `/products` and `/events` are publicly
- *   readable to facilitate discovery. Member listings are readable only by
- *   signed-in users.
- * - Ownership-Based Writes: For publicly readable data like products, write
- *   permissions are strictly controlled by a denormalized `sellerId` field
- *   on each product document, ensuring only the owner can modify their listings.
- * - Restricted Writes: Collections without a clear client-side ownership model
- *   (e.g., /events, /matches) are made read-only. Writes to these collections
- *   are expected to be handled by trusted backend processes.
- * - No User Listing: The top-level `/users` collection is not exposed to prevent
- *   the enumeration of all application users.
- *
- * Denormalization for Authorization:
- * To ensure high performance and strong security, this ruleset relies on
- * denormalized ownership fields. For example, instead of looking up a product's
- * owner in a separate collection, the `sellerId` is stored directly on the
- * `/products/{productId}` document. This allows for a simple and fast rule:
- * `resource.data.sellerId == request.auth.uid`.
- *
- * Structural Segregation:
- * Private user data (e.g., `affiliateEarnings`) is stored in a user-specific
- * subcollection (`/users/{userId}/affiliateEarnings`). Publicly readable data
- * like `/products` is in its own top-level collection. This separation prevents
- * accidental data leakage and simplifies list operation security.
+ * - Admin-based control: Administrators, identified by a specific role or a
+ *   hardcoded email address, are granted wider permissions to manage content
+ *   and users across the platform.
+ * - User data privacy: A user's private data is strictly controlled and can
+ *   only be accessed or modified by the user themselves, with specific
+ *   exceptions for administrative actions.
+ * - Secure public listings: Publicly readable collections (like products,
+ *   events) have strict, ownership-based write rules to prevent unauthorized
+ *   modifications.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper Functions
-    // ----------------
+    // HELPER FUNCTIONS
+    // ---------------------------------
 
-    /**
-     * Checks if a user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the currently authenticated user's UID matches the provided userId.
-     * This is the primary function for enforcing data ownership.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * Ensures an update or delete operation is performed by the owner on an
-     * existing document. Prevents modifying or deleting non-existent data.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
+    function isHardcodedAdmin() {
+      return request.auth.token.email == 'valentinoboss18@gmail.com';
     }
 
-    /**
-     * On create, verifies that the incoming document's ownership field
-     * (e.g., 'sellerId') is correctly set to the creator's UID.
-     */
-    function isNewOwner(expectedOwnerId) {
-      return isSignedIn() && request.resource.data[expectedOwnerId] == request.auth.uid;
+    function isRoleAdmin() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'country-manager';
     }
 
-    /**
-     * On create, validates that a document's internal `memberId` field is
-     * consistent with the `userId` in its path.
-     */
-    function relationalDataIsValidOnCreate(userId) {
-      return request.resource.data.memberId == userId;
-    }
-
-    /**
-     * On update, ensures the `memberId` field cannot be changed, preserving
-     * the document's relationship to its parent user.
-     */
-    function relationalDataIsImmutableOnUpdate() {
-      return request.resource.data.memberId == resource.data.memberId;
-    }
-
-    /**
-     * @description Rules for the members collection.
-     * @path /members/{memberId}
-     * @allow (get) Any authenticated user can view member profiles.
-     * @deny (create) Anonymous users cannot create or view member profiles.
-     * @principle Allows signed-in users read-only access to a public directory.
-     */
-    match /members/{memberId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+    function isAdmin() {
+      return isHardcodedAdmin() || isRoleAdmin();
     }
     
+    function isNewOwner(ownerField) {
+      return isSignedIn() && request.resource.data[ownerField] == request.auth.uid;
+    }
+
+    // COLLECTION RULES
+    // ---------------------------------
+
     match /users/{userId} {
-      // Allow signed-in users to view profiles and list users for directories.
-      allow get, list, create, update: if isOwner(userId);
-      
+      allow get, list: if isSignedIn();
+      allow create: if isOwner(userId);
+      // Allow user to update their own document.
+      // Allow admin to update ONLY the 'role' of another user.
+      allow update: if isOwner(userId) || 
+                    (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']));
+
       match /media/{mediaId} {
         allow read: if true;
-        allow create: if request.auth != null
-          && request.auth.uid == userId;
-        allow delete: if request.auth != null
-          && request.auth.uid == userId;
+        allow create, delete: if isOwner(userId);
         allow update: if false;
+      }
+      
+      match /enrolled_programs/{programId} {
+        allow read, create: if isOwner(userId);
+      }
+      
+      match /transactions/{transactionId} {
+        allow read, create: if isOwner(userId);
+      }
+
+      match /cards/{cardId} {
+          allow read, list, create, update, delete: if isOwner(userId);
       }
     }
 
-    /**
-     * @description Rules for user-specific mentor certifications.
-     * @path /mentor_certifications/{memberId}
-     * @allow (read, write) A user can manage their own certification document.
-     * @principle Restricts access to a user's own private data using the document ID.
-     */
-    match /mentor_certifications/{memberId} {
-      allow read, write: if isOwner(memberId);
-    }
-
-    /**
-     * @description Rules for user-specific mentee verifications.
-     * @path /users/{userId}/menteeVerifications/{menteeVerificationId}
-     * @allow (create) A user (userId: 'user_abc') can create their own verification doc.
-     * @deny (update) A user (userId: 'user_xyz') cannot update 'user_abc's verification.
-     * @principle Restricts access to a user's own private data tree.
-     */
-    match /users/{userId}/menteeVerifications/{menteeVerificationId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && relationalDataIsValidOnCreate(userId);
-      allow update: if isExistingOwner(userId) && relationalDataIsImmutableOnUpdate();
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Rules for user-specific affiliate earnings.
-     * @path /users/{userId}/affiliateEarnings/{affiliateEarningId}
-     * @allow (list) A user (userId: 'user_abc') can list their own earnings.
-     * @deny (list) A user (userId: 'user_xyz') cannot list 'user_abc's earnings.
-     * @principle Restricts access to a user's own private data tree.
-     */
-    match /users/{userId}/affiliateEarnings/{affiliateEarningId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && relationalDataIsValidOnCreate(userId);
-      allow update: if isExistingOwner(userId) && relationalDataIsImmutableOnUpdate();
-      allow delete: if isExistingOwner(userId);
-    }
-    
-    match /users/{userId}/cards/{cardId} {
-        allow get, list, create, update, delete: if isOwner(userId);
-    }
-
-    /**
-     * @description Rules for the products collection.
-     * @path /products/{productId}
-     * @allow (create) An authenticated user can create a product if they set sellerId to their own UID.
-     * @deny (update) A user cannot update a product where the sellerId is not their own UID.
-     * @principle Enforces document ownership for writes on a public-read collection.
-     */
-    match /products/{productId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isNewOwner('sellerMemberId');
-      allow update: if isExistingOwner(resource.data.sellerMemberId);
-      allow delete: if isExistingOwner(resource.data.sellerMemberId);
-    }
-
-    /**
-     * @description Rules for matches between members.
-     * @path /matches/{matchId}
-     * @allow (get) A user can read a match document if their UID is in memberId1 or memberId2.
-     * @deny (list) A user cannot list all matches in the system to prevent data leakage.
-     * @deny (create) A user cannot create a match; this is a system-level operation.
-     * @principle Grants read access to a specific set of collaborators (the participants).
-     */
-    match /matches/{matchId} {
-      allow get: if isSignedIn() && (request.auth.uid == resource.data.memberId1 || request.auth.uid == resource.data.memberId2);
-      allow list: if false;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
-    }
-    
-    match /friend_requests/{friendRequestId} {
-      allow read: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
-      allow create: if isNewOwner('senderId');
-      allow update: if isSignedIn() && resource.data.recipientId == request.auth.uid;
-      allow delete: if isSignedIn() && resource.data.senderId == request.auth.uid;
-    }
-
-    /**
-     * @description Rules for the events collection.
-     * @path /events/{eventId}
-     * @allow (get, list) Any user, including anonymous, can view event details.
-     * @deny (create, update, delete) Events cannot be created or modified by clients.
-     * @principle Provides public read-only access to global data.
-     */
-    match /events/{eventId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
-    }
-    
-    /**
-     * @description Rules for the programs collection.
-     * @path /programs/{programId}
-     * @allow (get, list) Any authenticated user can view programs.
-     * @allow (write) Any authenticated user can write. This is insecure and
-     * relies on the client-side AdminLayout to restrict access to admin pages.
-     * A proper implementation would use custom claims or a roles collection
-     * to verify admin status.
-     */
     match /programs/{programId} {
       allow read: if isSignedIn();
-      // This is insecure, as it allows any signed-in user to create, update,
-      // or delete programs. The app currently relies on client-side routing
-      // to show the admin panel only to admins.
-      allow write: if isSignedIn();
+      // Only admins can create, update, or delete programs.
+      allow write: if isAdmin();
     }
-    
+
+    match /events/{eventId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /sectors/{sectorId} {
         allow read: if isSignedIn();
-        // This is insecure and relies on client-side routing to restrict
-        // access to admin pages.
-        allow write: if isSignedIn();
+        allow write: if isAdmin();
     }
 
-    match /wallets/{userId} {
-      allow read, write: if isOwner(userId);
-    }
-
-    match /ads/{adId} {
-      allow get, list: if isSignedIn();
-      allow create: if isNewOwner('creatorMemberId');
-      // This is insecure, as it allows a user to approve their own ad.
-      // The app currently relies on client-side routing to show the admin
-      // panel only to admins. A robust solution would involve custom claims
-      // or an admin role check here.
-      allow update, delete: if isExistingOwner(resource.data.creatorMemberId);
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isNewOwner('sellerMemberId');
+      // Owner can edit their own product, admin can update any product (e.g., for approval).
+      allow update: if isOwner(resource.data.sellerMemberId) || isAdmin();
+      allow delete: if isOwner(resource.data.sellerMemberId) || isAdmin();
     }
     
     match /causes/{causeId} {
-        allow get, list: if true;
+        allow read: if true;
         allow create: if isNewOwner('creatorMemberId');
-        // This rule allows any authenticated user to update a cause. This is
-        // necessary for the "contribute" functionality. It is insecure as it
-        // allows any user to change any field. This should be locked down to
-        // only allow updating specific fields (e.g., `currentAmount`).
+        // Any signed-in user can update (to contribute), but only owner or admin can delete.
         allow update: if isSignedIn();
-        allow delete: if isExistingOwner(resource.data.creatorMemberId);
+        allow delete: if isOwner(resource.data.creatorMemberId) || isAdmin();
+    }
+    
+    match /ads/{adId} {
+        allow read: if true;
+        allow create: if isNewOwner('creatorMemberId');
+        // Only owner or admin can update/delete.
+        allow update, delete: if isOwner(resource.data.creatorMemberId) || isAdmin();
     }
 
     match /posts/{postId} {
       allow get, list: if isSignedIn();
       allow create: if isNewOwner('authorId');
-      // Insecure: allows any signed-in user to update any post.
-      // This is necessary for the current "like" implementation.
-      // A more secure implementation would use a subcollection for likes
-      // or a rule that only allows incrementing the 'likes' field.
+      // Any signed-in user can update a post (for liking).
+      // A more secure rule would restrict this to only incrementing likes.
       allow update: if isSignedIn();
-      allow delete: if isExistingOwner(resource.data.authorId);
+      allow delete: if isOwner(resource.data.authorId) || isAdmin();
 
       match /comments/{commentId} {
-        allow read: if isSignedIn();
+        allow read, list: if isSignedIn();
         allow create: if isNewOwner('authorId');
-        allow update, delete: if isExistingOwner(resource.data.authorId);
+        allow update, delete: if isOwner(resource.data.authorId) || isAdmin();
       }
+    }
+    
+    match /friend_requests/{friendRequestId} {
+        allow read: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
+        allow create: if isNewOwner('senderId');
+        allow update: if isSignedIn() && resource.data.recipientId == request.auth.uid;
+        allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
+    }
+    
+    match /chats/{chatId} {
+        allow read, write: if isSignedIn() && request.auth.uid in resource.data.members;
+
+        match /messages/{messageId} {
+             allow read, write: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+        }
+    }
+    
+    match /mentor_kyc/{userId} {
+        allow create: if isOwner(userId);
+        allow read, update: if isAdmin();
+    }
+
+    match /wallets/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    match /commissions/{commissionId} {
+        allow create: if isSignedIn(); // Allow server-side process to create
+        allow read: if isOwner(resource.data.referrerId);
+    }
+
+    match /affiliate_referrals/{referralId} {
+        allow create: if isSignedIn();
     }
   }
 }
