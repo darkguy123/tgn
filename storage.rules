@@ -2,9 +2,10 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // TEMPORARY DEBUGGING RULE: Allow any authenticated user to write.
+    // TEMPORARY DEBUGGING RULE: Allow anyone to read or write.
+    // This is insecure and for diagnostics only.
     match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if true;
     }
   }
 }
