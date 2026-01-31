@@ -3,17 +3,27 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // This rule allows any authenticated user to write to a folder matching their UID.
-    // It also allows public read access, which is necessary for profile pictures, etc.
+    // PUBLIC-READABLE UPLOADS
+    // Used for profile pictures, community posts, marketplace listings, etc.
     match /uploads/public/{userId}/{allPaths=**} {
+      // Anyone can read these files.
       allow read: if true;
-      allow write: if request.auth.uid == userId;
+
+      // Only the authenticated user can upload files to their own folder.
+      allow create: if request.auth != null && request.auth.uid == userId;
+
+      // To prevent overwriting, updates are not allowed. A new file must be uploaded.
+      allow update: if false;
+
+      // Only the owner of the file can delete it.
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
-    // This rule allows ONLY the authenticated user to read or write to their own private folder.
-    // This is for sensitive documents like KYC uploads.
+    // PRIVATE, USER-OWNED FILES
+    // Used for sensitive documents like KYC uploads.
     match /uploads/private/{userId}/{allPaths=**} {
-      allow read, write: if request.auth.uid == userId;
+      // Only the user who owns this folder can read or write files here.
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
