@@ -50,7 +50,7 @@ const programSchema = z.object({
   preRecordedVideoUrl: z.string().url("Please enter a valid URL.").optional().or(z.literal('')),
 });
 
-type ProgramFormData = z.infer<typeof programSchema>;
+export type ProgramFormData = z.infer<typeof programSchema>;
 
 interface ProgramFormProps {
   initialData?: Program;
