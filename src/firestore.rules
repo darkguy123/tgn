@@ -1,0 +1,116 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- HELPER FUNCTIONS ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      // Hardcoded admin email + role-based admin
+      return (request.auth.token.email == 'valentinoboss18@gmail.com') || 
+             (
+               exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'country-manager'
+             );
+    }
+    
+    // --- USER-SPECIFIC RULES ---
+
+    // USERS collection and subcollections
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isOwner(userId) || isAdmin();
+      allow update: if (isOwner(userId) && !(request.resource.data.role != resource.data.role)) || isAdmin();
+
+      match /media/{mediaId} {
+        allow read: if true;
+        allow create, delete: if isOwner(userId) || isAdmin();
+        allow update: if false;
+      }
+
+      match /cards/{cardId} {
+        allow read, write, delete: if isOwner(userId) || isAdmin();
+      }
+    }
+    
+    // WALLETS collection
+    match /wallets/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    // PROGRAMS collection
+    match /programs/{programId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // CHATS
+    match /chats/{chatId} {
+      // A user can read or update a chat document if they are a member.
+      allow read, update: if isSignedIn() && request.auth.uid in resource.data.members;
+      
+      // A user can create a chat if they are including themselves in the members list
+      // and it's a 2-person chat. This happens on the first message.
+      allow create: if isSignedIn() 
+                    && request.auth.uid in request.resource.data.members
+                    && request.resource.data.members.size() == 2;
+
+      match /messages/{messageId} {
+        // Function to check if the requesting user is a member of the parent chat.
+        function isChatMember() {
+          return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+        }
+
+        // Messages can be read by members of the chat.
+        allow read: if isChatMember();
+
+        // Messages can only be created by the sender, who must also be a chat member.
+        allow create: if isChatMember() && request.resource.data.senderId == request.auth.uid;
+        
+        // Disallow message edits or deletes for data integrity.
+        allow update, delete: if false;
+      }
+    }
+    
+    // FRIEND REQUESTS
+    match /friend_requests/{friendRequestId} {
+      // A user can read a request if they are the sender or the recipient.
+      // This will allow queries constrained by senderId or recipientId.
+      allow read: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
+      
+      // A user can create a request if they are signed in and the senderId is their own UID.
+      allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
+      
+      // The recipient can update the status to accept/decline.
+      allow update: if isSignedIn() && resource.data.recipientId == request.auth.uid;
+
+      // The sender can cancel (delete) a pending request. The recipient can delete it after action.
+      allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
+    }
+
+    // MENTOR CERTIFICATIONS
+    match /mentor_certifications/{memberId} {
+      allow read: if isOwner(memberId) || isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // OTHER COLLECTIONS...
+    match /events/{eventId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isOwner(resource.data.sellerMemberId) || isAdmin();
+    }
+  }
+}

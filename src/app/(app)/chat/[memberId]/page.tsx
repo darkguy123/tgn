@@ -47,6 +47,11 @@ export default function ChatPage() {
   
   const [newMessage, setNewMessage] = useState('');
   
+  // Prevent users from navigating to a chat with themselves
+  if (currentUser && otherMemberId === currentUser.uid) {
+    notFound();
+  }
+
   // Create a stable chat ID
   const chatId = useMemo(() => {
     if (!currentUser?.uid || !otherMemberId) return null;
@@ -84,40 +89,44 @@ export default function ChatPage() {
 
   // Typing indicator logic
   useEffect(() => {
-    if (!chatDocRef || !currentUser || isChatLoading) return;
+    // Ensure all dependencies are ready and the chat document exists
+    if (!chatDocRef || !currentUser || !chatData) return;
     
-    // Clear previous timeout
+    // This is a crucial guard: ensure the user is a member of the chat before writing.
+    if (!chatData.members?.includes(currentUser.uid)) {
+        return;
+    }
+
+    // Clear previous timeout if it exists
     if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
+        clearTimeout(typingTimeoutRef.current);
     }
     
     const isTyping = newMessage.length > 0;
     
     const typingUpdate = { [`typing.${currentUser.uid}`]: isTyping };
 
-    // Update typing status. If the chat document doesn't exist, this will fail gracefully.
-    // The chat doc will be created on the first message.
-    if(chatData) {
+    // Immediately update status to 'typing' if user types.
+    if (isTyping) {
         updateDoc(chatDocRef, typingUpdate).catch((e) => {
-            console.warn("Could not update typing indicator:", e.message);
+            console.warn("Non-critical: Could not update typing indicator:", e.message);
         });
-    }
-
-    // If user stops typing, set status to false after a delay
-    if (!isTyping && chatData) {
+    } else {
+        // If user stops typing, wait 2 seconds before setting status to false.
         typingTimeoutRef.current = setTimeout(() => {
             updateDoc(chatDocRef, { [`typing.${currentUser.uid}`]: false }).catch((e) => {
-                 console.warn("Could not update typing indicator:", e.message);
+                console.warn("Non-critical: Could not clear typing indicator:", e.message);
             });
         }, 2000);
     }
     
+    // Cleanup on unmount
     return () => {
         if(typingTimeoutRef.current) {
             clearTimeout(typingTimeoutRef.current);
         }
     }
-  }, [newMessage, chatDocRef, currentUser, chatData, isChatLoading]);
+  }, [newMessage, chatDocRef, currentUser, chatData]);
   
   const otherUserIsTyping = chatData?.typing?.[otherMemberId] === true;
   const otherMemberName = otherMember?.name || (otherMember?.email ? otherMember.email.split('@')[0] : '') || 'User';
