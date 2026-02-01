@@ -337,7 +337,7 @@ function PostCard({ post }: { post: Post }) {
         {post.media && post.media.length > 0 && (
           <div className={`grid gap-2 grid-cols-${post.media.length > 1 ? 2 : 1} mb-4`}>
             {post.media.map(mediaItem => (
-                <div key={mediaItem.url} className="aspect-[4/3] w-full rounded-lg overflow-hidden bg-muted">
+                <div key={mediaItem.url} className="relative aspect-[4/3] w-full rounded-lg overflow-hidden bg-muted">
                   {mediaItem.type.startsWith('video/') ? (
                     <video src={mediaItem.url} controls className="object-cover w-full h-full bg-black" />
                   ) : (
