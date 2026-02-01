@@ -4,25 +4,27 @@ service firebase.storage {
   match /b/{bucket}/o {
     
     // --- Public Area ---
-    match /uploads/public/{allPaths=**} {
+    match /uploads/public/{userId}/{fileName} {
       // Anyone can read public files.
       allow read: if true;
 
-      // Users can write (create, update) if their UID matches the ownerId in the file metadata.
-      allow create, update: if request.auth.uid == request.resource.metadata.ownerId;
+      // Users can write (create) if their UID matches the userId in the path.
+      allow create: if request.auth != null && request.auth.uid == userId;
       
-      // Users can delete files if their UID matches the ownerId in the existing file's metadata.
-      allow delete: if request.auth.uid == resource.metadata.ownerId;
+      // Users can delete files if their UID matches the userId in the path.
+      allow delete: if request.auth != null && request.auth.uid == userId;
+
+      // Disallow updates to prevent overwriting.
+      allow update: if false;
     }
 
     // --- Private Area ---
-    match /uploads/private/{allPaths=**} {
-       // Users can read their own private files. `resource` refers to the existing file.
-       allow read: if request.auth.uid == resource.metadata.ownerId;
+    match /uploads/private/{userId}/{fileName} {
+       // Users can read their own private files.
+       allow read: if request.auth != null && request.auth.uid == userId;
 
        // Users can write (create, update, delete) to their own private files.
-       allow create, update: if request.auth.uid == request.resource.metadata.ownerId;
-       allow delete: if request.auth.uid == resource.metadata.ownerId;
+       allow write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }

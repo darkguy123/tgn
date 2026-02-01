@@ -2,9 +2,9 @@
 import { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { UploadCloud, Loader2, X, CropIcon } from 'lucide-react';
+import { getAuth } from 'firebase/auth';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
 import { Progress } from '@/components/ui/progress';
 import { Button } from './button';
 import Image from 'next/image';
@@ -120,12 +120,23 @@ export function FileUpload({
   const startUpload = (fileToUpload: File | Blob) => {
       const auth = getAuth();
       if (!auth.currentUser) {
-        toast({ variant: 'destructive', title: 'You must be logged in' });
+        toast({
+          variant: 'destructive',
+          title: 'You must be logged in to upload files',
+        });
         setError('You must be logged in to upload files.');
         return;
       }
+
       if (auth.currentUser.uid !== userId) {
-        toast({ variant: 'destructive', title: 'Invalid user session' });
+        console.error('UID mismatch:', {
+          authUid: auth.currentUser.uid,
+          propUserId: userId,
+        });
+        toast({
+          variant: 'destructive',
+          title: 'Session error. Please reload.',
+        });
         setError('User ID mismatch. Please refresh and try again.');
         return;
       }
@@ -171,7 +182,6 @@ export function FileUpload({
         'state_changed',
         (snapshot) => {
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          console.log('Upload is ' + progress + '% done');
           setUploadProgress(progress);
         },
         (uploadError) => {
@@ -183,10 +193,8 @@ export function FileUpload({
           toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload your file.' });
         },
         async () => {
-          console.log('Upload complete. Getting download URL...');
           try {
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            console.log('Got download URL:', downloadURL);
             
             const mediaCollectionRef = collection(firestore, 'users', userId, 'media');
             const mediaDocData = {
@@ -198,9 +206,7 @@ export function FileUpload({
               url: downloadURL,
               createdAt: serverTimestamp(),
             };
-            console.log('Adding document to Firestore media collection...');
             await addDoc(mediaCollectionRef, mediaDocData);
-            console.log('Firestore document added.');
 
             onUploadComplete(downloadURL, contentType);
             toast({ title: 'Upload Complete' });
@@ -209,7 +215,6 @@ export function FileUpload({
             setError(`Upload failed: ${finalError.message}`);
             toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not save file metadata.' });
           } finally {
-            console.log('Upload process finished (in finally block).');
             setIsUploading(false);
             setUploadProgress(null);
           }
