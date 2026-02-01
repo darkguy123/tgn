@@ -25,7 +25,6 @@ import {
   LayoutGrid,
   Network,
   Menu,
-  Briefcase,
   UploadCloud,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -70,19 +69,6 @@ const NAV_ITEMS = [
   { id: 'wallet', label: 'Wallet', icon: Wallet, path: '/wallet' },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/settings/profile' },
   { id: 'upload-test', label: 'Upload Test', icon: UploadCloud, path: '/upload-test' },
-];
-
-const ADMIN_NAV_ITEMS = [
-    { id: 'admin-dashboard', label: 'Admin Dashboard', icon: Shield, path: '/admin/dashboard' },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/admin/analytics' },
-    { id: 'users', label: 'Users', icon: Users, path: '/admin/users' },
-    { id: 'kyc', label: 'KYC', icon: Shield, path: '/admin/kyc' },
-    { id: 'sectors', label: 'Sectors', icon: Briefcase, path: '/admin/sectors' },
-    { id: 'programs', label: 'Programs', icon: GraduationCap, path: '/admin/programs' },
-    { id: 'events', label: 'Events', icon: Calendar, path: '/admin/events' },
-    { id: 'products', label: 'Products', icon: ShoppingBag, path: '/admin/products' },
-    { id: 'fundraise', label: 'Fundraise', icon: Heart, path: '/admin/causes' },
-    { id: 'ads', label: 'Ads', icon: Megaphone, path: '/admin/ads' },
 ];
 
 interface DashboardLayoutProps {
@@ -164,24 +150,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               {item.label}
             </Button>
           ))}
-          {isAdmin && (
-            <>
-                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Admin</div>
-                {ADMIN_NAV_ITEMS.map((item) => (
-                    <Button
-                    key={item.id}
-                    variant={pathname.startsWith(item.path) ? 'default' : 'ghost'}
-                    onClick={() => {
-                        router.push(item.path);
-                    }}
-                    className="w-full flex items-center justify-start gap-3 px-3 py-2.5"
-                    >
-                    <item.icon className="h-5 w-5" />
-                    {item.label}
-                    </Button>
-                ))}
-            </>
-          )}
         </nav>
       </aside>
 
@@ -218,24 +186,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                         {item.label}
                       </Button>
                     ))}
-                    {isAdmin && (
-                      <>
-                          <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Admin</div>
-                          {ADMIN_NAV_ITEMS.map((item) => (
-                              <Button
-                              key={item.id}
-                              variant={pathname.startsWith(item.path) ? 'default' : 'ghost'}
-                              onClick={() => {
-                                  router.push(item.path);
-                              }}
-                              className="w-full flex items-center justify-start gap-3 px-3 py-2.5"
-                              >
-                              <item.icon className="h-5 w-5" />
-                              {item.label}
-                              </Button>
-                          ))}
-                      </>
-                    )}
                   </nav>
                 </SheetContent>
               </Sheet>
