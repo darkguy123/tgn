@@ -16,6 +16,7 @@ export interface TGNMember {
     purpose?: string;
     identityProfile?: string;
     avatarUrl?: string;
+    bannerUrl?: string;
     isVerifiedMentor?: boolean;
     createdAt?: any;
     lastSeen?: any;

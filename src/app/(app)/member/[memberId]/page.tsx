@@ -99,7 +99,7 @@ export default function MemberProfilePage() {
   const role = member.role?.replace('-', ' ') || 'Member';
   const location = member.locationCountry || 'Location not set';
   const avatarFallback = name.charAt(0)?.toUpperCase() || "T";
-  const bannerUrl = getImageUrl('profile-banner-default'); // Using a default banner
+  const bannerUrl = member.bannerUrl || getImageUrl('profile-banner-default');
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">

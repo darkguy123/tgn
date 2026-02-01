@@ -45,6 +45,10 @@
         "profileImageUrl": {
           "type": "string",
           "description": "URL to the member's profile image."
+        },
+        "bannerUrl": {
+          "type": "string",
+          "description": "URL for the user's profile banner image."
         }
       },
       "required": [

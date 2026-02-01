@@ -34,6 +34,7 @@ const profileSettingsSchema = z.object({
   locationCountry: z.string().min(1, 'Country is required'),
   timezone: z.string().min(1, 'Timezone is required'),
   avatarUrl: z.string().optional(),
+  bannerUrl: z.string().optional(),
 });
 
 type ProfileSettingsFormData = z.infer<typeof profileSettingsSchema>;
@@ -88,6 +89,7 @@ const SettingsPage = () => {
   });
   
   const avatarUrl = watch('avatarUrl');
+  const bannerUrl = watch('bannerUrl');
   const watchedCountry = watch('locationCountry');
 
   useEffect(() => {
@@ -119,6 +121,7 @@ const SettingsPage = () => {
             phone: profile.phone || '',
             timezone: profile.timezone || '',
             avatarUrl: profile.avatarUrl || '',
+            bannerUrl: profile.bannerUrl || '',
         });
         if (profile.notificationPreferences) {
             setNotifications(profile.notificationPreferences);
@@ -296,24 +299,42 @@ const SettingsPage = () => {
         <TabsContent value="profile">
             <form onSubmit={handleSubmit(handleSaveProfile)}>
                 <div className="grid lg:grid-cols-3 gap-6">
-                    <Card>
-                    <CardHeader>
-                        <CardTitle>Profile Photo</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-col items-center gap-4">
-                        <div className="w-48 h-48 mx-auto">
-                            <FileUpload 
-                                value={avatarUrl}
-                                onUploadComplete={(url) => setValue('avatarUrl', url, { shouldDirty: true })}
-                                label="Upload Profile Photo"
-                                userId={user.uid}
-                                storagePath="public"
-                                crop={{ aspect: 1 }}
-                                className="w-full h-full"
-                            />
-                        </div>
-                    </CardContent>
-                    </Card>
+                    <div className="lg:col-span-1 space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Profile Photo</CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex flex-col items-center gap-4">
+                                <div className="w-48 h-48 mx-auto">
+                                    <FileUpload 
+                                        value={avatarUrl}
+                                        onUploadComplete={(url) => setValue('avatarUrl', url, { shouldDirty: true })}
+                                        label="Upload Profile Photo"
+                                        userId={user.uid}
+                                        storagePath="public"
+                                        crop={{ aspect: 1 }}
+                                        className="w-full h-full"
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Profile Banner</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <FileUpload
+                                    value={bannerUrl}
+                                    onUploadComplete={(url) => setValue('bannerUrl', url, { shouldDirty: true })}
+                                    label="Upload banner image"
+                                    userId={user.uid}
+                                    storagePath="public"
+                                    crop={{ aspect: 1200 / 300 }}
+                                    className="aspect-[16/9] w-full"
+                                />
+                            </CardContent>
+                        </Card>
+                    </div>
 
                     <Card className="lg:col-span-2">
                     <CardHeader>
