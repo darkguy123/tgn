@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, orderBy, runTransaction, doc, serverTimestamp, addDoc, setDoc } from 'firebase/firestore';
 import type { TGNMember, Transaction } from '@/lib/types';
+import { ToastAction } from '@/components/ui/toast';
 
 
 const WalletPage = () => {
@@ -33,6 +34,7 @@ const WalletPage = () => {
     const { toast } = useToast();
     const firestore = useFirestore();
     const searchParams = useSearchParams();
+    const router = useRouter();
 
     const usersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
     const { data: allMembers, isLoading: membersLoading } = useCollection<TGNMember>(usersRef);
@@ -432,7 +434,7 @@ const WalletPage = () => {
                                         {recipient && typeof recipient !== 'string' && (
                                             <div className="p-3 rounded-md border bg-muted/50 flex items-center gap-3">
                                                 <Avatar>
-                                                    <AvatarImage src={getImage(recipient.imageId)?.imageUrl} />
+                                                    <AvatarImage src={getImage(recipient.avatarUrl)?.imageUrl} />
                                                     <AvatarFallback>{recipient.name.charAt(0)}</AvatarFallback>
                                                 </Avatar>
                                                 <div>
@@ -448,7 +450,18 @@ const WalletPage = () => {
                                     </div>
                                     <DialogFooter>
                                         <Button type="button" variant="outline" onClick={resetSendFlow}>Cancel</Button>
-                                        <Button type="button" onClick={() => setSendStep(2)} disabled={!recipient || typeof recipient === 'string' || !amount}>Continue</Button>
+                                        <Button type="button" onClick={() => {
+                                            if (!profile?.hasTransactionPin) {
+                                                toast({
+                                                    variant: 'destructive',
+                                                    title: "Set a PIN First",
+                                                    description: "You need to set a transaction PIN in your settings before you can send money.",
+                                                    action: <ToastAction altText="Go to Settings" onClick={() => router.push('/settings/profile?tab=security')}>Go to Settings</ToastAction>,
+                                                });
+                                                return;
+                                            }
+                                            setSendStep(2)
+                                        }} disabled={!recipient || typeof recipient === 'string' || !amount}>Continue</Button>
                                     </DialogFooter>
                                     </>
                                 )}
@@ -464,7 +477,7 @@ const WalletPage = () => {
                                         <p className="text-sm text-muted-foreground text-center">to</p>
                                         <div className="p-3 rounded-md border flex items-center gap-3">
                                             <Avatar>
-                                                <AvatarImage src={getImage(recipient.imageId)?.imageUrl} />
+                                                <AvatarImage src={getImage(recipient.avatarUrl)?.imageUrl} />
                                                 <AvatarFallback>{recipient.name.charAt(0)}</AvatarFallback>
                                             </Avatar>
                                             <div>

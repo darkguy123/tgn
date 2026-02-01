@@ -4,14 +4,14 @@ import { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Bell, CreditCard, Save, Trash2, Plus, Star, MoreVertical, Loader2 } from "lucide-react";
+import { User, Bell, CreditCard, Save, Trash2, Plus, Star, MoreVertical, Loader2, Shield } from "lucide-react";
 import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, serverTimestamp, collection, addDoc, deleteDoc, runTransaction, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +25,7 @@ import type { SavedCard } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
+import { ToastAction } from '@/components/ui/toast';
 
 const profileSettingsSchema = z.object({
   name: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -49,12 +50,24 @@ const cardSchema = z.object({
 
 type CardFormData = z.infer<typeof cardSchema>;
 
+const pinSchema = z.object({
+  pin: z.string().length(4, "PIN must be 4 digits.").regex(/^\d{4}$/, "PIN must be 4 digits."),
+  confirmPin: z.string().length(4, "PIN must be 4 digits."),
+}).refine(data => data.pin === data.confirmPin, {
+  message: "PINs do not match.",
+  path: ["confirmPin"],
+});
+
+type PinFormData = z.infer<typeof pinSchema>;
+
 
 const SettingsPage = () => {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const { profile, isLoading } = useMemberProfile();
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'profile';
   
   // State for notifications
   const [notifications, setNotifications] = useState({
@@ -91,6 +104,15 @@ const SettingsPage = () => {
   const avatarUrl = watch('avatarUrl');
   const bannerUrl = watch('bannerUrl');
   const watchedCountry = watch('locationCountry');
+
+  const {
+    register: registerPin,
+    handleSubmit: handlePinSubmit,
+    formState: { errors: pinErrors, isSubmitting: isPinSubmitting },
+    reset: resetPinForm,
+  } = useForm<PinFormData>({
+    resolver: zodResolver(pinSchema),
+  });
 
   useEffect(() => {
     if (watchedCountry && countryToTimezone[watchedCountry]) {
@@ -268,6 +290,19 @@ const SettingsPage = () => {
     }
   };
 
+  const handleSetPin = async (data: PinFormData) => {
+    if (!user || !firestore) return;
+    const userDocRef = doc(firestore, 'users', user.uid);
+    try {
+      await updateDoc(userDocRef, { hasTransactionPin: true, updatedAt: serverTimestamp() });
+      toast({ title: "Transaction PIN Set!", description: "You can now send funds from your wallet." });
+      resetPinForm();
+    } catch (error: any) {
+      console.error("Failed to set PIN:", error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not set your PIN.' });
+    }
+  };
+
 
   if (isLoading || !profile || !user) {
     return (
@@ -289,11 +324,12 @@ const SettingsPage = () => {
         <p className="text-muted-foreground">Manage your account preferences.</p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
+      <Tabs defaultValue={defaultTab} className="space-y-6">
         <TabsList className="flex-wrap h-auto justify-start">
           <TabsTrigger value="profile"><User className="mr-2"/>Profile</TabsTrigger>
           <TabsTrigger value="notifications"><Bell className="mr-2"/>Notifications</TabsTrigger>
           <TabsTrigger value="billing"><CreditCard className="mr-2"/>Billing</TabsTrigger>
+          <TabsTrigger value="security"><Shield className="mr-2"/>Security</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
@@ -558,6 +594,40 @@ const SettingsPage = () => {
                     )}
                 </CardContent>
             </Card>
+        </TabsContent>
+
+        <TabsContent value="security">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5 text-primary" />Transaction PIN</CardTitle>
+              <CardDescription>Set up a 4-digit PIN to authorize wallet transactions like sending money.</CardDescription>
+            </CardHeader>
+            <form onSubmit={handlePinSubmit(handleSetPin)}>
+              <CardContent className="space-y-4 max-w-sm">
+                {profile?.hasTransactionPin ? (
+                  <p className="text-sm text-green-600 font-medium">You have already set a transaction PIN. You can update it below.</p>
+                ) : (
+                  <p className="text-sm text-yellow-600 font-medium">You have not set a transaction PIN yet.</p>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="pin">New 4-Digit PIN</Label>
+                  <Input id="pin" type="password" maxLength={4} {...registerPin("pin")} />
+                  {pinErrors.pin && <p className="text-sm text-destructive">{pinErrors.pin.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPin">Confirm New PIN</Label>
+                  <Input id="confirmPin" type="password" maxLength={4} {...registerPin("confirmPin")} />
+                  {pinErrors.confirmPin && <p className="text-sm text-destructive">{pinErrors.confirmPin.message}</p>}
+                </div>
+              </CardContent>
+              <CardFooter>
+                  <Button type="submit" variant="accent" disabled={isPinSubmitting}>
+                      {isPinSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="h-4 w-4 mr-2" />}
+                      {profile?.hasTransactionPin ? 'Update PIN' : 'Set PIN'}
+                  </Button>
+              </CardFooter>
+            </form>
+          </Card>
         </TabsContent>
       </Tabs>
     </>

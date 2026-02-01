@@ -18,6 +18,7 @@ export interface TGNMember {
     avatarUrl?: string;
     bannerUrl?: string;
     isVerifiedMentor?: boolean;
+    hasTransactionPin?: boolean;
     createdAt?: any;
     lastSeen?: any;
     connections?: string[];
