@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +17,7 @@ import { doc, updateDoc, serverTimestamp, collection, addDoc, deleteDoc, runTran
 import { useToast } from '@/hooks/use-toast';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { Skeleton } from '@/components/ui/skeleton';
-import { countries } from '@/lib/data';
+import { countries, timezones, countryToTimezone } from '@/lib/data';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileUpload } from '@/components/ui/file-upload';
@@ -37,13 +37,6 @@ const profileSettingsSchema = z.object({
 });
 
 type ProfileSettingsFormData = z.infer<typeof profileSettingsSchema>;
-
-const timezones = [
-    { value: 'Africa/Lagos', label: 'Africa/Lagos (GMT+1)' },
-    { value: 'America/New_York', label: 'America/New_York (GMT-5)' },
-    { value: 'Europe/London', label: 'Europe/London (GMT)' },
-    { value: 'Asia/Kolkata', label: 'Asia/Kolkata (GMT+5:30)' },
-];
 
 const cardSchema = z.object({
     cardNumber: z.string().min(16, "Invalid card number").max(16, "Invalid card number"),
@@ -95,6 +88,13 @@ const SettingsPage = () => {
   });
   
   const avatarUrl = watch('avatarUrl');
+  const watchedCountry = watch('locationCountry');
+
+  useEffect(() => {
+    if (watchedCountry && countryToTimezone[watchedCountry]) {
+      setValue('timezone', countryToTimezone[watchedCountry], { shouldDirty: true });
+    }
+  }, [watchedCountry, setValue]);
 
   const {
     register: registerCard,
@@ -353,7 +353,7 @@ const SettingsPage = () => {
                                 name="locationCountry"
                                 control={control}
                                 render={({ field }) => (
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value || ''}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select country" />
                                     </SelectTrigger>
@@ -371,7 +371,7 @@ const SettingsPage = () => {
                                 name="timezone"
                                 control={control}
                                 render={({ field }) => (
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value || ''}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select timezone" />
                                     </SelectTrigger>
