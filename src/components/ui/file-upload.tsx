@@ -266,7 +266,7 @@ export function FileUpload({
   // Preview for existing image
   if (value) {
     return (
-      <div className={cn("relative group aspect-video", className)}>
+      <div className={cn("relative group", className)}>
         {mediaType?.startsWith('video/') ? (
           <video key={value} controls className="rounded-md object-cover w-full h-full bg-black">
             <source src={value} type={mediaType} />
@@ -296,7 +296,7 @@ export function FileUpload({
   // Uploading state
   if (isUploading) {
     return (
-      <div className={cn("aspect-video w-full flex flex-col items-center justify-center border rounded-md p-4", className)}>
+      <div className={cn("w-full flex flex-col items-center justify-center border rounded-md p-4", className)}>
         <Loader2 className="h-10 w-10 text-primary animate-spin" />
         <p className="text-sm text-foreground font-semibold mt-4">Uploading...</p>
         <Progress value={uploadProgress} className="w-full max-w-xs mt-2" />
@@ -307,7 +307,7 @@ export function FileUpload({
   // Error state
   if (error) {
     return (
-      <div className={cn("aspect-video w-full flex flex-col items-center justify-center border border-destructive rounded-md p-4", className)}>
+      <div className={cn("w-full flex flex-col items-center justify-center border border-destructive rounded-md p-4", className)}>
         <p className="text-sm text-destructive text-center">{error}</p>
         <Button variant="link" size="sm" onClick={() => setError(null)}>Try Again</Button>
       </div>
@@ -320,7 +320,7 @@ export function FileUpload({
       <div
         {...getRootProps()}
         className={cn(
-          'border-2 border-dashed rounded-md aspect-video flex flex-col items-center justify-center text-center p-4 cursor-pointer hover:border-primary transition-colors',
+          'border-2 border-dashed rounded-md flex flex-col items-center justify-center text-center p-4 cursor-pointer hover:border-primary transition-colors',
           isDragActive && 'border-primary bg-primary/10',
           className,
         )}

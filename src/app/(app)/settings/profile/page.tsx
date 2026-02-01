@@ -33,6 +33,7 @@ const profileSettingsSchema = z.object({
   purpose: z.string().min(10, 'Bio must be at least 10 characters.'),
   locationCountry: z.string().min(1, 'Country is required'),
   timezone: z.string().min(1, 'Timezone is required'),
+  avatarUrl: z.string().optional(),
 });
 
 type ProfileSettingsFormData = z.infer<typeof profileSettingsSchema>;
@@ -61,8 +62,6 @@ const SettingsPage = () => {
   const { toast } = useToast();
   const { profile, isLoading } = useMemberProfile();
   
-  const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl || '');
-
   // State for notifications
   const [notifications, setNotifications] = useState({
     emailUpdates: true,
@@ -87,11 +86,15 @@ const SettingsPage = () => {
     register,
     handleSubmit,
     control,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
     reset,
   } = useForm<ProfileSettingsFormData>({
     resolver: zodResolver(profileSettingsSchema),
   });
+  
+  const avatarUrl = watch('avatarUrl');
 
   const {
     register: registerCard,
@@ -115,8 +118,8 @@ const SettingsPage = () => {
             locationCountry: profile.locationCountry || '',
             phone: profile.phone || '',
             timezone: profile.timezone || '',
+            avatarUrl: profile.avatarUrl || '',
         });
-        setAvatarUrl(profile.avatarUrl || '');
         if (profile.notificationPreferences) {
             setNotifications(profile.notificationPreferences);
         }
@@ -132,7 +135,6 @@ const SettingsPage = () => {
     const userDocRef = doc(firestore, 'users', user.uid);
     const dataToSave = {
       ...data,
-      avatarUrl: avatarUrl,
       updatedAt: serverTimestamp(),
     };
     
@@ -299,14 +301,17 @@ const SettingsPage = () => {
                         <CardTitle>Profile Photo</CardTitle>
                     </CardHeader>
                     <CardContent className="flex flex-col items-center gap-4">
-                        <FileUpload 
-                            value={avatarUrl}
-                            onUploadComplete={setAvatarUrl}
-                            label="Upload Profile Photo"
-                            userId={user.uid}
-                            storagePath="public"
-                            crop={{ aspect: 1 }}
-                        />
+                        <div className="w-48 h-48 mx-auto">
+                            <FileUpload 
+                                value={avatarUrl}
+                                onUploadComplete={(url) => setValue('avatarUrl', url, { shouldDirty: true })}
+                                label="Upload Profile Photo"
+                                userId={user.uid}
+                                storagePath="public"
+                                crop={{ aspect: 1 }}
+                                className="w-full h-full"
+                            />
+                        </div>
                     </CardContent>
                     </Card>
 
