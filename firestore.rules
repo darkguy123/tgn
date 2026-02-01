@@ -54,6 +54,12 @@ service cloud.firestore {
       }
     }
 
+    // MENTOR CERTIFICATIONS
+    match /mentor_certifications/{memberId} {
+      allow read: if isOwner(memberId);
+      allow write: if isAdmin();
+    }
+
     // PROGRAMS collection
     match /programs/{programId} {
       allow read: if isSignedIn();
