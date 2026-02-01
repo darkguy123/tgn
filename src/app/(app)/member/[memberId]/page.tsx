@@ -91,7 +91,7 @@ export default function MemberProfilePage() {
 
   // If after loading, no member is found, show the not-found page.
   if (!member) {
-    notFound();
+    return <p className="p-6">Debug: Member not found or access denied.</p>;
   }
 
   // --- Safe defaults for rendering ---

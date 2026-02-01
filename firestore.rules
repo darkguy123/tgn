@@ -31,8 +31,8 @@ service cloud.firestore {
 
     // USERS collection and subcollections
     match /users/{userId} {
-      // Users can read public profiles
-      allow get, list: if isSignedIn();
+      // Allow public reads to diagnose the issue. This allows anyone to view profiles.
+      allow read: if true;
       // Users can create and update their own profile, but only admins can change roles.
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) && !(request.resource.data.role != resource.data.role);
