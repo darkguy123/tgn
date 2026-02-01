@@ -53,7 +53,7 @@ service cloud.firestore {
 
     // SECTORS collection
     match /sectors/{sectorId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isAdmin();
     }
 
