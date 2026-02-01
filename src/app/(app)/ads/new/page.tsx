@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useFirestore, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase } from '@/firebase';
-import { addDoc, collection, serverTimestamp, doc } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, runTransaction } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { useWallet } from '@/hooks/useWallet';
@@ -113,29 +113,37 @@ export default function NewAdPage() {
       createdAt: serverTimestamp(),
       promotedProductId: productId || undefined,
     };
+    
+    const walletRef = doc(firestore, 'wallets', profile.id);
 
-    addDoc(adsCollection, dataToSave)
-      .then(() => {
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const walletDoc = await transaction.get(walletRef);
+            if (!walletDoc.exists() || walletDoc.data().balance < data.budget) {
+                throw new Error("Insufficient funds.");
+            }
+
+            const newBalance = walletDoc.data().balance - data.budget;
+            transaction.update(walletRef, { balance: newBalance });
+
+            const newAdRef = doc(adsCollection);
+            transaction.set(newAdRef, dataToSave);
+        });
+        
         toast({
           title: 'Campaign Submitted!',
           description: 'Your ad campaign has been submitted for admin approval.',
         });
         router.push('/ads');
-      })
-      .catch((error) => {
+
+    } catch (error: any) {
         console.error('Failed to create ad campaign:', error);
-        const permissionError = new FirestorePermissionError({
-          path: adsCollection.path,
-          operation: 'create',
-          requestResourceData: dataToSave,
-        });
-        errorEmitter.emit('permission-error', permissionError);
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: 'Failed to create the campaign. Please try again.',
+          description: error.message || 'Failed to create the campaign. Please try again.',
         });
-      });
+    }
   };
 
   return (

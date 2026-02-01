@@ -15,7 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, Clock, ClipboardCheck } from 'lucide-react';
+import { CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, updateDoc } from 'firebase/firestore';
@@ -33,7 +33,7 @@ export default function AdminProductsPage() {
   const { data: products, isLoading, error } = useCollection<Product>(productsRef);
   const { toast } = useToast();
 
-  const handleUpdateStatus = (productId: string, status: 'in_review' | 'approved' | 'rejected') => {
+  const handleUpdateStatus = (productId: string, status: 'approved' | 'rejected') => {
     if (!firestore) return;
     const productDocRef = doc(firestore, 'products', productId);
     
@@ -105,11 +105,6 @@ export default function AdminProductsPage() {
                     </TableCell>
                     <TableCell className="text-right">
                         {product.approvalStatus === 'pending' && (
-                            <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(product.id, 'in_review')}>
-                                <ClipboardCheck className="mr-2 h-4 w-4" /> Move to Review
-                            </Button>
-                        )}
-                        {product.approvalStatus === 'in_review' && (
                             <div className="flex gap-2 justify-end">
                                 <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(product.id, 'approved')}>
                                     <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Approve
@@ -135,7 +130,6 @@ export default function AdminProductsPage() {
   );
 
   const pendingProducts = products?.filter(c => c.approvalStatus === 'pending') ?? [];
-  const inReviewProducts = products?.filter(c => c.approvalStatus === 'in_review') ?? [];
   const approvedProducts = products?.filter(c => c.approvalStatus === 'approved') ?? [];
   const rejectedProducts = products?.filter(c => c.approvalStatus === 'rejected') ?? [];
 
@@ -158,9 +152,6 @@ export default function AdminProductsPage() {
                 <TabsTrigger value="pending">
                     <Clock className="mr-2 h-4 w-4" /> Pending ({pendingProducts.length})
                 </TabsTrigger>
-                <TabsTrigger value="in_review">
-                    <ClipboardCheck className="mr-2 h-4 w-4" /> In Review ({inReviewProducts.length})
-                </TabsTrigger>
                 <TabsTrigger value="approved">
                     <CheckCircle className="mr-2 h-4 w-4" /> Approved ({approvedProducts.length})
                 </TabsTrigger>
@@ -180,9 +171,6 @@ export default function AdminProductsPage() {
                 <>
                     <TabsContent value="pending" className="m-0">
                         {renderTable(pendingProducts)}
-                    </TabsContent>
-                    <TabsContent value="in_review" className="m-0">
-                        {renderTable(inReviewProducts)}
                     </TabsContent>
                     <TabsContent value="approved" className="m-0">
                         {renderTable(approvedProducts)}

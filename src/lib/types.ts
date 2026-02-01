@@ -1,6 +1,5 @@
 
 
-
 export interface TGNMember {
     id: string;
     tgnMemberId: string;
@@ -67,7 +66,7 @@ export interface Product {
     sellerName: string; 
     sellerAvatarUrl: string; 
 
-    approvalStatus: 'pending' | 'in_review' | 'approved' | 'rejected';
+    approvalStatus: 'pending' | 'approved' | 'rejected';
     createdAt: any; 
 }
 
@@ -235,7 +234,7 @@ export interface AdCampaign {
     creatorName: string;
     creatorAvatarUrl: string;
     name: string;
-    status: 'pending' | 'in_review' | 'active' | 'paused' | 'rejected';
+    status: 'pending' | 'active' | 'rejected';
     budget: number;
     amountSpent?: number;
     headline: string;

@@ -71,9 +71,8 @@ export default function MyProductsPage() {
   const filteredProducts = useMemo(() => {
     const live = products?.filter(p => p.approvalStatus === 'approved') ?? [];
     const pending = products?.filter(p => p.approvalStatus === 'pending') ?? [];
-    const inReview = products?.filter(p => p.approvalStatus === 'in_review') ?? [];
     const rejected = products?.filter(p => p.approvalStatus === 'rejected') ?? [];
-    return { live, pending, inReview, rejected };
+    return { live, pending, rejected };
   }, [products]);
 
   const renderProductList = (products: Product[]) => {
@@ -172,10 +171,9 @@ export default function MyProductsPage() {
       <Card>
         <Tabs defaultValue="live" className="w-full">
             <CardHeader>
-                <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+                <TabsList className="grid w-full grid-cols-2 md:grid-cols-3">
                     <TabsTrigger value="live">Live ({filteredProducts.live.length})</TabsTrigger>
                     <TabsTrigger value="pending">Pending ({filteredProducts.pending.length})</TabsTrigger>
-                    <TabsTrigger value="in_review">In Review ({filteredProducts.inReview.length})</TabsTrigger>
                     <TabsTrigger value="rejected">Rejected ({filteredProducts.rejected.length})</TabsTrigger>
                 </TabsList>
             </CardHeader>
@@ -193,9 +191,6 @@ export default function MyProductsPage() {
                         </TabsContent>
                         <TabsContent value="pending">
                             {renderProductList(filteredProducts.pending)}
-                        </TabsContent>
-                         <TabsContent value="in_review">
-                            {renderProductList(filteredProducts.inReview)}
                         </TabsContent>
                         <TabsContent value="rejected">
                             {renderProductList(filteredProducts.rejected)}

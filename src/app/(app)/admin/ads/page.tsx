@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, Clock, ExternalLink, ClipboardCheck } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, ExternalLink } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, updateDoc } from 'firebase/firestore';
@@ -34,7 +34,7 @@ export default function AdminAdsPage() {
   const { data: ads, isLoading, error } = useCollection<AdCampaign>(adsRef);
   const { toast } = useToast();
 
-  const handleUpdateStatus = (adId: string, status: 'in_review' | 'active' | 'rejected') => {
+  const handleUpdateStatus = (adId: string, status: 'active' | 'rejected') => {
     if (!firestore) return;
     const adDocRef = doc(firestore, 'ads', adId);
     
@@ -105,19 +105,14 @@ export default function AdminAdsPage() {
             </TableCell>
             <TableCell className="text-right">
                {ad.status === 'pending' && (
-                    <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(ad.id, 'in_review')}>
-                        <ClipboardCheck className="mr-2 h-4 w-4" /> Move to Review
-                    </Button>
-                )}
-                {ad.status === 'in_review' && (
-                    <div className="flex gap-2 justify-end">
-                    <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(ad.id, 'active')}>
-                        <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Approve
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => handleUpdateStatus(ad.id, 'rejected')}>
-                        <XCircle className="mr-2 h-4 w-4" /> Reject
-                    </Button>
-                    </div>
+                  <div className="flex gap-2 justify-end">
+                  <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(ad.id, 'active')}>
+                      <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Approve
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={() => handleUpdateStatus(ad.id, 'rejected')}>
+                      <XCircle className="mr-2 h-4 w-4" /> Reject
+                  </Button>
+                  </div>
                 )}
               <a href={ad.callToActionUrl} target="_blank" rel="noopener noreferrer" className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}>
                 <ExternalLink className="h-4 w-4" />
@@ -137,7 +132,6 @@ export default function AdminAdsPage() {
   );
 
   const pendingAds = ads?.filter(c => c.status === 'pending') ?? [];
-  const inReviewAds = ads?.filter(c => c.status === 'in_review') ?? [];
   const activeAds = ads?.filter(c => c.status === 'active') ?? [];
   const rejectedAds = ads?.filter(c => c.status === 'rejected') ?? [];
 
@@ -160,9 +154,6 @@ export default function AdminAdsPage() {
                 <TabsTrigger value="pending">
                   <Clock className="mr-2 h-4 w-4" /> Pending ({pendingAds.length})
                 </TabsTrigger>
-                <TabsTrigger value="in_review">
-                  <ClipboardCheck className="mr-2 h-4 w-4" /> In Review ({inReviewAds.length})
-                </TabsTrigger>
                 <TabsTrigger value="active">
                   <CheckCircle className="mr-2 h-4 w-4" /> Approved ({activeAds.length})
                 </TabsTrigger>
@@ -182,9 +173,6 @@ export default function AdminAdsPage() {
               <>
                 <TabsContent value="pending" className="m-0">
                   {renderTable(pendingAds)}
-                </TabsContent>
-                <TabsContent value="in_review" className="m-0">
-                  {renderTable(inReviewAds)}
                 </TabsContent>
                 <TabsContent value="active" className="m-0">
                   {renderTable(activeAds)}
