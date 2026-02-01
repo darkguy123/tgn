@@ -73,6 +73,7 @@ const NAV_ITEMS = [
 ];
 
 const ADMIN_NAV_ITEMS = [
+    { id: 'admin-dashboard', label: 'Admin Dashboard', icon: Shield, path: '/admin' },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/admin/analytics' },
     { id: 'users', label: 'Users', icon: Users, path: '/admin/users' },
     { id: 'kyc', label: 'KYC', icon: Shield, path: '/admin/kyc' },
@@ -290,6 +291,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                             <span>Profile Settings</span>
                         </Link>
                     </DropdownMenuItem>
+                    {isAdmin && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link href="/admin">
+                            <Shield className="mr-2 h-4 w-4" />
+                            <span>Admin Panel</span>
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout}>
                         <LogOut className="mr-2 h-4 w-4" />

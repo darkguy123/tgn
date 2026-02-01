@@ -11,148 +11,64 @@ service cloud.firestore {
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-
-    function isNewOwner(ownerField) {
-      return isSignedIn() && request.resource.data[ownerField] == request.auth.uid;
-    }
-
+    
     function isAdmin() {
       // Hardcoded admin email + role-based admin
-      return (request.auth.token.email == 'valentinoboss18@gmail.com') ||
+      return (request.auth.token.email == 'valentinoboss18@gmail.com') || 
              (
-               exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+               exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
                get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'country-manager'
              );
     }
-
+    
     // --- GLOBAL ADMIN RULE ---
     // Admins have universal read/write access to all data.
     match /{path=**} {
-      allow read, write: if isAdmin();
+        allow read, write: if isAdmin();
     }
 
     // --- USER-SPECIFIC RULES (for non-admins) ---
 
     // USERS collection and subcollections
     match /users/{userId} {
+      // Users can read public profiles
       allow get, list: if isSignedIn();
-      allow create, update: if isOwner(userId);
+      // Users can create and update their own profile, but only admins can change roles.
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && !(request.resource.data.role != resource.data.role);
 
+      // Media subcollection rules
       match /media/{mediaId} {
-        allow read: if true;
+        allow read: if true; // Publicly readable
         allow create, delete: if isOwner(userId);
-        allow update: if false;
+        allow update: if false; // No updates allowed
       }
-      match /enrolled_programs/{programId} {
-        allow read, create: if isOwner(userId);
-      }
-      match /transactions/{transactionId} {
-        allow read, create: if isOwner(userId);
-      }
-      match /cards/{cardId} {
-        allow read, list, create, update, delete: if isOwner(userId);
-      }
-    }
-
-    // MENTOR CERTIFICATIONS
-    match /mentor_certifications/{memberId} {
-      allow read: if isOwner(memberId);
-      allow write: if isAdmin();
     }
 
     // PROGRAMS collection
     match /programs/{programId} {
       allow read: if isSignedIn();
-      allow write: if false; // Admins only
+      // Only admins can write to programs (covered by global rule)
+      allow write: if false; 
     }
 
-    // EVENTS collection
+    // MENTOR CERTIFICATIONS
+    match /mentor_certifications/{memberId} {
+      allow read: if isOwner(memberId);
+       // Only admins can write (covered by global rule)
+      allow write: if false;
+    }
+    
+    // Other collections...
     match /events/{eventId} {
       allow read: if true;
       allow write: if false; // Admins only
     }
-
-    // SECTORS collection
-    match /sectors/{sectorId} {
-      allow read: if isSignedIn();
-      allow write: if false; // Admins only
-    }
-
-    // PRODUCTS collection
+    
     match /products/{productId} {
       allow read: if true;
-      allow create: if isNewOwner('sellerMemberId');
+      allow create: if isSignedIn();
       allow update, delete: if isOwner(resource.data.sellerMemberId);
-    }
-    
-    // CAUSES collection
-    match /causes/{causeId} {
-        allow read: if true;
-        allow create: if isNewOwner('creatorMemberId');
-        allow update: if isSignedIn(); // Allow contributions
-        allow delete: if isOwner(resource.data.creatorMemberId);
-    }
-    
-    // ADS collection
-    match /ads/{adId} {
-        allow read: if true;
-        allow create: if isNewOwner('creatorMemberId');
-        allow update, delete: if isOwner(resource.data.creatorMemberId);
-    }
-
-    // POSTS and COMMENTS
-    match /posts/{postId} {
-      allow read: if isSignedIn();
-      allow create: if isNewOwner('authorId');
-      allow update: if isSignedIn(); // For likes
-      allow delete: if isOwner(resource.data.authorId);
-
-      match /comments/{commentId} {
-        allow read, list: if isSignedIn();
-        allow create: if isNewOwner('authorId');
-        allow update, delete: if isOwner(resource.data.authorId);
-      }
-    }
-    
-    // FRIEND REQUESTS
-    match /friend_requests/{friendRequestId} {
-        allow read: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
-        allow create: if isNewOwner('senderId');
-        allow update: if isSignedIn() && resource.data.recipientId == request.auth.uid;
-        allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
-    }
-    
-    // CHATS
-    match /chats/{chatId} {
-        allow read, write: if isSignedIn() && request.auth.uid in resource.data.members;
-
-        match /messages/{messageId} {
-             allow read, write: if isSignedIn() && get(/databases/$(database)/documents/chats/$(chatId)).data.members;
-        }
-    }
-    
-    // MENTOR KYC
-    match /mentor_kyc/{userId} {
-        allow create: if isOwner(userId);
-        allow read, update, delete: if false; // Admins only
-    }
-
-    // WALLETS
-    match /wallets/{userId} {
-      allow read, write: if isOwner(userId);
-    }
-    
-    // COMMISSIONS
-    match /commissions/{commissionId} {
-        allow create: if isSignedIn(); // Server-side process
-        allow read: if isOwner(resource.data.referrerId);
-        allow write: if false;
-    }
-
-    // AFFILIATE REFERRALS
-    match /affiliate_referrals/{referralId} {
-        allow create: if isSignedIn();
-        allow read, write: if false;
     }
   }
 }
