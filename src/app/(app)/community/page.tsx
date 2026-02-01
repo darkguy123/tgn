@@ -535,8 +535,8 @@ export default function CommunityPage() {
               </Tabs>
             </main>
             {/* Right Ad Sidebar */}
-            <aside className="lg:col-span-1 space-y-6 hidden lg:block">
-                <AdPlacement size="350x350" />
+            <aside className="lg:col-span-1 space-y-6 hidden lg:block lg:sticky lg:top-24">
+                <AdPlacement size="skyscraper" />
             </aside>
         </div>
       </div>
