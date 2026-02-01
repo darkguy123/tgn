@@ -44,6 +44,11 @@ service cloud.firestore {
         allow update: if false; // No updates allowed
       }
     }
+    
+    // WALLETS collection
+    match /wallets/{userId} {
+      allow read, write: if isOwner(userId);
+    }
 
     // PROGRAMS collection
     match /programs/{programId} {
