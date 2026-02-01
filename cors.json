@@ -1,6 +1,7 @@
 [
   {
     "origin": [
+      "*",
       "https://app.transcendworld.com",
       "https://6000-firebase-studio-1768315810616.cluster-ikslh4rdsnbqsvu5nw3v4dqjj2.cloudworkstations.dev",
       "https://studio--studio-2980512836-4cbef.us-central1.hosted.app",
@@ -11,7 +12,8 @@
       "HEAD",
       "PUT",
       "POST",
-      "DELETE"
+      "DELETE",
+      "OPTIONS"
     ],
     "responseHeader": [
       "Content-Type",
