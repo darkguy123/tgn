@@ -6,61 +6,97 @@
       "type": "object",
       "description": "Represents a member of the Transcend Global Network Hub.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Member entity."
-        },
-        "tgnMemberId": {
-          "type": "string",
-          "description": "Unique TGN Member ID assigned during onboarding."
-        },
-        "location": {
-          "type": "string",
-          "description": "The member's location."
-        },
-        "sectorPreferences": {
-          "type": "array",
-          "description": "The member's sector preferences.",
-          "items": {
-            "type": "string"
+        "id": { "type": "string", "description": "Unique identifier for the Member entity (matches Firebase Auth UID)." },
+        "tgnMemberId": { "type": "string", "description": "Unique TGN Member ID assigned during onboarding." },
+        "name": { "type": "string", "description": "The member's full name." },
+        "signInType": { "type": "string", "description": "The authentication method used (e.g., 'password', 'google.com')." },
+        "email": { "type": "string", "description": "The member's email address.", "format": "email" },
+        "phone": { "type": "string", "description": "The member's phone number." },
+        "locationContinent": { "type": "string" },
+        "locationCountry": { "type": "string" },
+        "locationRegion": { "type": "string" },
+        "timezone": { "type": "string" },
+        "sectorPreferences": { "type": "array", "items": { "type": "string" } },
+        "role": { "type": "string", "enum": ["mentee", "mentor-candidate", "associate-mentor", "collaborator", "sponsor", "country-manager", "volunteer", "media"] },
+        "purpose": { "type": "string", "description": "The member's bio or statement of purpose." },
+        "identityProfile": { "type": "string", "description": "A JSON string containing member's goals and interests." },
+        "avatarUrl": { "type": "string", "description": "URL to the member's profile image." },
+        "bannerUrl": { "type": "string", "description": "URL for the user's profile banner image." },
+        "isVerifiedMentor": { "type": "boolean", "default": false },
+        "hasTransactionPin": { "type": "boolean", "default": false },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastSeen": { "type": "string", "format": "date-time" },
+        "connections": { "type": "array", "items": { "type": "string" } },
+        "subscription": {
+          "type": "object",
+          "properties": {
+            "planName": { "type": "string" },
+            "renewsAt": { "type": "string", "format": "date-time" }
           }
         },
-        "role": {
-          "type": "string",
-          "description": "The member's role (mentee, mentor, etc.)."
+        "notificationPreferences": {
+          "type": "object",
+          "properties": {
+            "emailUpdates": { "type": "boolean" },
+            "sessionReminders": { "type": "boolean" },
+            "communityActivity": { "type": "boolean" },
+            "marketingEmails": { "type": "boolean" },
+            "pushNotifications": { "type": "boolean" }
+          }
         },
-        "email": {
-          "type": "string",
-          "description": "The member's email address.",
-          "format": "email"
-        },
-        "firstName": {
-          "type": "string",
-          "description": "The member's first name."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "The member's last name."
-        },
-        "profileImageUrl": {
-          "type": "string",
-          "description": "URL to the member's profile image."
-        },
-        "bannerUrl": {
-          "type": "string",
-          "description": "URL for the user's profile banner image."
-        }
+        "language": { "type": "string" }
       },
-      "required": [
-        "id",
-        "tgnMemberId",
-        "location",
-        "sectorPreferences",
-        "role",
-        "email",
-        "firstName",
-        "lastName"
-      ]
+      "required": ["id", "tgnMemberId", "email", "role"]
+    },
+    "MentorKYC": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MentorKYC",
+      "type": "object",
+      "description": "Represents a Know Your Customer (KYC) submission for a mentor.",
+      "properties": {
+        "memberId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "nin": { "type": "string" },
+        "bvn": { "type": "string" },
+        "medicalLicenseNumber": { "type": "string" },
+        "certificateUrl": { "type": "string", "format": "uri" },
+        "degreeUrl": { "type": "string", "format": "uri" },
+        "avatarUrl": { "type": "string", "format": "uri" },
+        "faceScanFrontUrl": { "type": "string", "format": "uri" },
+        "faceScanLeftUrl": { "type": "string", "format": "uri" },
+        "faceScanRightUrl": { "type": "string", "format": "uri" },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "reviewedAt": { "type": "string", "format": "date-time" },
+        "rejectionReason": { "type": "string" }
+      },
+      "required": ["memberId", "status", "nin", "bvn", "certificateUrl", "degreeUrl", "avatarUrl", "submittedAt"]
+    },
+    "EnrolledProgram": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "EnrolledProgram",
+        "type": "object",
+        "description": "Tracks a member's enrollment and progress in a program.",
+        "properties": {
+            "programId": { "type": "string" },
+            "enrolledAt": { "type": "string", "format": "date-time" },
+            "progress": { "type": "number", "minimum": 0, "maximum": 100 }
+        },
+        "required": ["programId", "enrolledAt", "progress"]
+    },
+    "Transaction": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Transaction",
+        "type": "object",
+        "description": "Represents a single financial transaction in a user's wallet.",
+        "properties": {
+            "type": { "type": "string", "enum": ["commission", "withdrawal", "deposit", "purchase"] },
+            "status": { "type": "string", "enum": ["pending", "completed", "failed"] },
+            "amount": { "type": "number" },
+            "currency": { "type": "string" },
+            "description": { "type": "string" },
+            "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["type", "status", "amount", "currency", "description", "createdAt"]
     },
     "MentorCertification": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -68,44 +104,15 @@
       "type": "object",
       "description": "Represents the certification status of a mentor.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the MentorCertification entity."
-        },
-        "memberId": {
-          "type": "string",
-          "description": "Reference to Member. (Relationship: Member 1:1 MentorCertification)"
-        },
-        "programCompletion": {
-          "type": "boolean",
-          "description": "Indicates if the mentor has completed the certification program."
-        },
-        "platformActivityScore": {
-          "type": "number",
-          "description": "The mentor's platform activity score."
-        },
-        "evaluationScore": {
-          "type": "number",
-          "description": "The mentor's evaluation score."
-        },
-        "isVerifiedAssociate": {
-          "type": "boolean",
-          "description": "Indicates if the mentor is a verified associate."
-        },
-        "verificationDate": {
-          "type": "string",
-          "description": "The date the mentor was verified.",
-          "format": "date-time"
-        }
+        "id": { "type": "string", "description": "Unique identifier for the MentorCertification entity." },
+        "memberId": { "type": "string", "description": "Reference to Member. (Relationship: Member 1:1 MentorCertification)" },
+        "programCompletion": { "type": "boolean", "description": "Indicates if the mentor has completed the certification program." },
+        "platformActivityScore": { "type": "number", "description": "The mentor's platform activity score." },
+        "evaluationScore": { "type": "number", "description": "The mentor's evaluation score." },
+        "isVerifiedAssociate": { "type": "boolean", "description": "Indicates if the mentor is a verified associate." },
+        "verificationDate": { "type": "string", "description": "The date the mentor was verified.", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "memberId",
-        "programCompletion",
-        "platformActivityScore",
-        "evaluationScore",
-        "isVerifiedAssociate"
-      ]
+      "required": ["id", "memberId", "programCompletion", "platformActivityScore", "evaluationScore", "isVerifiedAssociate"]
     },
     "MenteeVerification": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -113,29 +120,12 @@
       "type": "object",
       "description": "Represents the verification status of a mentee.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the MenteeVerification entity."
-        },
-        "memberId": {
-          "type": "string",
-          "description": "Reference to Member. (Relationship: Member 1:1 MenteeVerification)"
-        },
-        "isVerified": {
-          "type": "boolean",
-          "description": "Indicates if the mentee is verified."
-        },
-        "verificationDate": {
-          "type": "string",
-          "description": "The date the mentee was verified.",
-          "format": "date-time"
-        }
+        "id": { "type": "string", "description": "Unique identifier for the MenteeVerification entity." },
+        "memberId": { "type": "string", "description": "Reference to Member. (Relationship: Member 1:1 MenteeVerification)" },
+        "isVerified": { "type": "boolean", "description": "Indicates if the mentee is verified." },
+        "verificationDate": { "type": "string", "description": "The date the mentee was verified.", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "memberId",
-        "isVerified"
-      ]
+      "required": ["id", "memberId", "isVerified"]
     },
     "AffiliateEarning": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -143,45 +133,15 @@
       "type": "object",
       "description": "Represents affiliate earnings for a member.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the AffiliateEarning entity."
-        },
-        "memberId": {
-          "type": "string",
-          "description": "Reference to Member. (Relationship: Member 1:N AffiliateEarning)"
-        },
-        "level": {
-          "type": "number",
-          "description": "The level of the referral (1-7)."
-        },
-        "amount": {
-          "type": "number",
-          "description": "The amount earned."
-        },
-        "earningDate": {
-          "type": "string",
-          "description": "The date the earning was made.",
-          "format": "date-time"
-        },
-        "sourceType": {
-          "type": "string",
-          "description": "The source of the earning (course, program, event, book)."
-        },
-        "sourceId": {
-          "type": "string",
-          "description": "Reference to the source entity (e.g., Course.id)."
-        }
+        "id": { "type": "string", "description": "Unique identifier for the AffiliateEarning entity." },
+        "memberId": { "type": "string", "description": "Reference to Member. (Relationship: Member 1:N AffiliateEarning)" },
+        "level": { "type": "number", "description": "The level of the referral (1-7)." },
+        "amount": { "type": "number", "description": "The amount earned." },
+        "earningDate": { "type": "string", "description": "The date the earning was made.", "format": "date-time" },
+        "sourceType": { "type": "string", "description": "The source of the earning (course, program, event, book)." },
+        "sourceId": { "type": "string", "description": "Reference to the source entity (e.g., Course.id)." }
       },
-      "required": [
-        "id",
-        "memberId",
-        "level",
-        "amount",
-        "earningDate",
-        "sourceType",
-        "sourceId"
-      ]
+      "required": ["id", "memberId", "level", "amount", "earningDate", "sourceType", "sourceId"]
     },
     "Product": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -189,52 +149,17 @@
       "type": "object",
       "description": "Represents a product sold in the e-commerce marketplace.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Product entity."
-        },
-        "sellerId": {
-          "type": "string",
-          "description": "Reference to Member (seller). (Relationship: Member 1:N Product)"
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the product."
-        },
-        "description": {
-          "type": "string",
-          "description": "The description of the product."
-        },
-        "price": {
-          "type": "number",
-          "description": "The price of the product."
-        },
-        "approvalStatus": {
-          "type": "string",
-          "description": "The approval status of the product (pending, approved, rejected)."
-        },
-        "packageBenefits": {
-          "type": "string",
-          "description": "Configurable package benefits for the product."
-        },
-        "imageUrl": {
-          "type": "string",
-          "description": "URL to the product image."
-        },
-        "productType": {
-          "type": "string",
-          "description": "The type of the product."
-        }
+        "id": { "type": "string", "description": "Unique identifier for the Product entity." },
+        "sellerId": { "type": "string", "description": "Reference to Member (seller). (Relationship: Member 1:N Product)" },
+        "name": { "type": "string", "description": "The name of the product." },
+        "description": { "type": "string", "description": "The description of the product." },
+        "price": { "type": "number", "description": "The price of the product." },
+        "approvalStatus": { "type": "string", "description": "The approval status of the product (pending, approved, rejected)." },
+        "packageBenefits": { "type": "string", "description": "Configurable package benefits for the product." },
+        "imageUrl": { "type": "string", "description": "URL to the product image." },
+        "productType": { "type": "string", "description": "The type of the product." }
       },
-      "required": [
-        "id",
-        "sellerId",
-        "name",
-        "description",
-        "price",
-        "approvalStatus",
-        "packageBenefits"
-      ]
+      "required": ["id", "sellerId", "name", "description", "price", "approvalStatus", "packageBenefits"]
     },
     "Match": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -242,50 +167,16 @@
       "type": "object",
       "description": "Represents a match between two members.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Match entity."
-        },
-        "memberId1": {
-          "type": "string",
-          "description": "Reference to the first Member in the match. (Relationship: Member 1:N Match)"
-        },
-        "memberId2": {
-          "type": "string",
-          "description": "Reference to the second Member in the match. (Relationship: Member 1:N Match)"
-        },
-        "matchType": {
-          "type": "string",
-          "description": "The type of match (mentor, program, sector, community, event)."
-        },
-        "matchId": {
-          "type": "string",
-          "description": "Reference to the matched entity (e.g., Mentor.id, Program.id)."
-        },
-        "matchReason": {
-          "type": "string",
-          "description": "Explanation for the match."
-        },
-        "matchScore": {
-          "type": "number",
-          "description": "The score for the match."
-        },
-        "matchDate": {
-          "type": "string",
-          "description": "The date of the match.",
-          "format": "date-time"
-        }
+        "id": { "type": "string", "description": "Unique identifier for the Match entity." },
+        "memberId1": { "type": "string", "description": "Reference to the first Member in the match. (Relationship: Member 1:N Match)" },
+        "memberId2": { "type": "string", "description": "Reference to the second Member in the match. (Relationship: Member 1:N Match)" },
+        "matchType": { "type": "string", "description": "The type of match (mentor, program, sector, community, event)." },
+        "matchId": { "type": "string", "description": "Reference to the matched entity (e.g., Mentor.id, Program.id)." },
+        "matchReason": { "type": "string", "description": "Explanation for the match." },
+        "matchScore": { "type": "number", "description": "The score for the match." },
+        "matchDate": { "type": "string", "description": "The date of the match.", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "memberId1",
-        "memberId2",
-        "matchType",
-        "matchId",
-        "matchReason",
-        "matchScore",
-        "matchDate"
-      ]
+      "required": ["id", "memberId1", "memberId2", "matchType", "matchId", "matchReason", "matchScore", "matchDate"]
     },
     "Event": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -293,41 +184,14 @@
       "type": "object",
       "description": "Represents an event.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Event entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the event."
-        },
-        "description": {
-          "type": "string",
-          "description": "The description of the event."
-        },
-        "location": {
-          "type": "string",
-          "description": "The location of the event."
-        },
-        "startTime": {
-          "type": "string",
-          "description": "The start time of the event.",
-          "format": "date-time"
-        },
-        "endTime": {
-          "type": "string",
-          "description": "The end time of the event.",
-          "format": "date-time"
-        }
+        "id": { "type": "string", "description": "Unique identifier for the Event entity." },
+        "name": { "type": "string", "description": "The name of the event." },
+        "description": { "type": "string", "description": "The description of the event." },
+        "location": { "type": "string", "description": "The location of the event." },
+        "startTime": { "type": "string", "description": "The start time of the event.", "format": "date-time" },
+        "endTime": { "type": "string", "description": "The end time of the event.", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "name",
-        "description",
-        "location",
-        "startTime",
-        "endTime"
-      ]
+      "required": ["id", "name", "description", "location", "startTime", "endTime"]
     },
     "AdCampaign": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -362,9 +226,7 @@
       "type": "object",
       "description": "Represents a user's wallet.",
       "properties": {
-        "balance": {
-          "type": "number"
-        }
+        "balance": { "type": "number" }
       },
       "required": ["balance"]
     },
@@ -386,32 +248,12 @@
       "type": "object",
       "description": "Represents a connection request between two members.",
       "properties": {
-        "senderId": {
-          "type": "string",
-          "description": "The UID of the member sending the request."
-        },
-        "recipientId": {
-          "type": "string",
-          "description": "The UID of the member receiving the request."
-        },
-        "status": {
-          "type": "string",
-          "enum": [
-            "pending",
-            "accepted",
-            "declined"
-          ]
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        }
+        "senderId": { "type": "string", "description": "The UID of the member sending the request." },
+        "recipientId": { "type": "string", "description": "The UID of the member receiving the request." },
+        "status": { "type": "string", "enum": ["pending", "accepted", "declined"] },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "senderId",
-        "recipientId",
-        "status"
-      ]
+      "required": ["senderId", "recipientId", "status"]
     },
     "Post": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -427,13 +269,7 @@
         "content": { "type": "string" },
         "media": {
           "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "url": { "type": "string" },
-              "type": { "type": "string" }
-            }
-          }
+          "items": { "type": "object", "properties": { "url": { "type": "string" }, "type": { "type": "string" } } }
         },
         "likes": { "type": "number" },
         "commentsCount": { "type": "number" },
@@ -493,284 +329,85 @@
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "anonymous"]
   },
   "firestore": {
     "structure": [
       {
         "path": "/users/{userId}",
-        "definition": {
-          "entityName": "Member",
-          "schema": {
-            "$ref": "#/backend/entities/Member"
-          },
-          "description": "Stores user profiles. The document ID is the user's UID.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user (UID)."
-            }
-          ]
-        }
+        "definition": { "entityName": "Member", "schema": { "$ref": "#/backend/entities/Member" }, "description": "Stores user profiles. The document ID is the user's UID." }
+      },
+      {
+        "path": "/users/{userId}/enrolled_programs/{programId}",
+        "definition": { "entityName": "EnrolledProgram", "schema": { "$ref": "#/backend/entities/EnrolledProgram" }, "description": "Tracks a member's enrollment in a program." }
+      },
+      {
+        "path": "/users/{userId}/transactions/{transactionId}",
+        "definition": { "entityName": "Transaction", "schema": { "$ref": "#/backend/entities/Transaction" }, "description": "A log of a user's wallet transactions." }
+      },
+      {
+        "path": "/mentor_kyc/{memberId}",
+        "definition": { "entityName": "MentorKYC", "schema": { "$ref": "#/backend/entities/MentorKYC" }, "description": "Stores mentor KYC submissions. Document ID is the member's UID." }
       },
       {
         "path": "/mentor_certifications/{memberId}",
-        "definition": {
-          "entityName": "MentorCertification",
-          "schema": {
-            "$ref": "#/backend/entities/MentorCertification"
-          },
-          "description": "Stores mentor certifications for each user. The document ID is the user's UID.",
-          "params": [
-            {
-              "name": "memberId",
-              "description": "The unique identifier of the member."
-            }
-          ]
-        }
+        "definition": { "entityName": "MentorCertification", "schema": { "$ref": "#/backend/entities/MentorCertification" }, "description": "Stores mentor certifications for each user. The document ID is the user's UID." }
       },
       {
         "path": "/users/{userId}/menteeVerifications/{menteeVerificationId}",
-        "definition": {
-          "entityName": "MenteeVerification",
-          "schema": {
-            "$ref": "#/backend/entities/MenteeVerification"
-          },
-          "description": "Stores mentee verifications for each user. Path-based ownership.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "menteeVerificationId",
-              "description": "The unique identifier of the mentee verification."
-            }
-          ]
-        }
+        "definition": { "entityName": "MenteeVerification", "schema": { "$ref": "#/backend/entities/MenteeVerification" }, "description": "Stores mentee verifications for each user. Path-based ownership." }
       },
       {
         "path": "/users/{userId}/affiliateEarnings/{affiliateEarningId}",
-        "definition": {
-          "entityName": "AffiliateEarning",
-          "schema": {
-            "$ref": "#/backend/entities/AffiliateEarning"
-          },
-          "description": "Stores affiliate earnings for each user. Path-based ownership.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "affiliateEarningId",
-              "description": "The unique identifier of the affiliate earning."
-            }
-          ]
-        }
+        "definition": { "entityName": "AffiliateEarning", "schema": { "$ref": "#/backend/entities/AffiliateEarning" }, "description": "Stores affiliate earnings for each user. Path-based ownership." }
       },
        {
         "path": "/users/{userId}/cards/{cardId}",
-        "definition": {
-          "entityName": "SavedCard",
-          "schema": {
-            "$ref": "#/backend/entities/SavedCard"
-          },
-          "description": "Stores saved payment cards for a user. Path-based ownership.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "cardId",
-              "description": "The unique identifier of the card."
-            }
-          ]
-        }
+        "definition": { "entityName": "SavedCard", "schema": { "$ref": "#/backend/entities/SavedCard" }, "description": "Stores saved payment cards for a user. Path-based ownership." }
       },
       {
         "path": "/products/{productId}",
-        "definition": {
-          "entityName": "Product",
-          "schema": {
-            "$ref": "#/backend/entities/Product"
-          },
-          "description": "Stores product information. The `sellerId` field is used for access control.",
-          "params": [
-            {
-              "name": "productId",
-              "description": "The unique identifier of the product."
-            }
-          ]
-        }
+        "definition": { "entityName": "Product", "schema": { "$ref": "#/backend/entities/Product" }, "description": "Stores product information. The `sellerId` field is used for access control." }
       },
       {
         "path": "/matches/{matchId}",
-        "definition": {
-          "entityName": "Match",
-          "schema": {
-            "$ref": "#/backend/entities/Match"
-          },
-          "description": "Stores matches between members.",
-          "params": [
-            {
-              "name": "matchId",
-              "description": "The unique identifier of the match."
-            }
-          ]
-        }
+        "definition": { "entityName": "Match", "schema": { "$ref": "#/backend/entities/Match" }, "description": "Stores matches between members." }
       },
       {
         "path": "/friend_requests/{friendRequestId}",
-        "definition": {
-          "entityName": "FriendRequest",
-          "schema": {
-            "$ref": "#/backend/entities/FriendRequest"
-          },
-          "description": "Stores connection requests between members.",
-          "params": [
-            {
-              "name": "friendRequestId",
-              "description": "The unique identifier of the friend request."
-            }
-          ]
-        }
+        "definition": { "entityName": "FriendRequest", "schema": { "$ref": "#/backend/entities/FriendRequest" }, "description": "Stores connection requests between members." }
       },
       {
         "path": "/events/{eventId}",
-        "definition": {
-          "entityName": "Event",
-          "schema": {
-            "$ref": "#/backend/entities/Event"
-          },
-          "description": "Stores event information.",
-          "params": [
-            {
-              "name": "eventId",
-              "description": "The unique identifier of the event."
-            }
-          ]
-        }
+        "definition": { "entityName": "Event", "schema": { "$ref": "#/backend/entities/Event" }, "description": "Stores event information." }
       },
       {
         "path": "/programs/{programId}",
-        "definition": {
-          "entityName": "Program",
-          "schema": {
-            "$ref": "#/backend/entities/Program"
-          },
-          "description": "Stores learning programs. Publicly readable but should only be writable by admins.",
-          "params": [
-            {
-              "name": "programId",
-              "description": "The unique identifier of the program."
-            }
-          ]
-        }
+        "definition": { "entityName": "Program", "schema": { "$ref": "#/backend/entities/Program" }, "description": "Stores learning programs. Publicly readable but should only be writable by admins." }
       },
       {
         "path": "/sectors/{sectorId}",
-        "definition": {
-          "entityName": "Sector",
-          "schema": {
-            "$ref": "#/backend/entities/Sector"
-          },
-          "description": "Stores mentorship and program sectors. Writable by admins.",
-          "params": [
-            {
-              "name": "sectorId",
-              "description": "The unique identifier of the sector."
-            }
-          ]
-        }
+        "definition": { "entityName": "Sector", "schema": { "$ref": "#/backend/entities/Sector" }, "description": "Stores mentorship and program sectors. Writable by admins." }
       },
       {
         "path": "/ads/{adId}",
-        "definition": {
-          "entityName": "AdCampaign",
-          "schema": {
-            "$ref": "#/backend/entities/AdCampaign"
-          },
-          "description": "Stores ad campaigns created by members.",
-          "params": [
-            {
-              "name": "adId",
-              "description": "The unique identifier of the ad campaign."
-            }
-          ]
-        }
+        "definition": { "entityName": "AdCampaign", "schema": { "$ref": "#/backend/entities/AdCampaign" }, "description": "Stores ad campaigns created by members." }
       },
       {
         "path": "/causes/{causeId}",
-        "definition": {
-          "entityName": "Cause",
-          "schema": {
-            "$ref": "#/backend/entities/Cause"
-          },
-          "description": "Stores fundraising causes.",
-          "params": [
-            {
-              "name": "causeId",
-              "description": "The unique identifier of the cause."
-            }
-          ]
-        }
+        "definition": { "entityName": "Cause", "schema": { "$ref": "#/backend/entities/Cause" }, "description": "Stores fundraising causes." }
       },
       {
         "path": "/wallets/{userId}",
-        "definition": {
-          "entityName": "Wallet",
-          "schema": {
-            "$ref": "#/backend/entities/Wallet"
-          },
-          "description": "Stores user wallet information.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            }
-          ]
-        }
+        "definition": { "entityName": "Wallet", "schema": { "$ref": "#/backend/entities/Wallet" }, "description": "Stores user wallet information." }
       },
       {
         "path": "/posts/{postId}",
-        "definition": {
-          "entityName": "Post",
-          "schema": {
-            "$ref": "#/backend/entities/Post"
-          },
-          "description": "Stores community feed posts.",
-          "params": [
-            {
-              "name": "postId",
-              "description": "The unique identifier of the post."
-            }
-          ]
-        }
+        "definition": { "entityName": "Post", "schema": { "$ref": "#/backend/entities/Post" }, "description": "Stores community feed posts." }
       },
       {
         "path": "/posts/{postId}/comments/{commentId}",
-        "definition": {
-          "entityName": "Comment",
-          "schema": {
-            "$ref": "#/backend/entities/Comment"
-          },
-          "description": "Stores comments for a specific post.",
-          "params": [
-            {
-              "name": "postId",
-              "description": "The unique identifier of the post."
-            },
-            {
-              "name": "commentId",
-              "description": "The unique identifier of the comment."
-            }
-          ]
-        }
+        "definition": { "entityName": "Comment", "schema": { "$ref": "#/backend/entities/Comment" }, "description": "Stores comments for a specific post." }
       }
     ],
     "reasoning": "This Firestore structure is designed to support the Transcend Global Network Hub application, focusing on secure and scalable data access based on the core design principles outlined. The design emphasizes Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), QAPs (Rules are not Filters) and Invariants.\n\n**Authorization Independence:**\n\n*   The design avoids hierarchical authorization dependencies (`get()`). Access control relies primarily on the user's `uid` and roles stored directly within the documents or in dedicated role collections, enabling atomic operations.\n\n**Structural Segregation:**\n\n*   Different data types with different access requirements are stored in separate collections. Private user data is kept under `/users/{userId}`, while more public or collaborative data (e.g., events, products) reside in top-level collections with membership maps for access control.\n\n**Access Modeling:**\n\n*   **Private Data:** User-specific data (e.g., mentee verification, mentor certification, affiliate earnings) is stored under `/users/{userId}` for path-based ownership.\n*   **Collaborative Data (Products):** Products use the `products` collection, with the `sellerId` field for identifying the seller. Although seemingly violating authorization independence, this is acceptable as ownership is directly on the document. Read access can be public, but writes must be restricted to the seller.\n*   **Global Roles (DBAC):** The design doesn't explicitly use global roles stored in collections like `/roles_admin/{uid}` in this iteration, but this can be added if needed for administrative functions. The current structure relies on user-specific data and collaborative data.\n\n**QAPs (Rules are not Filters):**\n\n*   The structure supports secure list operations by segregating data with different access requirements into different collections. For example, only authenticated users can list members via `/members` (requiring proper security rules for filtering based on some public attribute), while private member details are protected under `/users/{userId}`.\n\n*Denormalization Strategy:*\nAccess control is made independent by denormalizing access related data. In the /products collection, the `sellerId` property holds the uid of the document's owner. This allows security rules to make access decisions based solely on the contents of the document, without needing to perform costly and brittle `get()` calls to parent or related documents."
