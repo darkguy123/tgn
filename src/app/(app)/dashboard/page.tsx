@@ -1,8 +1,7 @@
 'use client';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AdminDashboard, MenteeDashboard, MentorDashboard, PartnerDashboard } from '@/components/dashboards';
-import { isUserAdmin } from '@/lib/auth-utils';
+import { MenteeDashboard, MentorDashboard, PartnerDashboard } from '@/components/dashboards';
 
 const Dashboard = () => {
   const { profile, isLoading: isProfileLoading } = useMemberProfile();
@@ -33,12 +32,7 @@ const Dashboard = () => {
     );
   }
   
-  const userIsAdmin = isUserAdmin(profile);
-
   const renderDashboardByRole = () => {
-    if (userIsAdmin) {
-        return <AdminDashboard />;
-    }
     switch (profile.role) {
       case 'mentee':
         return <MenteeDashboard />;
@@ -49,6 +43,7 @@ const Dashboard = () => {
       case 'sponsor':
       case 'volunteer':
       case 'media':
+      case 'country-manager':
         return <PartnerDashboard />;
       default:
         return <MenteeDashboard />; // Default to mentee dashboard

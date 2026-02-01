@@ -73,7 +73,7 @@ const NAV_ITEMS = [
 ];
 
 const ADMIN_NAV_ITEMS = [
-    { id: 'admin-dashboard', label: 'Admin Dashboard', icon: Shield, path: '/admin' },
+    { id: 'admin-dashboard', label: 'Admin Dashboard', icon: Shield, path: '/admin/dashboard' },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/admin/analytics' },
     { id: 'users', label: 'Users', icon: Users, path: '/admin/users' },
     { id: 'kyc', label: 'KYC', icon: Shield, path: '/admin/kyc' },
@@ -295,7 +295,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                          <Link href="/admin">
+                          <Link href="/admin/dashboard">
                             <Shield className="mr-2 h-4 w-4" />
                             <span>Admin Panel</span>
                           </Link>
