@@ -38,33 +38,6 @@ const ProgramsPage = () => {
   const { wallet, isLoading: isWalletLoading } = useWallet();
   const { toast } = useToast();
   
-  const [referrer, setReferrer] = useState<AffiliateReferral | null>(null);
-  const [isFindingReferrer, setIsFindingReferrer] = useState(true);
-
-  // Effect to find the referrer for the current user
-  useEffect(() => {
-    if (!user || !firestore) {
-      setIsFindingReferrer(false);
-      return;
-    }
-    const findReferrer = async () => {
-      const referralsRef = collection(firestore, 'affiliate_referrals');
-      const q = query(referralsRef, where('referredMemberId', '==', user.uid), where('level', '==', 1));
-      try {
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          const referrerDoc = querySnapshot.docs[0];
-          setReferrer({ id: referrerDoc.id, ...referrerDoc.data() } as AffiliateReferral);
-        }
-      } catch (error) {
-        console.error("Error finding referrer:", error);
-      } finally {
-        setIsFindingReferrer(false);
-      }
-    };
-    findReferrer();
-  }, [user, firestore]);
-
   const programsCollectionRef = useMemoFirebase(() => query(collection(firestore, 'programs'), where('deactivatedAt', '==', null)), [firestore]);
   const { data: allPrograms, isLoading, error } = useCollection<Program>(programsCollectionRef);
 
@@ -102,6 +75,13 @@ const ProgramsPage = () => {
     setIsSubmitting(true);
 
     try {
+        // 1. Find all referrers for the current user
+        const referralsRef = collection(firestore, 'affiliate_referrals');
+        const q = query(referralsRef, where('referredMemberId', '==', user.uid));
+        const referralsSnapshot = await getDocs(q);
+        const upline = referralsSnapshot.docs.map(doc => doc.data() as AffiliateReferral);
+
+        // 2. Perform atomic transaction
         await runTransaction(firestore, async (transaction) => {
             const programRef = doc(firestore, "programs", selectedProgram.id);
             const enrollmentRef = doc(firestore, "users", user.uid, "enrolled_programs", selectedProgram.id);
@@ -121,30 +101,28 @@ const ProgramsPage = () => {
             // Increment enrolled count on program
             transaction.update(programRef, { enrolled: increment(1) });
 
-            // Handle payment if it's a paid program
+            // Handle payment and commissions if it's a paid program
             if (price > 0 && wallet) {
                 const buyerWalletRef = doc(firestore, "wallets", user.uid);
-                const referrerWalletRef = referrer ? doc(firestore, 'wallets', referrer.referrerMemberId) : null;
                 
                 // Debit Buyer
                 const newBalance = wallet.balance - price;
                 transaction.update(buyerWalletRef, { balance: newBalance });
 
-                // Credit Referrer
-                if (referrer && referrerWalletRef) {
-                    const commissionRate = 0.05;
-                    const commissionAmount = price * commissionRate;
-
-                    const referrerWalletDoc = await transaction.get(referrerWalletRef);
-                    const referrerBalance = referrerWalletDoc.exists() ? referrerWalletDoc.data().balance : 0;
-                    const newReferrerBalance = referrerBalance + commissionAmount;
+                // Distribute Commissions
+                for (const referral of upline) {
+                    const commissionAmount = price * (referral.commissionPercentage / 100);
+                    const referrerWalletRef = doc(firestore, 'wallets', referral.referrerMemberId);
                     
-                    transaction.set(referrerWalletRef, { balance: newReferrerBalance, memberId: referrer.referrerMemberId, currency: 'USD' }, { merge: true });
+                    const referrerWalletDoc = await transaction.get(referrerWalletRef);
+                    const currentBalance = referrerWalletDoc.exists() ? referrerWalletDoc.data().balance : 0;
+                    const newReferrerBalance = currentBalance + commissionAmount;
+                    transaction.set(referrerWalletRef, { balance: newReferrerBalance, memberId: referral.referrerMemberId, currency: 'USD' }, { merge: true });
                 }
             }
         });
 
-        // Log transactions after atomic update
+        // 3. Log transactions and commissions after atomic update
         if (price > 0) {
             const buyerTransactionsRef = collection(firestore, "users", user.uid, "transactions");
             await addDoc(buyerTransactionsRef, {
@@ -156,18 +134,18 @@ const ProgramsPage = () => {
                 createdAt: serverTimestamp(),
             });
 
-            if (referrer) {
-                const commissionRate = 0.05;
-                const commissionAmount = price * commissionRate;
-                const commissionsRef = collection(firestore, 'commissions');
+            const commissionsRef = collection(firestore, 'commissions');
+            for (const referral of upline) {
+                const commissionAmount = price * (referral.commissionPercentage / 100);
                 await addDoc(commissionsRef, {
-                    referrerId: referrer.referrerMemberId,
+                    referrerId: referral.referrerMemberId,
                     buyerId: user.uid,
                     programId: selectedProgram.id,
                     saleAmount: price,
                     commissionAmount: commissionAmount,
+                    level: referral.level,
                     createdAt: serverTimestamp(),
-                } as Omit<Commission, 'id'>);
+                });
             }
         }
 

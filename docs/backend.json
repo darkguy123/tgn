@@ -127,21 +127,36 @@
       },
       "required": ["id", "memberId", "isVerified"]
     },
-    "AffiliateEarning": {
+    "Commission": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AffiliateEarning",
+      "title": "Commission",
       "type": "object",
-      "description": "Represents affiliate earnings for a member.",
+      "description": "Represents a commission earned by a referrer.",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the AffiliateEarning entity." },
-        "memberId": { "type": "string", "description": "Reference to Member. (Relationship: Member 1:N AffiliateEarning)" },
-        "level": { "type": "number", "description": "The level of the referral (1-7)." },
-        "amount": { "type": "number", "description": "The amount earned." },
-        "earningDate": { "type": "string", "description": "The date the earning was made.", "format": "date-time" },
-        "sourceType": { "type": "string", "description": "The source of the earning (course, program, event, book)." },
-        "sourceId": { "type": "string", "description": "Reference to the source entity (e.g., Course.id)." }
+        "referrerId": { "type": "string" },
+        "buyerId": { "type": "string" },
+        "productId": { "type": "string" },
+        "programId": { "type": "string" },
+        "saleAmount": { "type": "number" },
+        "commissionAmount": { "type": "number" },
+        "level": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "memberId", "level", "amount", "earningDate", "sourceType", "sourceId"]
+      "required": ["referrerId", "buyerId", "saleAmount", "commissionAmount", "level", "createdAt"]
+    },
+    "AffiliateReferral": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AffiliateReferral",
+      "type": "object",
+      "description": "Represents a referral link between two members.",
+      "properties": {
+        "referrerMemberId": { "type": "string" },
+        "referredMemberId": { "type": "string" },
+        "level": { "type": "number" },
+        "commissionPercentage": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["referrerMemberId", "referredMemberId", "level", "commissionPercentage", "createdAt"]
     },
     "Product": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -358,8 +373,12 @@
         "definition": { "entityName": "MenteeVerification", "schema": { "$ref": "#/backend/entities/MenteeVerification" }, "description": "Stores mentee verifications for each user. Path-based ownership." }
       },
       {
-        "path": "/users/{userId}/affiliateEarnings/{affiliateEarningId}",
-        "definition": { "entityName": "AffiliateEarning", "schema": { "$ref": "#/backend/entities/AffiliateEarning" }, "description": "Stores affiliate earnings for each user. Path-based ownership." }
+        "path": "/commissions/{commissionId}",
+        "definition": { "entityName": "Commission", "schema": { "$ref": "#/backend/entities/Commission" }, "description": "Stores affiliate commissions." }
+      },
+      {
+        "path": "/affiliate_referrals/{referralId}",
+        "definition": { "entityName": "AffiliateReferral", "schema": { "$ref": "#/backend/entities/AffiliateReferral" }, "description": "Stores multi-level affiliate referral relationships." }
       },
        {
         "path": "/users/{userId}/cards/{cardId}",

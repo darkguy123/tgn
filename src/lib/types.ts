@@ -266,6 +266,7 @@ export interface Commission {
     programId?: string;
     saleAmount: number;
     commissionAmount: number;
+    level: number;
     createdAt: any;
 }
 

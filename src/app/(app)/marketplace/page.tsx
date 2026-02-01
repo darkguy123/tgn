@@ -58,33 +58,7 @@ export default function MarketplacePage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isBuyDialogOpen, setBuyDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [referrer, setReferrer] = useState<AffiliateReferral | null>(null);
-  const [isFindingReferrer, setIsFindingReferrer] = useState(true);
-
-  // Effect to find the referrer for the current user
-  useEffect(() => {
-    if (!currentUser || !firestore) {
-      setIsFindingReferrer(false);
-      return;
-    }
-    const findReferrer = async () => {
-      const referralsRef = collection(firestore, 'affiliate_referrals');
-      const q = query(referralsRef, where('referredMemberId', '==', currentUser.uid), where('level', '==', 1));
-      try {
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          const referrerDoc = querySnapshot.docs[0];
-          setReferrer({ id: referrerDoc.id, ...referrerDoc.data() } as AffiliateReferral);
-        }
-      } catch (error) {
-        console.error("Error finding referrer:", error);
-      } finally {
-        setIsFindingReferrer(false);
-      }
-    };
-    findReferrer();
-  }, [currentUser, firestore]);
-
+  
   const productsQuery = useMemoFirebase(
     () =>
       query(
@@ -119,42 +93,48 @@ export default function MarketplacePage() {
     setIsSubmitting(true);
 
     try {
-      await runTransaction(firestore, async (transaction) => {
-        const buyerWalletRef = doc(firestore, 'wallets', currentUser.uid);
-        const sellerWalletRef = doc(firestore, 'wallets', selectedProduct.sellerMemberId);
-        const referrerWalletRef = referrer ? doc(firestore, 'wallets', referrer.referrerMemberId) : null;
+        // 1. Find all referrers for the current user
+        const referralsRef = collection(firestore, 'affiliate_referrals');
+        const q = query(referralsRef, where('referredMemberId', '==', currentUser.uid));
+        const referralsSnapshot = await getDocs(q);
+        const upline = referralsSnapshot.docs.map(doc => doc.data() as AffiliateReferral);
 
-        const buyerWalletDoc = await transaction.get(buyerWalletRef);
-        if (!buyerWalletDoc.exists() || buyerWalletDoc.data().balance < selectedProduct.price) {
-          throw new Error("Insufficient funds.");
-        }
+        // 2. Perform atomic transaction
+        await runTransaction(firestore, async (transaction) => {
+            const buyerWalletRef = doc(firestore, 'wallets', currentUser.uid);
+            const sellerWalletRef = doc(firestore, 'wallets', selectedProduct.sellerMemberId);
 
-        // --- Perform Balance Updates ---
-        // 1. Debit Buyer
-        const newBuyerBalance = buyerWalletDoc.data().balance - selectedProduct.price;
-        transaction.update(buyerWalletRef, { balance: newBuyerBalance });
+            const buyerWalletDoc = await transaction.get(buyerWalletRef);
+            if (!buyerWalletDoc.exists() || buyerWalletDoc.data().balance < selectedProduct.price) {
+                throw new Error("Insufficient funds.");
+            }
 
-        // 2. Credit Seller
-        const sellerWalletDoc = await transaction.get(sellerWalletRef);
-        const sellerBalance = sellerWalletDoc.exists() ? sellerWalletDoc.data().balance : 0;
-        const newSellerBalance = sellerBalance + selectedProduct.price;
-        transaction.set(sellerWalletRef, { balance: newSellerBalance, memberId: selectedProduct.sellerMemberId, currency: 'USD' }, { merge: true });
-        
-        // 3. Credit Referrer (if exists)
-        if (referrer && referrerWalletRef) {
-            const commissionRate = 0.05; // Level 1 is 5%
-            const commissionAmount = selectedProduct.price * commissionRate;
+            // Debit Buyer
+            const newBuyerBalance = buyerWalletDoc.data().balance - selectedProduct.price;
+            transaction.update(buyerWalletRef, { balance: newBuyerBalance });
 
-            const referrerWalletDoc = await transaction.get(referrerWalletRef);
-            const referrerBalance = referrerWalletDoc.exists() ? referrerWalletDoc.data().balance : 0;
-            const newReferrerBalance = referrerBalance + commissionAmount;
-            
-            transaction.set(referrerWalletRef, { balance: newReferrerBalance, memberId: referrer.referrerMemberId, currency: 'USD' }, { merge: true });
-        }
+            // Credit Seller (base amount, before commissions)
+            let sellerGets = selectedProduct.price;
+
+            // Distribute Commissions
+            for (const referral of upline) {
+                const commissionAmount = selectedProduct.price * (referral.commissionPercentage / 100);
+                sellerGets -= commissionAmount; // Reduce seller's cut by commission amount
+                
+                const referrerWalletRef = doc(firestore, 'wallets', referral.referrerMemberId);
+                const referrerWalletDoc = await transaction.get(referrerWalletRef);
+                const currentBalance = referrerWalletDoc.exists() ? referrerWalletDoc.data().balance : 0;
+                const newBalance = currentBalance + commissionAmount;
+                transaction.set(referrerWalletRef, { balance: newBalance, memberId: referral.referrerMemberId, currency: 'USD' }, { merge: true });
+            }
+
+            const sellerWalletDoc = await transaction.get(sellerWalletRef);
+            const sellerBalance = sellerWalletDoc.exists() ? sellerWalletDoc.data().balance : 0;
+            const newSellerBalance = sellerBalance + sellerGets;
+            transaction.set(sellerWalletRef, { balance: newSellerBalance, memberId: selectedProduct.sellerMemberId, currency: 'USD' }, { merge: true });
       });
       
-      // --- Log Transactions (post-atomic update) ---
-      // Log Buyer's Purchase
+      // 3. Log transactions and commissions (post-atomic update)
       const buyerTransactionsRef = collection(firestore, 'users', currentUser.uid, 'transactions');
       await addDoc(buyerTransactionsRef, {
           type: 'purchase',
@@ -165,19 +145,18 @@ export default function MarketplacePage() {
           createdAt: serverTimestamp(),
       });
       
-      // Log Referrer's Commission
-      if (referrer) {
-          const commissionRate = 0.05;
-          const commissionAmount = selectedProduct.price * commissionRate;
-          const commissionsRef = collection(firestore, 'commissions');
+      const commissionsRef = collection(firestore, 'commissions');
+      for (const referral of upline) {
+          const commissionAmount = selectedProduct.price * (referral.commissionPercentage / 100);
           await addDoc(commissionsRef, {
-              referrerId: referrer.referrerMemberId,
+              referrerId: referral.referrerMemberId,
               buyerId: currentUser.uid,
               productId: selectedProduct.id,
               saleAmount: selectedProduct.price,
               commissionAmount: commissionAmount,
+              level: referral.level,
               createdAt: serverTimestamp(),
-          } as Omit<Commission, 'id'>);
+          });
       }
 
       toast({

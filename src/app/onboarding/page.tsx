@@ -13,10 +13,22 @@ import { Briefcase, Target, Check, PartyPopper } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sectors as SECTORS, goals as GOALS } from "@/lib/data";
 import { useUser, useFirestore } from "@/firebase";
-import { doc, serverTimestamp, addDoc, collection } from "firebase/firestore";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { doc, serverTimestamp, addDoc, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
 import { useMemberProfile } from "@/hooks/useMemberProfile";
 import { Skeleton } from "@/components/ui/skeleton";
+
+const getCommissionForLevel = (level: number) => {
+    switch (level) {
+        case 1: return 5;
+        case 2: return 3;
+        case 3: return 2;
+        case 4: return 1.5;
+        case 5: return 1.5;
+        case 6: return 1;
+        case 7: return 1;
+        default: return 0;
+    }
+};
 
 const Onboarding = () => {
   const router = useRouter();
@@ -77,28 +89,53 @@ const Onboarding = () => {
             purpose: bio,
             identityProfile: JSON.stringify({ goals: selectedGoals, interests: interests }),
             createdAt: serverTimestamp(),
+            connections: [],
+            isVerifiedMentor: false,
+            hasTransactionPin: false,
         };
         const userDocRef = doc(firestore, "users", user.uid);
-        setDocumentNonBlocking(userDocRef, dataToSave, { merge: true });
-        setTgnMemberId(newId);
+        
+        // Use a transaction or batch for atomicity if possible, but complex reads make it hard.
+        // For now, we'll do sequential writes. A Cloud Function trigger would be ideal.
+        await setDoc(userDocRef, dataToSave, { merge: true });
 
         const referrerUid = localStorage.getItem('tgn_referrer_uid');
         if (referrerUid) {
           const referralsCollection = collection(firestore, 'affiliate_referrals');
-          const referralData = {
-              referrerMemberId: referrerUid,
+          const batch = writeBatch(firestore);
+          let currentReferrerId: string | null = referrerUid;
+
+          for (let level = 1; level <= 7; level++) {
+            if (!currentReferrerId) break;
+
+            const commissionPercentage = getCommissionForLevel(level);
+
+            const referralData = {
+              referrerMemberId: currentReferrerId,
               referredMemberId: user.uid,
-              level: 1,
-              commissionPercentage: 5,
+              level: level,
+              commissionPercentage: commissionPercentage,
               createdAt: serverTimestamp(),
-          };
-          addDoc(referralsCollection, referralData).then(() => {
-              localStorage.removeItem('tgn_referrer_uid');
-          }).catch(error => {
-              console.error("Failed to create referral document:", error);
-          });
+            };
+            const newReferralRef = doc(referralsCollection);
+            batch.set(newReferralRef, referralData);
+            
+            // This is slow, but necessary on the client-side without a backend function.
+            // Find the next referrer up the chain for the next iteration.
+            const q = query(referralsCollection, where('referredMemberId', '==', currentReferrerId), where('level', '==', 1));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+                currentReferrerId = querySnapshot.docs[0].data().referrerMemberId;
+            } else {
+                currentReferrerId = null; // End of the chain
+            }
+          }
+          await batch.commit();
+          localStorage.removeItem('tgn_referrer_uid');
         }
         
+        setTgnMemberId(newId);
         setCompleted(true);
       }
     }
