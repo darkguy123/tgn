@@ -245,7 +245,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                          <Link href="/admin/dashboard">
+                          <Link href="/admin">
                             <Shield className="mr-2 h-4 w-4" />
                             <span>Admin Panel</span>
                           </Link>

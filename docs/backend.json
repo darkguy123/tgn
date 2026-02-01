@@ -17,7 +17,7 @@
         "locationRegion": { "type": "string" },
         "timezone": { "type": "string" },
         "sectorPreferences": { "type": "array", "items": { "type": "string" } },
-        "role": { "type": "string", "enum": ["mentee", "mentor-candidate", "associate-mentor", "collaborator", "sponsor", "country-manager", "volunteer", "media"] },
+        "role": { "type": "string", "enum": ["mentee", "mentor-candidate", "associate-mentor", "collaborator", "sponsor", "country-manager", "volunteer", "media", "admin"] },
         "purpose": { "type": "string", "description": "The member's bio or statement of purpose." },
         "identityProfile": { "type": "string", "description": "A JSON string containing member's goals and interests." },
         "avatarUrl": { "type": "string", "description": "URL to the member's profile image." },

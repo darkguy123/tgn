@@ -12,7 +12,7 @@ export interface TGNMember {
     locationRegion?: string;
     timezone: string;
     sectorPreferences?: string[];
-    role: 'mentee' | 'mentor-candidate' | 'associate-mentor' | 'collaborator' | 'sponsor' | 'country-manager' | 'volunteer' | 'media';
+    role: 'mentee' | 'mentor-candidate' | 'associate-mentor' | 'collaborator' | 'sponsor' | 'country-manager' | 'volunteer' | 'media' | 'admin';
     purpose?: string;
     identityProfile?: string;
     avatarUrl?: string;

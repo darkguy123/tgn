@@ -67,6 +67,7 @@ export const roles = [
   { id: "collaborator", title: "Collaborator", description: "Support TGN programs and projects.", icon: "🤝" },
   { id: "sponsor", title: "Sponsor", description: "Fund or partner with TGN initiatives.", icon: "💎" },
   { id: "country-manager", title: "Country Manager", description: "Coordinate regional network growth.", icon: "🌍" },
+  { id: "admin", title: "Admin", description: "Full administrative access to the platform.", icon: "Shield" },
   { id: "volunteer", title: "Volunteer", description: "Support community operations and events.", icon: "❤️" },
   { id: "media", title: "Media", description: "Share our impact and stories with the world.", icon: "📢" },
 ];

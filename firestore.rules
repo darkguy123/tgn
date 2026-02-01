@@ -16,7 +16,7 @@ service cloud.firestore {
       // Using a combination of a hardcoded super admin and a role-based admin.
       return (request.auth.token.email == 'valentinoboss18@gmail.com') || 
              (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'country-manager');
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['country-manager', 'admin']);
     }
 
     // --- USER-OWNED DATA ---
