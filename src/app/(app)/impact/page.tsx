@@ -4,16 +4,18 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   BarChart3, TrendingUp, Users, Globe, Award, Star,
-  DollarSign, Heart,
+  DollarSign, Heart, Loader2, BookOpen
 } from "lucide-react";
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, Timestamp } from 'firebase/firestore';
 import { subDays } from 'date-fns';
-import type { TGNMember, Cause } from '@/lib/types';
+import type { TGNMember, Cause, AffiliateReferral, Commission, EnrolledProgram } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useMemberProfile } from '@/hooks/useMemberProfile';
 
 const ImpactPage = () => {
   const firestore = useFirestore();
+  const { profile, isLoading: isProfileLoading } = useMemberProfile();
 
   // --- QUERIES ---
   const thirtyDaysAgoTimestamp = useMemo(() => {
@@ -25,25 +27,49 @@ const ImpactPage = () => {
   const newUsersQuery = useMemoFirebase(() => query(collection(firestore, 'users'), where('createdAt', '>=', thirtyDaysAgoTimestamp)), [firestore, thirtyDaysAgoTimestamp]);
   const fundraisersQuery = useMemoFirebase(() => query(collection(firestore, 'causes'), where('status', '==', 'approved')), [firestore]);
 
+  // Personal Impact Queries
+  const referralsQuery = useMemoFirebase(
+    () => profile ? query(collection(firestore, 'affiliate_referrals'), where('referrerMemberId', '==', profile.id)) : null,
+    [firestore, profile]
+  );
+  const commissionsQuery = useMemoFirebase(
+    () => profile ? query(collection(firestore, 'commissions'), where('referrerId', '==', profile.id)) : null,
+    [firestore, profile]
+  );
+  const enrollmentsQuery = useMemoFirebase(
+    () => profile ? collection(firestore, 'users', profile.id, 'enrolled_programs') : null,
+    [firestore, profile]
+  );
+  
   // --- DATA FETCHING ---
   const { data: allUsers, isLoading: usersLoading } = useCollection<TGNMember>(usersQuery);
   const { data: newUsers, isLoading: newUsersLoading } = useCollection<TGNMember>(newUsersQuery);
   const { data: fundraisers, isLoading: fundraisersLoading } = useCollection<Cause>(fundraisersQuery);
 
-  const isLoading = usersLoading || newUsersLoading || fundraisersLoading;
+  const { data: downline, isLoading: isDownlineLoading } = useCollection<AffiliateReferral>(referralsQuery);
+  const { data: commissions, isLoading: isCommissionsLoading } = useCollection<Commission>(commissionsQuery);
+  const { data: enrollments, isLoading: isEnrollmentsLoading } = useCollection<EnrolledProgram>(enrollmentsQuery);
+
+  const isLoading = usersLoading || newUsersLoading || fundraisersLoading || isProfileLoading || isDownlineLoading || isCommissionsLoading || isEnrollmentsLoading;
   
   // --- CALCULATIONS ---
+  // Network stats
   const totalMembers = allUsers?.length || 0;
   const newMembersCount = newUsers?.length || 0;
   const totalRaised = fundraisers?.reduce((acc, fundraiser) => acc + fundraiser.currentAmount, 0) || 0;
   const fundedFundraisers = fundraisers?.filter(c => c.currentAmount >= c.goalAmount).length || 0;
   
+  // Personal stats
+  const referralsCount = downline?.length || 0;
+  const totalCommission = commissions?.reduce((acc, c) => acc + c.commissionAmount, 0) || 0;
+  const programsCompleted = enrollments?.filter(e => e.progress === 100).length || 0;
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       notation: 'compact',
-      maximumFractionDigits: 1
+      maximumFractionDigits: 2
     }).format(amount);
   };
   
@@ -109,8 +135,8 @@ const ImpactPage = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {renderStatCard("Total Members", totalMembers, <Users className="h-4 w-4" />, isLoading)}
-            {renderStatCard("New Members (30d)", newMembersCount, <TrendingUp className="h-4 w-4" />, isLoading)}
+            {renderStatCard("Total Members", totalMembers.toLocaleString(), <Users className="h-4 w-4" />, isLoading)}
+            {renderStatCard("New Members (30d)", newMembersCount.toLocaleString(), <TrendingUp className="h-4 w-4" />, isLoading)}
             {renderStatCard("Total Raised", formatCurrency(totalRaised), <DollarSign className="h-4 w-4" />, isLoading)}
             {renderStatCard("Fundraisers Funded", fundedFundraisers, <Heart className="h-4 w-4" />, isLoading)}
           </div>
@@ -128,10 +154,30 @@ const ImpactPage = () => {
             <CardDescription>This data is specific to your activity.</CardDescription>
           </CardHeader>
           <CardContent>
-             <div className="flex flex-col items-center justify-center text-center py-10">
-                <Star className="h-10 w-10 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Your impact data is not yet available.</p>
-            </div>
+             {isLoading ? (
+                <div className="flex flex-col items-center justify-center text-center py-10">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">Calculating your impact...</p>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                        <div className="p-3 bg-muted rounded-lg">
+                            <p className="text-sm text-muted-foreground flex items-center justify-center gap-1"><Users className="h-4 w-4"/>Referred</p>
+                            <p className="text-2xl font-bold">{referralsCount}</p>
+                        </div>
+                        <div className="p-3 bg-muted rounded-lg">
+                            <p className="text-sm text-muted-foreground flex items-center justify-center gap-1"><DollarSign className="h-4 w-4"/>Earned</p>
+                            <p className="text-2xl font-bold">{formatCurrency(totalCommission)}</p>
+                        </div>
+                        <div className="p-3 bg-muted rounded-lg">
+                            <p className="text-sm text-muted-foreground flex items-center justify-center gap-1"><BookOpen className="h-4 w-4"/>Completed</p>
+                            <p className="text-2xl font-bold">{programsCompleted}</p>
+                        </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center pt-2">Your activity contributes to the growth of the TGN community.</p>
+                </div>
+            )}
           </CardContent>
         </Card>
 
