@@ -1,5 +1,6 @@
 
 
+
 export interface TGNMember {
     id: string;
     tgnMemberId: string;
@@ -66,7 +67,7 @@ export interface Product {
     sellerName: string; 
     sellerAvatarUrl: string; 
 
-    approvalStatus: 'pending' | 'approved' | 'rejected';
+    approvalStatus: 'pending' | 'in_review' | 'approved' | 'rejected';
     createdAt: any; 
 }
 
