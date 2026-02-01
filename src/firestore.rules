@@ -51,16 +51,26 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // SECTORS collection
+    match /sectors/{sectorId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // CHATS
     match /chats/{chatId} {
-      // A user can read or update a chat document if they are a member.
-      allow read, update: if isSignedIn() && request.auth.uid in resource.data.members;
-      
-      // A user can create a chat if they are including themselves in the members list
-      // and it's a 2-person chat. This happens on the first message.
-      allow create: if isSignedIn() 
-                    && request.auth.uid in request.resource.data.members
-                    && request.resource.data.members.size() == 2;
+      // Allow a user to get a chat doc if their UID is part of the doc ID.
+      // This is safe because the ID is constructed from the two participants' UIDs.
+      // This allows the client to check for an existing chat without erroring.
+      allow get: if isSignedIn() && chatId.split('_').includes(request.auth.uid);
+
+      // Allow a user to list chats they are a member of.
+      // This works for `where('members', 'array-contains', ...)` queries.
+      // Also allow updates (like typing indicators) by members.
+      allow list, update: if isSignedIn() && request.auth.uid in resource.data.members;
+
+      // Allow chat creation if the creator is in the members list.
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
 
       match /messages/{messageId} {
         // Function to check if the requesting user is a member of the parent chat.
