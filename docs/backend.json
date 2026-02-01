@@ -165,16 +165,18 @@
       "description": "Represents a product sold in the e-commerce marketplace.",
       "properties": {
         "id": { "type": "string", "description": "Unique identifier for the Product entity." },
-        "sellerId": { "type": "string", "description": "Reference to Member (seller). (Relationship: Member 1:N Product)" },
         "name": { "type": "string", "description": "The name of the product." },
         "description": { "type": "string", "description": "The description of the product." },
         "price": { "type": "number", "description": "The price of the product." },
-        "approvalStatus": { "type": "string", "description": "The approval status of the product (pending, approved, rejected)." },
-        "packageBenefits": { "type": "string", "description": "Configurable package benefits for the product." },
+        "type": { "type": "string", "enum": ["Book", "Course", "Tool", "Digital Asset"] },
         "imageUrl": { "type": "string", "description": "URL to the product image." },
-        "productType": { "type": "string", "description": "The type of the product." }
+        "sellerMemberId": { "type": "string", "description": "Reference to Member (seller). (Relationship: Member 1:N Product)" },
+        "sellerName": { "type": "string", "description": "Denormalized seller name." },
+        "sellerAvatarUrl": { "type": "string", "description": "Denormalized seller avatar URL." },
+        "approvalStatus": { "type": "string", "enum": ["pending", "in_review", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "sellerId", "name", "description", "price", "approvalStatus", "packageBenefits"]
+      "required": ["id", "name", "description", "price", "type", "imageUrl", "sellerMemberId", "sellerName", "approvalStatus", "createdAt"]
     },
     "Match": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -386,7 +388,7 @@
       },
       {
         "path": "/products/{productId}",
-        "definition": { "entityName": "Product", "schema": { "$ref": "#/backend/entities/Product" }, "description": "Stores product information. The `sellerId` field is used for access control." }
+        "definition": { "entityName": "Product", "schema": { "$ref": "#/backend/entities/Product" }, "description": "Stores product information. The `sellerMemberId` field is used for access control." }
       },
       {
         "path": "/matches/{matchId}",
