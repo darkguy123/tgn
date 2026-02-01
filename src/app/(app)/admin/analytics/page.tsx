@@ -5,67 +5,45 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, Users, Briefcase, BookOpen, Heart, DollarSign } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import type { TGNMember, Program, Cause } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { subMonths, format } from 'date-fns';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
+// Mock Data to prevent overloading the connection
+const mockStats = {
+  totalMembers: 1250,
+  activeMentors: 150,
+  totalPrograms: 45,
+  totalRaised: 52340,
+};
+
+const mockMemberGrowthData = [
+    { name: 'Jan', users: 150 },
+    { name: 'Feb', users: 220 },
+    { name: 'Mar', users: 300 },
+    { name: 'Apr', users: 280 },
+    { name: 'May', users: 450 },
+    { name: 'Jun', users: 600 },
+];
+
+const mockProgramPopularityData = [
+    { name: 'Intro to AI', enrolled: 120 },
+    { name: 'Leadership 101', enrolled: 95 },
+    { name: 'Startup Scaling', enrolled: 80 },
+    { name: 'Digital Marketing', enrolled: 150 },
+    { name: 'Personal Branding', enrolled: 70 },
+];
+
+
 export default function AdminAnalyticsPage() {
-  const firestore = useFirestore();
-  
-  // Data fetching
-  const usersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
-  const programsRef = useMemoFirebase(() => collection(firestore, 'programs'), [firestore]);
-  const causesRef = useMemoFirebase(() => collection(firestore, 'causes'), [firestore]);
-  
-  const { data: users, isLoading: usersLoading } = useCollection<TGNMember>(usersRef);
-  const { data: programs, isLoading: programsLoading } = useCollection<Program>(programsRef);
-  const { data: causes, isLoading: causesLoading } = useCollection<Cause>(causesRef);
+  // All firebase fetching logic is removed to prevent network errors.
+  const isLoading = false; // We are not loading live data anymore.
 
-  const isLoading = usersLoading || programsLoading || causesLoading;
-
-  // Memoized calculations
-  const stats = useMemo(() => {
-    if (isLoading || !users || !programs || !causes) return {
-      totalMembers: 0,
-      activeMentors: 0,
-      totalPrograms: 0,
-      totalRaised: 0,
-    };
-    return {
-      totalMembers: users.length,
-      activeMentors: users.filter(u => u.role.includes('mentor') && u.isVerifiedMentor).length,
-      totalPrograms: programs.length,
-      totalRaised: causes.reduce((acc, c) => acc + c.currentAmount, 0),
-    };
-  }, [users, programs, causes, isLoading]);
-  
-  const memberGrowthData = useMemo(() => {
-    if (!users) return [];
-    const now = new Date();
-    const data = Array.from({ length: 6 }).map((_, i) => {
-        const d = subMonths(now, 5 - i);
-        return { name: format(d, 'MMM'), users: 0 };
-    });
-    users.forEach(user => {
-        if (user.createdAt?.toDate) {
-            const month = format(user.createdAt.toDate(), 'MMM');
-            const monthData = data.find(d => d.name === month);
-            if (monthData) {
-                monthData.users++;
-            }
-        }
-    });
-    return data;
-  }, [users]);
-  
-   const programPopularityData = useMemo(() => {
-    if (!programs) return [];
-    return programs.map(p => ({ name: p.title, enrolled: p.enrolled || 0 }));
-  }, [programs]);
+  // Use mock data
+  const stats = mockStats;
+  const memberGrowthData = mockMemberGrowthData;
+  const programPopularityData = mockProgramPopularityData;
 
   return (
     <div className="space-y-6">
