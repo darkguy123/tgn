@@ -34,6 +34,10 @@ service cloud.firestore {
         allow create, delete: if isOwner(userId) || isAdmin();
         allow update: if false;
       }
+
+      match /cards/{cardId} {
+        allow read, write, delete: if isOwner(userId) || isAdmin();
+      }
     }
     
     // WALLETS collection
