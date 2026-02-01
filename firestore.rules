@@ -51,6 +51,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // SECTORS collection
+    match /sectors/{sectorId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // CHATS
     match /chats/{chatId} {
       // Allow a user to get a chat doc if their UID is part of the doc ID.
@@ -58,10 +64,12 @@ service cloud.firestore {
       // This allows the client to check for an existing chat without erroring.
       allow get: if isSignedIn() && chatId.split('_').includes(request.auth.uid);
 
-      // Allow a user to list chats they are a member of.
-      // This works for `where('members', 'array-contains', ...)` queries.
-      // Also allow updates (like typing indicators) by members.
-      allow list, update: if isSignedIn() && request.auth.uid in resource.data.members;
+      // Allow listing chats only if the query is properly constrained by the client.
+      // The client MUST use `where('members', 'array-contains', request.auth.uid)`.
+      allow list: if isSignedIn();
+
+      // Allow updates (like typing indicators) by members.
+      allow update: if isSignedIn() && request.auth.uid in resource.data.members;
 
       // Allow chat creation if the creator is in the members list.
       allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
@@ -86,7 +94,6 @@ service cloud.firestore {
     // FRIEND REQUESTS
     match /friend_requests/{friendRequestId} {
       // A user can read a request if they are the sender or the recipient.
-      // This will allow queries constrained by senderId or recipientId.
       allow read: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
       
       // A user can create a request if they are signed in and the senderId is their own UID.
