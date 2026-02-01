@@ -21,59 +21,53 @@ service cloud.firestore {
              );
     }
     
-    // --- GLOBAL ADMIN RULE ---
-    // Admins have universal read/write access to all data.
-    match /{path=**} {
-        allow read, write: if isAdmin();
-    }
-
-    // --- USER-SPECIFIC RULES (for non-admins) ---
+    // --- USER-SPECIFIC RULES ---
 
     // USERS collection and subcollections
     match /users/{userId} {
-      // Allow public reads to diagnose the issue. This allows anyone to view profiles.
       allow read: if true;
-      // Users can create and update their own profile, but only admins can change roles.
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) && !(request.resource.data.role != resource.data.role);
+      allow create: if isOwner(userId) || isAdmin();
+      allow update: if (isOwner(userId) && !(request.resource.data.role != resource.data.role)) || isAdmin();
 
-      // Media subcollection rules
       match /media/{mediaId} {
-        allow read: if true; // Publicly readable
-        allow create, delete: if isOwner(userId);
-        allow update: if false; // No updates allowed
+        allow read: if true;
+        allow create, delete: if isOwner(userId) || isAdmin();
+        allow update: if false;
       }
     }
     
     // WALLETS collection
     match /wallets/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read, write: if isOwner(userId) || isAdmin();
     }
 
     // PROGRAMS collection
     match /programs/{programId} {
       allow read: if isSignedIn();
-      // Only admins can write to programs (covered by global rule)
-      allow write: if false; 
+      allow write: if isAdmin();
     }
 
     // MENTOR CERTIFICATIONS
     match /mentor_certifications/{memberId} {
-      allow read: if isOwner(memberId);
-       // Only admins can write (covered by global rule)
-      allow write: if false;
+      allow read: if isOwner(memberId) || isAdmin();
+      allow write: if isAdmin();
     }
     
-    // Other collections...
+    // OTHER COLLECTIONS...
     match /events/{eventId} {
       allow read: if true;
-      allow write: if false; // Admins only
+      allow write: if isAdmin();
     }
     
     match /products/{productId} {
       allow read: if true;
       allow create: if isSignedIn();
-      allow update, delete: if isOwner(resource.data.sellerMemberId);
+      allow update, delete: if isOwner(resource.data.sellerMemberId) || isAdmin();
+    }
+    
+    // Catch-all for any other path - explicitly deny
+    match /{path=**} {
+      allow read, write: if false;
     }
   }
 }
