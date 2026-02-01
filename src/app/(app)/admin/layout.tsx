@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isUserAdmin } from '@/lib/auth-utils';
+import { Loader2 } from 'lucide-react';
 
 export default function AdminLayout({
   children,
@@ -24,13 +25,12 @@ export default function AdminLayout({
 
   if (isProfileLoading || !profile || !userIsAdmin) {
     return (
-      <div className="p-6">
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-1/2" />
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
+      <div className="flex h-[calc(100vh-200px)] w-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <div>
+            <p className="text-lg font-semibold">Validating Admin Access</p>
+            <p className="text-sm text-muted-foreground">Please wait a moment...</p>
           </div>
         </div>
       </div>
