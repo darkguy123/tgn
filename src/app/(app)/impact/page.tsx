@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   BarChart3, TrendingUp, Users, Globe, Award, Star,
@@ -15,8 +16,10 @@ const ImpactPage = () => {
   const firestore = useFirestore();
 
   // --- QUERIES ---
-  const thirtyDaysAgo = subDays(new Date(), 30);
-  const thirtyDaysAgoTimestamp = Timestamp.fromDate(thirtyDaysAgo);
+  const thirtyDaysAgoTimestamp = useMemo(() => {
+    const thirtyDaysAgo = subDays(new Date(), 30);
+    return Timestamp.fromDate(thirtyDaysAgo);
+  }, []);
 
   const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const newUsersQuery = useMemoFirebase(() => query(collection(firestore, 'users'), where('createdAt', '>=', thirtyDaysAgoTimestamp)), [firestore, thirtyDaysAgoTimestamp]);
