@@ -6,14 +6,15 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Briefcase, Edit, Send, Award, ShoppingBag } from 'lucide-react';
+import { MapPin, Briefcase, Edit, Send, Award, ShoppingBag, MessageSquare } from 'lucide-react';
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, doc } from 'firebase/firestore';
-import type { TGNMember, Product } from '@/lib/types';
+import { collection, query, where, doc, orderBy } from 'firebase/firestore';
+import type { TGNMember, Product, Post } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { useMemo } from 'react';
+import { PostCard } from '@/components/community/PostCard';
 
 // Helper to get image URL from placeholder data
 const getImageUrl = (imageId?: string) => {
@@ -62,6 +63,19 @@ export default function MemberProfilePage() {
     [firestore, member]
   );
   const { data: products, isLoading: productsLoading } = useCollection<Product>(productsQuery);
+
+  const postsQuery = useMemoFirebase(
+    () =>
+      member
+        ? query(
+            collection(firestore, 'posts'),
+            where('authorId', '==', member.id),
+            orderBy('createdAt', 'desc')
+          )
+        : null,
+    [firestore, member]
+  );
+  const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
   const isOwnProfile = currentUser && member && currentUser.uid === member.id;
   
@@ -142,6 +156,29 @@ export default function MemberProfilePage() {
             <CardHeader><CardTitle>About</CardTitle></CardHeader>
             <CardContent><p className="text-foreground/90 whitespace-pre-line">{member.purpose || 'No bio provided.'}</p></CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-primary" />
+              Posts
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {postsLoading && (
+              Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-48 w-full" />)
+            )}
+            {!postsLoading && posts && posts.length > 0 ? (
+              posts.map(post => <PostCard key={post.id} post={post} />)
+            ) : (
+              !postsLoading && (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  This member hasn't posted anything yet.
+                </p>
+              )
+            )}
+          </CardContent>
+        </Card>
       </main>
 
       <aside className="lg:col-span-1 space-y-6 lg:sticky lg:top-24">
@@ -188,7 +225,9 @@ export default function MemberProfilePage() {
                         </Link>
                     ))
                 ) : (
+                   !productsLoading && (
                     <p className="text-sm text-muted-foreground">No products listed yet.</p>
+                   )
                 )}
             </CardContent>
         </Card>
