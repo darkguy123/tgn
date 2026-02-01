@@ -3,18 +3,30 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // PUBLIC UPLOADS (profile pics, post media, etc.)
-    // Anyone can read these files.
-    // Only the authenticated owner can create, update, or delete.
-    match /uploads/public/{userId}/{fileName} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
     }
 
-    // PRIVATE UPLOADS (KYC documents, etc.)
-    // Only the authenticated owner can read or write these files.
+    // Publicly readable files
+    match /uploads/public/{userId}/{fileName} {
+      allow read: if true;
+
+      // For new uploads, check the metadata being sent.
+      allow create: if isOwner(request.resource.metadata.ownerId);
+
+      // For updates, only the owner can update.
+      allow update: if isOwner(resource.metadata.ownerId);
+      
+      // For deletes, check the metadata on the existing file.
+      allow delete: if isOwner(resource.metadata.ownerId);
+    }
+
+    // Files only accessible by their owner
     match /uploads/private/{userId}/{fileName} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isOwner(resource.metadata.ownerId);
+      allow create: if isOwner(request.resource.metadata.ownerId);
+      allow update: if isOwner(resource.metadata.ownerId);
+      allow delete: if isOwner(resource.metadata.ownerId);
     }
   }
 }

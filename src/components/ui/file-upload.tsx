@@ -151,9 +151,14 @@ export function FileUpload({
       const filePath = `uploads/${storagePath}/${userId}/${newFileName}`;
       const storageRef = ref(storage, filePath);
       const uploadTask = uploadBytesResumable(
-        storageRef, 
+        storageRef,
         fileToUpload,
-        { contentType }
+        {
+          contentType,
+          customMetadata: {
+            ownerId: userId,
+          },
+        }
       );
 
       setIsUploading(true);
