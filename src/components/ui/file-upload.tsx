@@ -229,7 +229,8 @@ export function FileUpload({
     disabled: isUploading,
   });
 
-  const handleRemove = () => {
+  const handleRemove = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
     if (value && storage) {
       try {
         const fileRef = ref(storage, value);
@@ -266,7 +267,8 @@ export function FileUpload({
   // Preview for existing image
   if (value) {
     return (
-      <div className={cn("relative group", className)}>
+      <div {...getRootProps()} className={cn("relative group cursor-pointer", className)}>
+        <input {...getInputProps()} />
         {mediaType?.startsWith('video/') ? (
           <video key={value} controls className="rounded-md object-cover w-full h-full bg-black">
             <source src={value} type={mediaType} />
@@ -280,6 +282,10 @@ export function FileUpload({
             className="rounded-md object-cover"
           />
         )}
+        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
+            <UploadCloud className="h-8 w-8" />
+            <span className="text-sm font-medium mt-1">Change Image</span>
+        </div>
         <Button
           type="button"
           variant="destructive"
