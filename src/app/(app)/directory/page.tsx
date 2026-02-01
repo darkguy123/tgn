@@ -342,9 +342,9 @@ const DirectoryPage = () => {
 
                 <div className="flex gap-2">
                     {isConnected ? (
-                        <Button disabled variant="secondary" size="sm" className="flex-1">
-                            <CheckCircle2 className="h-4 w-4 mr-1" />
-                            Connected
+                        <Button size="sm" className="flex-1" onClick={() => router.push(`/chat/${member.id}`)}>
+                            <Send className="h-4 w-4 mr-1" />
+                            Message
                         </Button>
                     ) : requestSent ? (
                          <Button disabled variant="secondary" size="sm" className="flex-1 bg-green-100 text-green-700 hover:bg-green-100">
