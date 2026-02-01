@@ -239,7 +239,7 @@ export default function ChatPage() {
             <div className={cn(
               "p-3 rounded-lg max-w-sm md:max-w-md",
               msg.senderId === currentUser?.uid
-                ? "bg-primary text-primary-foreground rounded-br-none"
+                ? "bg-emerald-100 dark:bg-emerald-900 text-foreground rounded-br-none"
                 : "bg-background text-foreground rounded-bl-none border"
             )}>
               <p className="whitespace-pre-wrap">{msg.content}</p>

@@ -53,11 +53,17 @@ service cloud.firestore {
 
     // CHATS
     match /chats/{chatId} {
-      // A user can read or update a chat document (e.g., for lastMessage, typing indicators)
-      // if they are a member of that chat.
-      allow read, update: if isSignedIn() && request.auth.uid in resource.data.members;
+      // Allow a user to get a chat doc if their UID is part of the doc ID.
+      // This is safe because the ID is constructed from the two participants' UIDs.
+      // This allows the client to check for an existing chat without erroring.
+      allow get: if isSignedIn() && chatId.split('_').includes(request.auth.uid);
 
-      // A user can create a chat if their UID is in the `members` array of the new chat document.
+      // Allow a user to list chats they are a member of.
+      // This works for `where('members', 'array-contains', ...)` queries.
+      // Also allow updates (like typing indicators) by members.
+      allow list, update: if isSignedIn() && request.auth.uid in resource.data.members;
+
+      // Allow chat creation if the creator is in the members list.
       allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
 
       match /messages/{messageId} {
@@ -109,11 +115,6 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isSignedIn();
       allow update, delete: if isOwner(resource.data.sellerMemberId) || isAdmin();
-    }
-    
-    // Catch-all for any other path - explicitly deny
-    match /{path=**} {
-      allow read, write: if false;
     }
   }
 }
