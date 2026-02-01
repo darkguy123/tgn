@@ -13,28 +13,30 @@ service cloud.firestore {
     }
     
     function isAdmin() {
+      // Using a combination of a hardcoded super admin and a role-based admin.
       return (request.auth.token.email == 'valentinoboss18@gmail.com') || 
              (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'country-manager');
     }
 
-    // --- USER DATA ---
+    // --- USER-OWNED DATA ---
     match /users/{userId} {
-      allow read: if true;
-      allow create: if isOwner(userId);
-      // Prevent users from changing their own role, but allow admin
+      allow read: if true; // Publicly readable profiles
+      allow create: if isOwner(userId); // User can create their own document
+      // User can update their own doc, but cannot change their role. Admin can do anything.
       allow update: if (isOwner(userId) && !(request.resource.data.role != resource.data.role)) || isAdmin();
 
+      // Subcollections
       match /media/{mediaId} {
         allow read: if true;
         allow create, delete: if isOwner(userId);
-        allow update: if false;
+        allow update: if false; // Disallow updates to media docs
       }
       match /cards/{cardId} {
         allow read, write: if isOwner(userId);
       }
       match /transactions/{transactionId} {
-        allow read, create: if isOwner(userId);
+        allow read, create: if isOwner(userId); // Only user can read/create their own transactions
         allow update, delete: if false;
       }
       match /enrolled_programs/{programId} {
@@ -43,29 +45,64 @@ service cloud.firestore {
       }
     }
     
-    // --- WALLETS ---
+    // Wallets are keyed by user ID
     match /wallets/{userId} {
       allow read, write: if isOwner(userId) || isAdmin();
     }
 
-    // --- PUBLIC/GLOBAL DATA ---
+    // --- GLOBAL/PUBLIC DATA ---
     match /programs/{programId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow read: if isSignedIn(); // Any signed-in user can read programs
+      allow write: if isAdmin(); // Only admins can create/update programs
     }
     match /sectors/{sectorId} {
-      allow read: if true;
+      allow read: if true; // Publicly readable reference data
       allow write: if isAdmin();
     }
     match /events/{eventId} {
-      allow read: if true;
+      allow read: if true; // Publicly readable
       allow write: if isAdmin();
     }
 
+    // --- COMMUNITY & USER-GENERATED CONTENT ---
+    match /posts/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+      // Allow any signed-in user to update (for liking). This is a common pattern.
+      allow update: if isSignedIn();
+      allow delete: if isOwner(resource.data.authorId) || isAdmin();
+
+      match /comments/{commentId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+        allow update, delete: if false; // Comments are immutable
+      }
+    }
+    
+    match /products/{productId} {
+      allow read: if true; // Publicly readable marketplace
+      allow create: if isSignedIn(); // Any signed-in user can list a product
+      // Only the seller or an admin can update/delete
+      allow update, delete: if (isSignedIn() && resource.data.sellerMemberId == request.auth.uid) || isAdmin();
+    }
+
+    match /ads/{adId} {
+      allow read: if true;
+      allow create: if isSignedIn(); // Any signed-in user can create an ad
+      allow update: if isAdmin(); // Only admins can approve/reject/pause ads
+    }
+
+    match /causes/{causeId} {
+      allow read: if true; // Publicly readable fundraisers
+      allow create: if isSignedIn(); // Any signed-in user can create a cause
+      // Any signed-in user can update (to contribute/back a cause).
+      allow update: if isSignedIn();
+    }
+    
     // --- CHAT & CONNECTIONS ---
     match /chats/{chatId} {
       allow get: if isSignedIn() && chatId.split('_').includes(request.auth.uid);
-      allow list: if isSignedIn();
+      allow list: if isSignedIn(); // The client MUST use `where('members', 'array-contains', ...)`
       allow update: if isSignedIn() && request.auth.uid in resource.data.members;
       allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
 
@@ -82,41 +119,8 @@ service cloud.firestore {
     match /friend_requests/{friendRequestId} {
       allow read: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.recipientId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.recipientId == request.auth.uid; // Recipient can accept/decline
       allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
-    }
-    
-    // --- COMMUNITY & USER-GENERATED CONTENT ---
-    match /posts/{postId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-      allow update: if isSignedIn(); // For likes
-      allow delete: if isOwner(resource.data.authorId) || isAdmin();
-
-      match /comments/{commentId} {
-        allow read: if isSignedIn();
-        allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-        allow update, delete: if false;
-      }
-    }
-    
-    match /products/{productId} {
-      allow read: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if (isSignedIn() && resource.data.sellerMemberId == request.auth.uid) || isAdmin();
-    }
-
-    match /ads/{adId} {
-      allow read: if true;
-      allow create: if isSignedIn();
-      allow update: if isAdmin();
-    }
-
-    match /causes/{causeId} {
-      allow read: if true;
-      allow create: if isSignedIn();
-      // Any signed in user can update (to back a cause), creator or admin can also edit.
-      allow update: if isSignedIn();
     }
     
     // --- ADMIN & VERIFICATION ---
@@ -124,22 +128,26 @@ service cloud.firestore {
       allow read: if isOwner(memberId) || isAdmin();
       allow write: if isAdmin();
     }
+
     match /mentor_kyc/{memberId} {
       allow read: if isOwner(memberId) || isAdmin();
       allow create: if isOwner(memberId);
-      allow update: if isOwner(memberId) || isAdmin(); // User can update, admin can update status
+      // User can submit/update their own KYC, admin can update status
+      allow update: if isOwner(memberId) || isAdmin();
     }
     
     // --- AFFILIATE SYSTEM ---
     match /commissions/{commissionId} {
       allow read: if isSignedIn() && resource.data.referrerId == request.auth.uid;
-      allow create: if isSignedIn(); // Created during a transaction by another user
+      // Commissions are created via transaction.
+      allow create: if isSignedIn(); 
       allow update, delete: if false;
     }
     
     match /affiliate_referrals/{referralId} {
       allow read: if isSignedIn() && (resource.data.referrerMemberId == request.auth.uid || resource.data.referredMemberId == request.auth.uid);
-      allow create: if isSignedIn(); // Created during onboarding by new user
+      // Referrals are created during onboarding.
+      allow create: if isSignedIn();
       allow update, delete: if false;
     }
   }
