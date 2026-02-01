@@ -50,6 +50,32 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
+
+    // CHATS
+    match /chats/{chatId} {
+      // A user can read or update a chat document (e.g., for lastMessage, typing indicators)
+      // if they are a member of that chat.
+      allow read, update: if isSignedIn() && request.auth.uid in resource.data.members;
+
+      // A user can create a chat if their UID is in the `members` array of the new chat document.
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
+
+      match /messages/{messageId} {
+        // Function to check if the requesting user is a member of the parent chat.
+        function isChatMember() {
+          return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+        }
+
+        // Messages can be read by members of the chat.
+        allow read: if isChatMember();
+
+        // Messages can only be created by the sender, who must also be a chat member.
+        allow create: if isChatMember() && request.resource.data.senderId == request.auth.uid;
+        
+        // Disallow message edits or deletes for data integrity.
+        allow update, delete: if false;
+      }
+    }
     
     // FRIEND REQUESTS
     match /friend_requests/{friendRequestId} {
