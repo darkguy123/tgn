@@ -123,8 +123,14 @@ service cloud.firestore {
                  request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
         }
         
-        // Allow members to read and create messages.
-        allow read: if isParentChatMember();
+        // Allow GET for single messages, using the more secure check.
+        allow get: if isParentChatMember();
+        
+        // Allow LIST for queries, using a non-blocking check against the chatId format.
+        // This is necessary because `get()` is not allowed in `list` rules.
+        allow list: if isSignedIn() && chatId.matches('.*' + request.auth.uid + '.*');
+        
+        // Allow create as before
         allow create: if isParentChatMember() && request.resource.data.senderId == request.auth.uid;
         
         // Disallow updating or deleting messages for simplicity and integrity.
