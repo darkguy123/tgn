@@ -25,6 +25,11 @@ import {
   LayoutGrid,
   Network,
   Menu,
+  BookOpen,
+  Briefcase,
+  DollarSign,
+  ShieldCheck,
+  ArrowLeft,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -67,6 +72,20 @@ const NAV_ITEMS = [
   { id: 'referrals', label: 'Referrals', icon: Share2, path: '/referrals' },
   { id: 'wallet', label: 'Wallet', icon: Wallet, path: '/wallet' },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/settings/profile' },
+];
+
+const ADMIN_NAV_ITEMS = [
+  { id: 'admin-dashboard', label: 'Dashboard', icon: Shield, path: '/admin/dashboard' },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/admin/analytics' },
+  { id: 'users', label: 'Users', icon: Users, path: '/admin/users' },
+  { id: 'kyc', label: 'KYC', icon: ShieldCheck, path: '/admin/kyc' },
+  { id: 'programs', label: 'Programs', icon: BookOpen, path: '/admin/programs' },
+  { id: 'events', label: 'Events', icon: Calendar, path: '/admin/events' },
+  { id: 'products', label: 'Products', icon: ShoppingBag, path: '/admin/products' },
+  { id: 'sectors', label: 'Sectors', icon: Briefcase, path: '/admin/sectors' },
+  { id: 'causes', label: 'Fundraisers', icon: Heart, path: '/admin/causes' },
+  { id: 'ads', label: 'Ad Campaigns', icon: Megaphone, path: '/admin/ads' },
+  { id: 'withdrawals', label: 'Withdrawals', icon: DollarSign, path: '/admin/withdrawals' },
 ];
 
 interface DashboardLayoutProps {
@@ -119,6 +138,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
   
   const isAdmin = isUserAdmin(profile);
+  const isAdminPage = pathname.startsWith('/admin');
+  const navItems = isAdminPage ? ADMIN_NAV_ITEMS : NAV_ITEMS;
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -135,7 +157,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
 
         <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <Button
               key={item.id}
               variant={pathname.startsWith(item.path) ? 'default' : 'ghost'}
@@ -148,6 +170,19 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               {item.label}
             </Button>
           ))}
+           {isAdmin && isAdminPage && (
+                <>
+                    <DropdownMenuSeparator className="my-4" />
+                    <Button
+                        variant='outline'
+                        onClick={() => router.push('/dashboard')}
+                        className="w-full flex items-center justify-start gap-3 px-3 py-2.5"
+                    >
+                        <ArrowLeft className="h-5 w-5" />
+                        Back to Main Site
+                    </Button>
+                </>
+            )}
         </nav>
       </aside>
 
@@ -171,7 +206,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                     </Link>
                   </div>
                   <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
-                    {NAV_ITEMS.map((item) => (
+                    {navItems.map((item) => (
                       <Button
                         key={item.id}
                         variant={pathname.startsWith(item.path) ? 'default' : 'ghost'}
@@ -184,6 +219,19 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                         {item.label}
                       </Button>
                     ))}
+                    {isAdmin && isAdminPage && (
+                        <>
+                            <DropdownMenuSeparator className="my-4" />
+                            <Button
+                                variant='outline'
+                                onClick={() => router.push('/dashboard')}
+                                className="w-full flex items-center justify-start gap-3 px-3 py-2.5"
+                            >
+                                <ArrowLeft className="h-5 w-5" />
+                                Back to Main Site
+                            </Button>
+                        </>
+                    )}
                   </nav>
                 </SheetContent>
               </Sheet>
@@ -239,7 +287,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                             <span>Profile Settings</span>
                         </Link>
                     </DropdownMenuItem>
-                    {isAdmin && (
+                    {isAdmin && !isAdminPage && (
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>

@@ -197,12 +197,17 @@ export interface Wallet {
 
 export interface Transaction {
     id: string;
+    memberId?: string;
     type: 'commission' | 'withdrawal' | 'deposit' | 'purchase';
     status: 'pending' | 'completed' | 'failed';
     amount: number;
     currency: string;
     description: string;
     createdAt: any; // Firestore Timestamp
+    bankDetails?: {
+        bankName: string;
+        accountNumber: string;
+    }
 }
 
 export interface SavedCard {
@@ -284,5 +289,3 @@ declare global {
     hashCode(): number;
   }
 }
-
-    

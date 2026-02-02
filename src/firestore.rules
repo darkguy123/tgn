@@ -20,6 +20,12 @@ service cloud.firestore {
               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['country-manager', 'admin']);
     }
 
+    // --- COLLECTION GROUP RULES ---
+    match /{path=**}/transactions/{transactionId} {
+      // Allow admin to list and get any transaction for review/approval
+      allow read: if isAdmin();
+    }
+
     // --- USER-OWNED DATA ---
     match /users/{userId} {
       allow read: if true; // Publicly readable profiles
@@ -37,8 +43,11 @@ service cloud.firestore {
         allow read, write: if isOwner(userId);
       }
       match /transactions/{transactionId} {
-        allow read, create: if isOwner(userId); // Only user can read/create their own transactions
-        allow update, delete: if false;
+        allow create: if isOwner(userId);
+        allow read: if isOwner(userId) || isAdmin(); // Let admin read single doc too
+        // Admin can update status (e.g., from pending to completed/failed)
+        allow update: if isAdmin(); 
+        allow delete: if false;
       }
       match /enrolled_programs/{programId} {
           allow read, create: if isOwner(userId);
@@ -102,21 +111,21 @@ service cloud.firestore {
     
     // --- CHAT & CONNECTIONS ---
     match /chats/{chatId} {
-      // Allow a user to GET a chat document only if they are a participant.
-      // This works even if the document doesn't exist yet, which is crucial for starting new chats.
+      // A user can read a chat document if their UID is in the chatId.
+      // This rule works for non-existent documents because it does not access `resource.data`.
       allow get: if isSignedIn() && request.auth.uid in chatId.split('_');
-      
-      // Allow a user to LIST chats. The client query MUST secure this by filtering
-      // on the 'members' array, e.g., `where('members', 'array-contains', request.auth.uid)`.
+
+      // A user can list chats they are a member of.
+      // The client MUST use a `where('members', 'array-contains', request.auth.uid)` clause.
       allow list: if isSignedIn();
       
-      // Allow a user to CREATE a chat document if they include themselves in the `members` array.
-      allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
-      
-      // Allow a user to UPDATE a chat (e.g., for lastMessage, typing) only if they are already a member.
+      // A member can update a chat (e.g., lastMessage, typing indicator).
       allow update: if isSignedIn() && request.auth.uid in resource.data.members;
+      
+      // A user can create a chat if they are including themselves in the members list.
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
 
-      // --- Messages Subcollection ---
+      // --- MESSAGES SUBCOLLECTION ---
       match /messages/{messageId} {
         // Allow read if user is a participant based on the chat ID.
         // This works for both `get` and `list` and avoids using `get()` in `list` rules.
@@ -124,9 +133,9 @@ service cloud.firestore {
         
         // Allow create if the user is a participant in the chat ID and is the sender.
         // This is safe for transactions where the parent chat document might not exist yet.
-        allow create: if isSignedIn() && request.auth.uid in chatId.split('_') && request.resource.data.senderId == request.auth.uid;
+        allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid && request.auth.uid in chatId.split('_');
         
-        // Disallow updates and deletes on messages for data integrity.
+        // Disallow updating or deleting messages for simplicity and integrity.
         allow update, delete: if false;
       }
     }

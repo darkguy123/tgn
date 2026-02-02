@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useWallet } from '@/hooks/useWallet';
 import { 
     ArrowDownLeft, ArrowUpRight, DollarSign, Plus, CreditCard, MoreHorizontal, 
-    Send, TrendingUp, TrendingDown, ClipboardCopy, Loader2, PartyPopper, Gift, Heart, User, Building, Landmark, ShieldCheck
+    Send, TrendingUp, TrendingDown, ClipboardCopy, Loader2, PartyPopper, Gift, Heart, User, Building, Landmark, ShieldCheck, ArrowLeft
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -270,6 +270,8 @@ const WalletPage = () => {
                 currency: 'USD',
                 description: `Withdrawal to ${bankName}`,
                 createdAt: serverTimestamp(),
+                memberId: user.uid,
+                bankDetails: { bankName, accountNumber }
             });
 
             toast({
