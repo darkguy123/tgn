@@ -81,7 +81,7 @@ service cloud.firestore {
     
     match /products/{productId} {
       allow read: if true; // Publicly readable marketplace
-      allow create: if isSignedIn(); // Any signed-in user can list a product
+      allow create: if isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid;
       // Only the seller or an admin can update/delete
       allow update, delete: if (isSignedIn() && resource.data.sellerMemberId == request.auth.uid) || isAdmin();
     }
@@ -101,7 +101,7 @@ service cloud.firestore {
     
     // --- CHAT & CONNECTIONS ---
     match /chats/{chatId} {
-      allow get: if isSignedIn() && chatId.split('_').includes(request.auth.uid);
+      allow get: if isSignedIn() && request.auth.uid in chatId.split('_');
       allow list: if isSignedIn(); // The client MUST use `where('members', 'array-contains', ...)`
       allow update: if isSignedIn() && request.auth.uid in resource.data.members;
       allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
@@ -110,7 +110,9 @@ service cloud.firestore {
         function isChatMember() {
           return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
         }
-        allow read: if isChatMember();
+        allow get: if isChatMember();
+        // Corrected rule: Use 'in' operator instead of 'includes' method
+        allow list: if isSignedIn() && request.auth.uid in chatId.split('_');
         allow create: if isChatMember() && request.resource.data.senderId == request.auth.uid;
         allow update, delete: if false;
       }
