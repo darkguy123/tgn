@@ -17,7 +17,7 @@ import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import type { Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, PlusCircle, PackageSearch, MoreVertical, Edit, Trash2, Megaphone } from 'lucide-react';
+import { ArrowLeft, PlusCircle, PackageSearch, MoreVertical, Edit, Trash2, Megaphone, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -26,6 +26,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
 
 export default function MyProductsPage() {
   const router = useRouter();
@@ -139,6 +141,13 @@ export default function MyProductsPage() {
                   {product.approvalStatus}
                 </Badge>
               </div>
+               {product.approvalStatus === 'rejected' && product.rejectionReason && (
+                <Alert variant="destructive" className="mt-4 text-xs">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle className="font-semibold">Rejection Reason</AlertTitle>
+                    <AlertDescription>{product.rejectionReason}</AlertDescription>
+                </Alert>
+              )}
             </CardContent>
           </Card>
         ))}

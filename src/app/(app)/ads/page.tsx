@@ -149,6 +149,9 @@ export default function AdsManagerPage() {
                                 } className={cn(campaign.status === 'active' && 'bg-green-600')}>
                                     {campaign.status}
                                 </Badge>
+                                {campaign.status === 'rejected' && campaign.rejectionReason && (
+                                  <p className="text-xs text-destructive mt-1 max-w-xs">{campaign.rejectionReason}</p>
+                                )}
                             </TableCell>
                             <TableCell>${campaign.budget.toFixed(2)}</TableCell>
                             <TableCell>${(campaign.amountSpent || 0).toFixed(2)}</TableCell>

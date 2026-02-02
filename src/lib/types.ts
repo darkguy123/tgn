@@ -67,6 +67,7 @@ export interface Product {
     sellerAvatarUrl: string; 
 
     approvalStatus: 'pending' | 'in_review' | 'approved' | 'rejected';
+    rejectionReason?: string;
     createdAt: any; 
 }
 
@@ -232,6 +233,7 @@ export interface Cause {
     currentAmount: number;
     backersCount?: number;
     status: 'pending' | 'approved' | 'rejected';
+    rejectionReason?: string;
     createdAt: any; // Allow Firestore ServerTimestamp
 }
 
@@ -291,5 +293,3 @@ declare global {
     hashCode(): number;
   }
 }
-
-    

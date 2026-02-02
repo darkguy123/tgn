@@ -1,5 +1,6 @@
 
 'use client';
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -22,7 +23,6 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  ExternalLink,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -39,6 +39,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function AdminFundraisePage() {
   const firestore = useFirestore();
@@ -46,11 +49,19 @@ export default function AdminFundraisePage() {
   const { data: fundraisers, isLoading, error } = useCollection<Cause>(fundraisersRef);
   const { toast } = useToast();
 
-  const handleUpdateStatus = (fundraiserId: string, status: 'approved' | 'rejected') => {
+  const [rejectionCause, setRejectionCause] = useState<Cause | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+
+  const handleUpdateStatus = (fundraiserId: string, status: 'approved' | 'rejected', reason?: string) => {
     if (!firestore) return;
     const fundraiserDocRef = doc(firestore, 'causes', fundraiserId);
     
-    updateDoc(fundraiserDocRef, { status })
+    const updateData: { status: 'approved' | 'rejected', rejectionReason?: string } = { status };
+    if (status === 'rejected' && reason) {
+      updateData.rejectionReason = reason;
+    }
+
+    updateDoc(fundraiserDocRef, updateData)
       .then(() => {
         toast({
           title: 'Fundraiser Updated',
@@ -71,6 +82,14 @@ export default function AdminFundraisePage() {
           description: 'You do not have permission to perform this action.',
         });
       });
+  };
+  
+  const handleConfirmRejection = () => {
+    if (rejectionCause) {
+        handleUpdateStatus(rejectionCause.id, 'rejected', rejectionReason);
+        setRejectionCause(null);
+        setRejectionReason('');
+    }
   };
 
   const renderTable = (filteredFundraisers: Cause[]) => (
@@ -122,7 +141,7 @@ export default function AdminFundraisePage() {
                     <DropdownMenuItem onClick={() => handleUpdateStatus(fundraiser.id, 'approved')}>
                       <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Approve
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleUpdateStatus(fundraiser.id, 'rejected')}>
+                    <DropdownMenuItem onClick={() => setRejectionCause(fundraiser)}>
                       <XCircle className="mr-2 h-4 w-4 text-red-500" /> Reject
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -147,55 +166,81 @@ export default function AdminFundraisePage() {
   const rejectedFundraisers = fundraisers?.filter(c => c.status === 'rejected') ?? [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Fundraiser Management</h1>
-          <p className="text-muted-foreground">
-            Review, approve, and manage all member-submitted fundraisers.
-          </p>
+    <>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Fundraiser Management</h1>
+            <p className="text-muted-foreground">
+              Review, approve, and manage all member-submitted fundraisers.
+            </p>
+          </div>
         </div>
+
+        <Card>
+          <CardContent className="p-0">
+            <Tabs defaultValue="pending">
+              <div className="px-6 pt-4">
+                  <TabsList>
+                  <TabsTrigger value="pending">
+                      <Clock className="mr-2 h-4 w-4" /> Pending ({pendingFundraisers.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="approved">
+                      <CheckCircle className="mr-2 h-4 w-4" /> Approved ({approvedFundraisers.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="rejected">
+                      <XCircle className="mr-2 h-4 w-4" /> Rejected ({rejectedFundraisers.length})
+                  </TabsTrigger>
+                  </TabsList>
+              </div>
+              
+              {isLoading && <div className="p-6">
+                  {Array.from({length: 5}).map((_, i) => <Skeleton key={i} className="h-12 w-full mt-2" />)}
+              </div>}
+
+              {error && <p className="p-6 text-destructive">Failed to load fundraisers.</p>}
+
+              {!isLoading && fundraisers && (
+                  <>
+                      <TabsContent value="pending" className="m-0">
+                          {renderTable(pendingFundraisers)}
+                      </TabsContent>
+                      <TabsContent value="approved" className="m-0">
+                          {renderTable(approvedFundraisers)}
+                      </TabsContent>
+                      <TabsContent value="rejected" className="m-0">
+                          {renderTable(rejectedFundraisers)}
+                      </TabsContent>
+                  </>
+              )}
+            </Tabs>
+          </CardContent>
+        </Card>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Tabs defaultValue="pending">
-            <div className="px-6 pt-4">
-                <TabsList>
-                <TabsTrigger value="pending">
-                    <Clock className="mr-2 h-4 w-4" /> Pending ({pendingFundraisers.length})
-                </TabsTrigger>
-                <TabsTrigger value="approved">
-                    <CheckCircle className="mr-2 h-4 w-4" /> Approved ({approvedFundraisers.length})
-                </TabsTrigger>
-                <TabsTrigger value="rejected">
-                    <XCircle className="mr-2 h-4 w-4" /> Rejected ({rejectedFundraisers.length})
-                </TabsTrigger>
-                </TabsList>
-            </div>
-            
-            {isLoading && <div className="p-6">
-                {Array.from({length: 5}).map((_, i) => <Skeleton key={i} className="h-12 w-full mt-2" />)}
-            </div>}
-
-            {error && <p className="p-6 text-destructive">Failed to load fundraisers.</p>}
-
-            {!isLoading && fundraisers && (
-                <>
-                    <TabsContent value="pending" className="m-0">
-                        {renderTable(pendingFundraisers)}
-                    </TabsContent>
-                    <TabsContent value="approved" className="m-0">
-                        {renderTable(approvedFundraisers)}
-                    </TabsContent>
-                    <TabsContent value="rejected" className="m-0">
-                        {renderTable(rejectedFundraisers)}
-                    </TabsContent>
-                </>
-            )}
-          </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+       <Dialog open={!!rejectionCause} onOpenChange={(isOpen) => !isOpen && setRejectionCause(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Fundraiser: {rejectionCause?.title}</DialogTitle>
+            <DialogDescription>
+                Please provide a reason for rejecting this fundraiser.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-2">
+            <Label htmlFor="rejectionReason" className="sr-only">Rejection Reason</Label>
+            <Textarea
+              id="rejectionReason"
+              placeholder="e.g., Fundraiser does not align with community guidelines."
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectionCause(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleConfirmRejection}>Confirm Rejection</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

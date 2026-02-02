@@ -174,6 +174,7 @@
         "sellerName": { "type": "string", "description": "Denormalized seller name." },
         "sellerAvatarUrl": { "type": "string", "description": "Denormalized seller avatar URL." },
         "approvalStatus": { "type": "string", "enum": ["pending", "in_review", "approved", "rejected"] },
+        "rejectionReason": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "name", "description", "price", "type", "imageUrl", "sellerMemberId", "sellerName", "approvalStatus", "createdAt"]
@@ -219,6 +220,7 @@
         "creatorMemberId": { "type": "string" },
         "name": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "in_review", "active", "paused", "rejected"] },
+        "rejectionReason": { "type": "string" },
         "budget": { "type": "number" }
       },
       "required": ["creatorMemberId", "name", "status", "budget"]
@@ -232,6 +234,7 @@
         "creatorMemberId": { "type": "string" },
         "title": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "rejectionReason": { "type": "string" },
         "goalAmount": { "type": "number" },
         "currentAmount": { "type": "number" }
       },

@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import Image from 'next/image';
 import {
   Card,
@@ -27,6 +28,9 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function AdminAdsPage() {
   const firestore = useFirestore();
@@ -34,11 +38,19 @@ export default function AdminAdsPage() {
   const { data: ads, isLoading, error } = useCollection<AdCampaign>(adsRef);
   const { toast } = useToast();
 
-  const handleUpdateStatus = (adId: string, status: 'active' | 'rejected') => {
+  const [rejectionAd, setRejectionAd] = useState<AdCampaign | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+
+  const handleUpdateStatus = (adId: string, status: 'active' | 'rejected', reason?: string) => {
     if (!firestore) return;
     const adDocRef = doc(firestore, 'ads', adId);
     
-    updateDoc(adDocRef, { status })
+    const updateData: { status: 'active' | 'rejected', rejectionReason?: string } = { status };
+    if (status === 'rejected') {
+        updateData.rejectionReason = reason;
+    }
+
+    updateDoc(adDocRef, updateData)
       .then(() => {
         toast({
           title: 'Ad Campaign Updated',
@@ -59,6 +71,14 @@ export default function AdminAdsPage() {
           description: 'You do not have permission to perform this action.',
         });
       });
+  };
+
+  const handleConfirmRejection = () => {
+    if (rejectionAd) {
+        handleUpdateStatus(rejectionAd.id, 'rejected', rejectionReason);
+        setRejectionAd(null);
+        setRejectionReason('');
+    }
   };
 
   const renderTable = (filteredAds: AdCampaign[]) => (
@@ -109,7 +129,7 @@ export default function AdminAdsPage() {
                   <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(ad.id, 'active')}>
                       <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Approve
                   </Button>
-                  <Button size="sm" variant="destructive" onClick={() => handleUpdateStatus(ad.id, 'rejected')}>
+                  <Button size="sm" variant="destructive" onClick={() => setRejectionAd(ad)}>
                       <XCircle className="mr-2 h-4 w-4" /> Reject
                   </Button>
                   </div>
@@ -136,55 +156,81 @@ export default function AdminAdsPage() {
   const rejectedAds = ads?.filter(c => c.status === 'rejected') ?? [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Ad Management</h1>
-          <p className="text-muted-foreground">
-            Review, approve, and manage all member-submitted ad campaigns.
-          </p>
+    <>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Ad Management</h1>
+            <p className="text-muted-foreground">
+              Review, approve, and manage all member-submitted ad campaigns.
+            </p>
+          </div>
         </div>
+
+        <Card>
+          <CardContent className="p-0">
+            <Tabs defaultValue="pending">
+              <div className="px-6 pt-4">
+                <TabsList>
+                  <TabsTrigger value="pending">
+                    <Clock className="mr-2 h-4 w-4" /> Pending ({pendingAds.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="active">
+                    <CheckCircle className="mr-2 h-4 w-4" /> Approved ({activeAds.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="rejected">
+                    <XCircle className="mr-2 h-4 w-4" /> Rejected ({rejectedAds.length})
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              {isLoading && <div className="p-6">
+                {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full mt-2" />)}
+              </div>}
+
+              {error && <p className="p-6 text-destructive">Failed to load ad campaigns.</p>}
+
+              {!isLoading && ads && (
+                <>
+                  <TabsContent value="pending" className="m-0">
+                    {renderTable(pendingAds)}
+                  </TabsContent>
+                  <TabsContent value="active" className="m-0">
+                    {renderTable(activeAds)}
+                  </TabsContent>
+                  <TabsContent value="rejected" className="m-0">
+                    {renderTable(rejectedAds)}
+                  </TabsContent>
+                </>
+              )}
+            </Tabs>
+          </CardContent>
+        </Card>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Tabs defaultValue="pending">
-            <div className="px-6 pt-4">
-              <TabsList>
-                <TabsTrigger value="pending">
-                  <Clock className="mr-2 h-4 w-4" /> Pending ({pendingAds.length})
-                </TabsTrigger>
-                <TabsTrigger value="active">
-                  <CheckCircle className="mr-2 h-4 w-4" /> Approved ({activeAds.length})
-                </TabsTrigger>
-                <TabsTrigger value="rejected">
-                  <XCircle className="mr-2 h-4 w-4" /> Rejected ({rejectedAds.length})
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
-            {isLoading && <div className="p-6">
-              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full mt-2" />)}
-            </div>}
-
-            {error && <p className="p-6 text-destructive">Failed to load ad campaigns.</p>}
-
-            {!isLoading && ads && (
-              <>
-                <TabsContent value="pending" className="m-0">
-                  {renderTable(pendingAds)}
-                </TabsContent>
-                <TabsContent value="active" className="m-0">
-                  {renderTable(activeAds)}
-                </TabsContent>
-                <TabsContent value="rejected" className="m-0">
-                  {renderTable(rejectedAds)}
-                </TabsContent>
-              </>
-            )}
-          </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+       <Dialog open={!!rejectionAd} onOpenChange={(isOpen) => !isOpen && setRejectionAd(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Ad: {rejectionAd?.name}</DialogTitle>
+            <DialogDescription>
+                Please provide a reason for rejecting this ad campaign.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-2">
+            <Label htmlFor="rejectionReason" className="sr-only">Rejection Reason</Label>
+            <Textarea
+              id="rejectionReason"
+              placeholder="e.g., Image quality is too low."
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectionAd(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleConfirmRejection}>Confirm Rejection</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

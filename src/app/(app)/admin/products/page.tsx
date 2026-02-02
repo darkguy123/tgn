@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -25,6 +26,9 @@ import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 
 export default function AdminProductsPage() {
@@ -32,12 +36,20 @@ export default function AdminProductsPage() {
   const productsRef = useMemoFirebase(() => (firestore ? collection(firestore, 'products') : null), [firestore]);
   const { data: products, isLoading, error } = useCollection<Product>(productsRef);
   const { toast } = useToast();
+  
+  const [rejectionProduct, setRejectionProduct] = useState<Product | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
 
-  const handleUpdateStatus = (productId: string, status: 'approved' | 'rejected') => {
+  const handleUpdateStatus = (productId: string, status: 'approved' | 'rejected', reason?: string) => {
     if (!firestore) return;
     const productDocRef = doc(firestore, 'products', productId);
     
-    updateDoc(productDocRef, { approvalStatus: status })
+    const updateData: { approvalStatus: 'approved' | 'rejected', rejectionReason?: string } = { approvalStatus: status };
+    if (status === 'rejected') {
+        updateData.rejectionReason = reason;
+    }
+
+    updateDoc(productDocRef, updateData)
       .then(() => {
         toast({
           title: 'Product Updated',
@@ -58,6 +70,14 @@ export default function AdminProductsPage() {
           description: 'Could not update the product status.',
         });
       });
+  };
+
+  const handleConfirmRejection = () => {
+    if (rejectionProduct) {
+        handleUpdateStatus(rejectionProduct.id, 'rejected', rejectionReason);
+        setRejectionProduct(null);
+        setRejectionReason('');
+    }
   };
 
   const renderTable = (filteredProducts: Product[]) => (
@@ -109,7 +129,7 @@ export default function AdminProductsPage() {
                                 <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(product.id, 'approved')}>
                                     <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Approve
                                 </Button>
-                                <Button size="sm" variant="destructive" onClick={() => handleUpdateStatus(product.id, 'rejected')}>
+                                <Button size="sm" variant="destructive" onClick={() => setRejectionProduct(product)}>
                                     <XCircle className="mr-2 h-4 w-4" /> Reject
                                 </Button>
                             </div>
@@ -134,55 +154,81 @@ export default function AdminProductsPage() {
   const rejectedProducts = products?.filter(c => c.approvalStatus === 'rejected') ?? [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Product Management</h1>
-          <p className="text-muted-foreground">
-            Review, approve, and manage all member-submitted products.
-          </p>
+    <>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Product Management</h1>
+            <p className="text-muted-foreground">
+              Review, approve, and manage all member-submitted products.
+            </p>
+          </div>
         </div>
+
+        <Card>
+          <CardContent className="p-0">
+            <Tabs defaultValue="pending">
+              <div className="px-6 pt-4">
+                  <TabsList>
+                  <TabsTrigger value="pending">
+                      <Clock className="mr-2 h-4 w-4" /> Pending ({pendingProducts.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="approved">
+                      <CheckCircle className="mr-2 h-4 w-4" /> Approved ({approvedProducts.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="rejected">
+                      <XCircle className="mr-2 h-4 w-4" /> Rejected ({rejectedProducts.length})
+                  </TabsTrigger>
+                  </TabsList>
+              </div>
+              
+              {isLoading && <div className="p-6">
+                  {Array.from({length: 5}).map((_, i) => <Skeleton key={i} className="h-16 w-full mt-2" />)}
+              </div>}
+
+              {error && <p className="p-6 text-destructive">Failed to load products.</p>}
+
+              {!isLoading && products && (
+                  <>
+                      <TabsContent value="pending" className="m-0">
+                          {renderTable(pendingProducts)}
+                      </TabsContent>
+                      <TabsContent value="approved" className="m-0">
+                          {renderTable(approvedProducts)}
+                      </TabsContent>
+                      <TabsContent value="rejected" className="m-0">
+                          {renderTable(rejectedProducts)}
+                      </TabsContent>
+                  </>
+              )}
+            </Tabs>
+          </CardContent>
+        </Card>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Tabs defaultValue="pending">
-            <div className="px-6 pt-4">
-                <TabsList>
-                <TabsTrigger value="pending">
-                    <Clock className="mr-2 h-4 w-4" /> Pending ({pendingProducts.length})
-                </TabsTrigger>
-                <TabsTrigger value="approved">
-                    <CheckCircle className="mr-2 h-4 w-4" /> Approved ({approvedProducts.length})
-                </TabsTrigger>
-                <TabsTrigger value="rejected">
-                    <XCircle className="mr-2 h-4 w-4" /> Rejected ({rejectedProducts.length})
-                </TabsTrigger>
-                </TabsList>
-            </div>
-            
-            {isLoading && <div className="p-6">
-                {Array.from({length: 5}).map((_, i) => <Skeleton key={i} className="h-16 w-full mt-2" />)}
-            </div>}
-
-            {error && <p className="p-6 text-destructive">Failed to load products.</p>}
-
-            {!isLoading && products && (
-                <>
-                    <TabsContent value="pending" className="m-0">
-                        {renderTable(pendingProducts)}
-                    </TabsContent>
-                    <TabsContent value="approved" className="m-0">
-                        {renderTable(approvedProducts)}
-                    </TabsContent>
-                    <TabsContent value="rejected" className="m-0">
-                        {renderTable(rejectedProducts)}
-                    </TabsContent>
-                </>
-            )}
-          </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+       <Dialog open={!!rejectionProduct} onOpenChange={(isOpen) => !isOpen && setRejectionProduct(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Product: {rejectionProduct?.name}</DialogTitle>
+            <DialogDescription>
+                Please provide a reason for rejecting this product. This will be shown to the seller.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-2">
+            <Label htmlFor="rejectionReason" className="sr-only">Rejection Reason</Label>
+            <Textarea
+              id="rejectionReason"
+              placeholder="e.g., Product image is not clear enough."
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectionProduct(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleConfirmRejection}>Confirm Rejection</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
