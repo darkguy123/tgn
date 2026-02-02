@@ -9,13 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Logo } from "@/components/icons";
-import { Briefcase, Target, Check, PartyPopper } from "lucide-react";
+import { Briefcase, Target, Check, PartyPopper, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sectors as SECTORS, goals as GOALS } from "@/lib/data";
 import { useUser, useFirestore } from "@/firebase";
-import { doc, serverTimestamp, addDoc, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
+import { doc, serverTimestamp, addDoc, collection, query, where, getDocs, writeBatch, setDoc } from "firebase/firestore";
 import { useMemberProfile } from "@/hooks/useMemberProfile";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 
 const getCommissionForLevel = (level: number) => {
     switch (level) {
@@ -34,9 +35,11 @@ const Onboarding = () => {
   const router = useRouter();
   const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [completed, setCompleted] = useState(false);
   const [tgnMemberId, setTgnMemberId] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { profile, isLoading: isProfileLoading } = useMemberProfile();
 
@@ -74,69 +77,77 @@ const Onboarding = () => {
       setStep(step + 1);
     } else {
        if (user && firestore) {
-        const newId = `TGN-2026-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-        const dataToSave = {
-            id: user.uid,
-            tgnMemberId: newId,
-            signInType: user.providerData[0]?.providerId || "password",
-            email: user.email,
-            locationContinent: 'Africa',
-            locationCountry: 'Nigeria',
-            locationRegion: '',
-            timezone: 'Africa/Lagos',
-            role: 'mentee' as const,
-            sectorPreferences: selectedSectors,
-            purpose: bio,
-            identityProfile: JSON.stringify({ goals: selectedGoals, interests: interests }),
-            createdAt: serverTimestamp(),
-            connections: [],
-            isVerifiedMentor: false,
-            hasTransactionPin: false,
-        };
-        const userDocRef = doc(firestore, "users", user.uid);
-        
-        // Use a transaction or batch for atomicity if possible, but complex reads make it hard.
-        // For now, we'll do sequential writes. A Cloud Function trigger would be ideal.
-        await setDoc(userDocRef, dataToSave, { merge: true });
-
-        const referrerUid = localStorage.getItem('tgn_referrer_uid');
-        if (referrerUid) {
-          const referralsCollection = collection(firestore, 'affiliate_referrals');
-          const batch = writeBatch(firestore);
-          let currentReferrerId: string | null = referrerUid;
-
-          for (let level = 1; level <= 7; level++) {
-            if (!currentReferrerId) break;
-
-            const commissionPercentage = getCommissionForLevel(level);
-
-            const referralData = {
-              referrerMemberId: currentReferrerId,
-              referredMemberId: user.uid,
-              level: level,
-              commissionPercentage: commissionPercentage,
-              createdAt: serverTimestamp(),
+        setIsSubmitting(true);
+        try {
+            const newId = `TGN-2026-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+            const dataToSave = {
+                id: user.uid,
+                tgnMemberId: newId,
+                signInType: user.providerData[0]?.providerId || "password",
+                email: user.email,
+                locationContinent: 'Africa',
+                locationCountry: 'Nigeria',
+                locationRegion: '',
+                timezone: 'Africa/Lagos',
+                role: 'mentee' as const,
+                sectorPreferences: selectedSectors,
+                purpose: bio,
+                identityProfile: JSON.stringify({ goals: selectedGoals, interests: interests }),
+                createdAt: serverTimestamp(),
+                connections: [],
+                isVerifiedMentor: false,
+                hasTransactionPin: false,
             };
-            const newReferralRef = doc(referralsCollection);
-            batch.set(newReferralRef, referralData);
+            const userDocRef = doc(firestore, "users", user.uid);
             
-            // This is slow, but necessary on the client-side without a backend function.
-            // Find the next referrer up the chain for the next iteration.
-            const q = query(referralsCollection, where('referredMemberId', '==', currentReferrerId), where('level', '==', 1));
-            const querySnapshot = await getDocs(q);
-            
-            if (!querySnapshot.empty) {
-                currentReferrerId = querySnapshot.docs[0].data().referrerMemberId;
-            } else {
-                currentReferrerId = null; // End of the chain
+            await setDoc(userDocRef, dataToSave, { merge: true });
+
+            const referrerUid = localStorage.getItem('tgn_referrer_uid');
+            if (referrerUid) {
+              const referralsCollection = collection(firestore, 'affiliate_referrals');
+              const batch = writeBatch(firestore);
+              let currentReferrerId: string | null = referrerUid;
+
+              for (let level = 1; level <= 7; level++) {
+                if (!currentReferrerId) break;
+
+                const commissionPercentage = getCommissionForLevel(level);
+
+                const referralData = {
+                  referrerMemberId: currentReferrerId,
+                  referredMemberId: user.uid,
+                  level: level,
+                  commissionPercentage: commissionPercentage,
+                  createdAt: serverTimestamp(),
+                };
+                const newReferralRef = doc(referralsCollection);
+                batch.set(newReferralRef, referralData);
+                
+                const q = query(referralsCollection, where('referredMemberId', '==', currentReferrerId), where('level', '==', 1));
+                const querySnapshot = await getDocs(q);
+                
+                if (!querySnapshot.empty) {
+                    currentReferrerId = querySnapshot.docs[0].data().referrerMemberId;
+                } else {
+                    currentReferrerId = null; 
+                }
+              }
+              await batch.commit();
+              localStorage.removeItem('tgn_referrer_uid');
             }
-          }
-          await batch.commit();
-          localStorage.removeItem('tgn_referrer_uid');
+            
+            setTgnMemberId(newId);
+            setCompleted(true);
+        } catch (error) {
+            console.error("Onboarding submission failed:", error);
+            toast({
+                variant: "destructive",
+                title: "Setup Failed",
+                description: "Could not save your profile. Please try again."
+            })
+        } finally {
+            setIsSubmitting(false);
         }
-        
-        setTgnMemberId(newId);
-        setCompleted(true);
       }
     }
   };
@@ -150,6 +161,7 @@ const Onboarding = () => {
     <Target key="2" className="h-5 w-5" />
   ];
   
+  // If loading, or if a profile already exists (which means we're about to redirect), show a loader.
   if (isProfileLoading || profile) {
     return (
         <div className="flex h-screen w-screen items-center justify-center">
@@ -335,17 +347,23 @@ const Onboarding = () => {
                 className="w-full"
                 onClick={handleNext}
                 disabled={
+                  isSubmitting ||
                   (step === 1 && selectedSectors.length === 0) ||
                   (step === 2 && !bio)
                 }
               >
-                {step === 2 ? "Complete Setup" : "Continue"}
+                {isSubmitting ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  step === 2 ? "Complete Setup" : "Continue"
+                )}
               </Button>
               {step > 1 && (
                 <Button 
                   variant="ghost" 
                   className="w-full mt-2"
                   onClick={() => setStep(step - 1)}
+                  disabled={isSubmitting}
                 >
                   Back
                 </Button>
