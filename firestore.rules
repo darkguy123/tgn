@@ -121,6 +121,7 @@ service cloud.firestore {
         // Helper to check if the user is a member of the parent chat.
         function isParentChatMember() {
           return isSignedIn() && 
+                 exists(/databases/$(database)/documents/chats/$(chatId)) &&
                  request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
         }
         
@@ -131,8 +132,11 @@ service cloud.firestore {
         // This is necessary because `get()` is not allowed in `list` rules.
         allow list: if isSignedIn() && request.auth.uid in chatId.split('_');
         
-        // Allow create as before
-        allow create: if isParentChatMember() && request.resource.data.senderId == request.auth.uid;
+        // Allow create if user is the sender AND is a participant based on chatId.
+        // This avoids get() which fails in transactions when parent doc doesn't exist yet.
+        allow create: if isSignedIn() && 
+                        request.resource.data.senderId == request.auth.uid &&
+                        request.auth.uid in chatId.split('_');
         
         // Disallow updating or deleting messages for simplicity and integrity.
         allow update, delete: if false;
