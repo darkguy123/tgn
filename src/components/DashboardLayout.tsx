@@ -202,9 +202,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="w-64 p-0">
-                  <SheetHeader className="sr-only">
-                    <SheetTitle>Navigation Menu</SheetTitle>
-                    <SheetDescription>
+                  <SheetHeader>
+                    <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                    <SheetDescription className="sr-only">
                       Main menu for navigating the application.
                     </SheetDescription>
                   </SheetHeader>

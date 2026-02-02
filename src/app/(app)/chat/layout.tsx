@@ -13,21 +13,6 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
-// Extends String prototype for a stable sort fallback if it doesn't exist
-if (typeof (String.prototype as any).hashCode !== 'function') {
-  (String.prototype as any).hashCode = function() {
-    var hash = 0, i, chr;
-    if (this.length === 0) return hash;
-    for (i = 0; i < this.length; i++) {
-      chr   = this.charCodeAt(i);
-      hash  = ((hash << 5) - hash) + chr;
-      hash |= 0; // Convert to 32bit integer
-    }
-    return hash;
-  };
-}
-
-
 function ChatListItem({ chat, isActive }: { chat: Chat, isActive: boolean }) {
   const { user: currentUser } = useUser();
   const firestore = useFirestore();
@@ -178,5 +163,4 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
         </div>
     );
 }
-
     
