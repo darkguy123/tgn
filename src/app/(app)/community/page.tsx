@@ -26,21 +26,24 @@ import {
   ShoppingBag,
   Loader2,
   Heart,
+  Bookmark,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import type { Post } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AdPlacement } from '@/components/AdPlacement';
 import { FileUpload } from '@/components/ui/file-upload';
 import { PostCard } from '@/components/community/PostCard';
+import { useSearchParams } from 'next/navigation';
 
 const communityNavItems = [
   { label: 'Feed', icon: LayoutGrid, path: '/community' },
+  { label: 'Bookmarks', icon: Bookmark, path: '/community?tab=saved' },
   { label: 'Directory', icon: Users, path: '/directory' },
   { label: 'Events', icon: Calendar, path: '/community/events' },
   { label: 'Marketplace', icon: ShoppingBag, path: '/marketplace' },
@@ -103,7 +106,8 @@ function CreatePostDialog({ open, onOpenChange, startWithMedia }: { open: boolea
       authorName: profile.name || profile.email.split('@')[0],
       authorAvatarUrl: profile.avatarUrl || '',
       authorRole: profile.role,
-      likes: 0,
+      likes: [],
+      savedBy: [],
       commentsCount: 0,
       createdAt: serverTimestamp(),
       media: mediaUrl ? [{ url: mediaUrl, type: mediaType }] : [],
@@ -195,16 +199,24 @@ export default function CommunityPage() {
   const [isPostDialogOpen, setPostDialogOpen] = useState(false);
   const [startWithMedia, setStartWithMedia] = useState(false);
   const firestore = useFirestore();
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'all';
 
   const postsQuery = useMemoFirebase(() =>
     firestore ? query(collection(firestore, 'posts'), orderBy('createdAt', 'desc')) : null,
     [firestore]
   );
   
+  const savedPostsQuery = useMemoFirebase(() =>
+    firestore && profile ? query(collection(firestore, 'posts'), where('savedBy', 'array-contains', profile.id), orderBy('createdAt', 'desc')) : null,
+    [firestore, profile]
+  );
+  
   const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
+  const { data: savedPosts, isLoading: savedPostsLoading } = useCollection<Post>(savedPostsQuery);
 
-  const renderPosts = (postList: Post[] | null) => {
-    if (postsLoading) {
+  const renderPosts = (postList: Post[] | null, isLoading: boolean, emptyState: React.ReactNode) => {
+    if (isLoading) {
       return Array.from({ length: 2 }).map((_, i) => (
         <Card key={i}>
           <CardContent className="p-4">
@@ -224,18 +236,30 @@ export default function CommunityPage() {
     }
 
     if (!postList || postList.length === 0) {
-      return (
-        <Card>
-          <CardContent className="p-10 text-center text-muted-foreground">
-            <p>No posts to show right now.</p>
-            <p>Be the first one to share something!</p>
-          </CardContent>
-        </Card>
-      );
+      return emptyState;
     }
 
     return postList.map(post => <PostCard key={post.id} post={post} />);
   };
+  
+  const allPostsEmptyState = (
+      <Card>
+        <CardContent className="p-10 text-center text-muted-foreground">
+          <p>No posts to show right now.</p>
+          <p>Be the first one to share something!</p>
+        </CardContent>
+      </Card>
+  );
+
+  const savedPostsEmptyState = (
+      <Card>
+        <CardContent className="p-10 text-center text-muted-foreground">
+            <Bookmark className="mx-auto h-12 w-12 text-muted-foreground" />
+            <h3 className="mt-4 text-lg font-medium">No Saved Posts</h3>
+            <p className="mt-1 text-sm">You haven't saved any posts yet. Use the bookmark icon to save posts for later.</p>
+        </CardContent>
+      </Card>
+  );
 
   const mentorsOnlyPosts = posts?.filter(post => post.authorRole.includes('mentor'));
 
@@ -266,7 +290,7 @@ export default function CommunityPage() {
                 {communityNavItems.map(item => (
                   <Button
                     key={item.label}
-                    variant={item.label === 'Feed' ? 'secondary' : 'ghost'}
+                    variant={item.path === '/community' && defaultTab === 'all' ? 'secondary' : item.path.includes(defaultTab) ? 'secondary' : 'ghost'}
                     className="justify-start gap-3"
                     asChild
                   >
@@ -318,16 +342,20 @@ export default function CommunityPage() {
                 </div>
               </Card>
 
-              <Tabs defaultValue="all" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 bg-muted/80">
-                <TabsTrigger value="all">All Members</TabsTrigger>
-                <TabsTrigger value="mentors">Mentors Only</TabsTrigger>
+              <Tabs defaultValue={defaultTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-3 bg-muted/80">
+                  <TabsTrigger value="all">All Members</TabsTrigger>
+                  <TabsTrigger value="mentors">Mentors Only</TabsTrigger>
+                  <TabsTrigger value="saved">Saved</TabsTrigger>
                 </TabsList>
                 <TabsContent value="all" className="mt-6 space-y-6">
-                {renderPosts(posts)}
+                  {renderPosts(posts, postsLoading, allPostsEmptyState)}
                 </TabsContent>
                 <TabsContent value="mentors" className="mt-6 space-y-6">
-                {renderPosts(mentorsOnlyPosts || null)}
+                  {renderPosts(mentorsOnlyPosts || null, postsLoading, allPostsEmptyState)}
+                </TabsContent>
+                 <TabsContent value="saved" className="mt-6 space-y-6">
+                  {renderPosts(savedPosts, savedPostsLoading, savedPostsEmptyState)}
                 </TabsContent>
               </Tabs>
             </main>
