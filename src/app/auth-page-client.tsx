@@ -1,8 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import ReCAPTCHA from 'react-google-recaptcha';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,12 +18,29 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { sendPasswordResetEmail } from 'firebase/auth';
 
+const signInSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email." }),
+  password: z.string().min(1, { message: "Password is required." }),
+});
+
+const signUpSchema = z.object({
+    email: z.string().email({ message: "Please enter a valid email." }),
+    password: z
+        .string()
+        .min(8, { message: "Password must be at least 8 characters long." })
+        .regex(/[A-Z]/, { message: "Password must contain at least one uppercase letter." })
+        .regex(/[a-z]/, { message: "Password must contain at least one lowercase letter." })
+        .regex(/[0-9]/, { message: "Password must contain at least one number." })
+        .regex(/[^A-Za-z0-9]/, { message: "Password must contain at least one special character." }),
+});
+
+
 const AuthPageClient = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [isForgotPassDialogOpen, setForgotPassDialogOpen] = useState(false);
@@ -30,6 +51,11 @@ const AuthPageClient = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+
+  const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof signUpSchema>>({
+    resolver: zodResolver(isSignUp ? signUpSchema : signInSchema),
+    mode: 'onTouched',
+  });
 
   useEffect(() => {
     const ref = searchParams.get('ref');
@@ -76,12 +102,22 @@ const AuthPageClient = () => {
     });
   }
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleEmailSubmit = async (data: z.infer<typeof signUpSchema>) => {
     if (isSignUp) {
-      initiateEmailSignUp(auth, email, password, handleAuthError);
+      const token = await recaptchaRef.current?.executeAsync();
+      if (!token) {
+        toast({
+          variant: "destructive",
+          title: "CAPTCHA required",
+          description: "Please complete the CAPTCHA to continue.",
+        });
+        return;
+      }
+      initiateEmailSignUp(auth, data.email, data.password, handleAuthError);
+      recaptchaRef.current?.reset();
+
     } else {
-      initiateEmailSignIn(auth, email, password, handleAuthError);
+      initiateEmailSignIn(auth, data.email, data.password, handleAuthError);
     }
   };
 
@@ -169,10 +205,16 @@ const AuthPageClient = () => {
                 </Button>
               </div>
             ) : (
-              <form onSubmit={handleEmailSubmit} className="mt-8 space-y-6">
+              <form onSubmit={handleSubmit(handleEmailSubmit)} className="mt-8 space-y-4">
+                <ReCAPTCHA
+                    ref={recaptchaRef}
+                    size="invisible"
+                    sitekey="6LcJlF0sAAAAABAyv_Bma2qYK5qCLobDFGFRO_kL"
+                />
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required className="h-12 text-base"/>
+                  <Input id="email" type="email" placeholder="you@example.com" {...register("email")} required className="h-12 text-base"/>
+                   {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
@@ -180,9 +222,8 @@ const AuthPageClient = () => {
                     <Input 
                       id="password" 
                       type={showPassword ? 'text' : 'password'} 
-                      placeholder="••••••••" 
-                      value={password} 
-                      onChange={e => setPassword(e.target.value)} 
+                      placeholder="••••••••"
+                      {...register("password")}
                       required 
                       className="h-12 text-base pr-10"
                     />
@@ -194,6 +235,7 @@ const AuthPageClient = () => {
                         {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                   </div>
+                   {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
                 </div>
                 
                 <div className="flex items-center justify-between">
