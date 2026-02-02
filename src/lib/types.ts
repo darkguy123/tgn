@@ -81,8 +81,9 @@ export type Program = {
   price?: number;
   imageId: string;
   description: string;
-  format: 'Live' | 'Pre-recorded' | 'Self-paced' | 'Hybrid';
+  format: 'Physical' | 'Live' | 'Pre-recorded';
   type: 'Free' | 'Paid' | 'Executive';
+  location?: string;
   googleMeetUrl?: string;
   preRecordedVideoUrl?: string;
   createdAt: any;

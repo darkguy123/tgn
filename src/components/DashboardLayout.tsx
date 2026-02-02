@@ -139,7 +139,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   
   const isAdmin = isUserAdmin(profile);
   const isAdminPage = pathname.startsWith('/admin');
-  const navItems = isAdminPage ? ADMIN_NAV_ITEMS : NAV_ITEMS;
+  const navItems = isAdminPage ? ADMIN_NAV_ITEMS : NAV_ITEMS.filter(item => item.id !== 'upload-test');
 
 
   return (

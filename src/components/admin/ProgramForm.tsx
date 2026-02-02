@@ -24,13 +24,15 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { Program } from '@/lib/types';
 import { useRouter } from 'next/navigation';
+import { FileUpload } from '../ui/file-upload';
+import { useUser } from '@/firebase';
 
 const programSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
   description: z.string().min(10, 'Description is required'),
   mentor: z.string().min(2, 'Mentor name is required'),
   type: z.enum(['Free', 'Paid', 'Executive']),
-  format: z.enum(['Live', 'Pre-recorded', 'Self-paced', 'Hybrid']),
+  format: z.enum(['Physical', 'Live', 'Pre-recorded']),
   price: z.preprocess(
     a => (a === '' ? undefined : parseFloat(String(a))),
     z.number().optional()
@@ -46,8 +48,27 @@ const programSchema = z.object({
   ),
   certified: z.boolean().default(false),
   imageId: z.string().min(1, 'Image ID is required'),
+  location: z.string().optional(),
   googleMeetUrl: z.string().url("Please enter a valid URL.").optional().or(z.literal('')),
   preRecordedVideoUrl: z.string().url("Please enter a valid URL.").optional().or(z.literal('')),
+}).refine(data => {
+    if (data.format === 'Physical') return !!data.location && data.location.length > 0;
+    return true;
+}, {
+    message: "Location is required for physical programs.",
+    path: ["location"],
+}).refine(data => {
+    if (data.format === 'Live') return !!data.googleMeetUrl && data.googleMeetUrl.length > 0;
+    return true;
+}, {
+    message: "A meeting URL is required for live programs.",
+    path: ["googleMeetUrl"],
+}).refine(data => {
+    if (data.format === 'Pre-recorded') return !!data.preRecordedVideoUrl && data.preRecordedVideoUrl.length > 0;
+    return true;
+}, {
+    message: "A video URL is required for pre-recorded programs.",
+    path: ["preRecordedVideoUrl"],
 });
 
 export type ProgramFormData = z.infer<typeof programSchema>;
@@ -59,10 +80,13 @@ interface ProgramFormProps {
 
 export function ProgramForm({ initialData, onSave }: ProgramFormProps) {
   const router = useRouter();
+  const { user } = useUser();
   const {
     register,
     handleSubmit,
     control,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ProgramFormData>({
     resolver: zodResolver(programSchema),
@@ -71,8 +95,12 @@ export function ProgramForm({ initialData, onSave }: ProgramFormProps) {
       price: initialData?.price ?? undefined,
       googleMeetUrl: initialData?.googleMeetUrl ?? '',
       preRecordedVideoUrl: initialData?.preRecordedVideoUrl ?? '',
+      location: initialData?.location ?? '',
     },
   });
+
+  const watchedFormat = watch('format');
+  const watchedPreRecordedVideoUrl = watch('preRecordedVideoUrl');
 
   const onSubmit = async (data: ProgramFormData) => {
     await onSave(data);
@@ -153,15 +181,70 @@ export function ProgramForm({ initialData, onSave }: ProgramFormProps) {
                     <SelectValue placeholder="Select program format" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="Physical">Physical</SelectItem>
                     <SelectItem value="Live">Live</SelectItem>
                     <SelectItem value="Pre-recorded">Pre-recorded</SelectItem>
-                    <SelectItem value="Self-paced">Self-paced</SelectItem>
-                    <SelectItem value="Hybrid">Hybrid</SelectItem>
                   </SelectContent>
                 </Select>
               )}
             />
           </div>
+
+          {watchedFormat === 'Physical' && (
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <Input id="location" {...register('location')} placeholder="e.g., Lagos, Nigeria" />
+              {errors.location && (
+                <p className="text-sm text-destructive">{errors.location.message}</p>
+              )}
+            </div>
+          )}
+
+          {watchedFormat === 'Live' && (
+             <div className="space-y-2">
+                <Label htmlFor="googleMeetUrl">Live Session URL</Label>
+                <Input
+                id="googleMeetUrl"
+                type="url"
+                {...register('googleMeetUrl')}
+                placeholder="https://meet.google.com/..."
+                />
+                {errors.googleMeetUrl && (
+                <p className="text-sm text-destructive">{errors.googleMeetUrl.message}</p>
+                )}
+            </div>
+          )}
+
+          {watchedFormat === 'Pre-recorded' && (
+            <>
+              {user && (
+                <div className="md:col-span-2 space-y-2">
+                  <Label>Upload Video</Label>
+                  <FileUpload
+                    value={watchedPreRecordedVideoUrl}
+                    onUploadComplete={(url) => setValue('preRecordedVideoUrl', url, { shouldDirty: true })}
+                    userId={user.uid}
+                    accept={{ 'video/mp4': [], 'video/quicktime': [], 'video/webm': [] }}
+                    label="Upload video file (MP4, MOV, WebM)"
+                    storagePath="private"
+                  />
+                  <p className="text-sm text-muted-foreground text-center">Or paste a URL below</p>
+                </div>
+              )}
+              <div className="md:col-span-2 space-y-2">
+                <Label htmlFor="preRecordedVideoUrl">Pre-recorded Video URL</Label>
+                <Input
+                  id="preRecordedVideoUrl"
+                  type="url"
+                  {...register('preRecordedVideoUrl')}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                />
+                {errors.preRecordedVideoUrl && (
+                  <p className="text-sm text-destructive">{errors.preRecordedVideoUrl.message}</p>
+                )}
+              </div>
+            </>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="price">Price (USD)</Label>
@@ -201,32 +284,6 @@ export function ProgramForm({ initialData, onSave }: ProgramFormProps) {
             )}
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="googleMeetUrl">Google Meet URL</Label>
-            <Input
-              id="googleMeetUrl"
-              type="url"
-              {...register('googleMeetUrl')}
-              placeholder="https://meet.google.com/..."
-            />
-            {errors.googleMeetUrl && (
-              <p className="text-sm text-destructive">{errors.googleMeetUrl.message}</p>
-            )}
-          </div>
-
-          <div className="md:col-span-2 space-y-2">
-            <Label htmlFor="preRecordedVideoUrl">Pre-recorded Video URL</Label>
-            <Input
-              id="preRecordedVideoUrl"
-              type="url"
-              {...register('preRecordedVideoUrl')}
-              placeholder="https://www.youtube.com/watch?v=..."
-            />
-            {errors.preRecordedVideoUrl && (
-              <p className="text-sm text-destructive">{errors.preRecordedVideoUrl.message}</p>
-            )}
-          </div>
-
           <div className="flex items-center space-x-2 pt-4">
              <Controller
               name="certified"

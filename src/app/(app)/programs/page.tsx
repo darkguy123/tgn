@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Clock, Users, Award,
   ChevronRight, Star, Calendar, ArrowLeft,
-  BookCheck, Circle, CheckCircle, GraduationCap, Video, Book, Wallet, Loader2, PartyPopper
+  BookCheck, Circle, CheckCircle, GraduationCap, Video, Book, Wallet, Loader2, PartyPopper, MapPin
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, doc, runTransaction, serverTimestamp, increment, addDoc, getDocs } from 'firebase/firestore';
@@ -213,7 +213,16 @@ const ProgramsPage = () => {
                   </TabsList>
 
                   <TabsContent value="overview" className="space-y-4">
-                    {selectedProgram.preRecordedVideoUrl && (selectedProgram.format === 'Pre-recorded' || selectedProgram.format === 'Hybrid') && (
+                    {selectedProgram.format === 'Physical' && selectedProgram.location && (
+                      <div className="p-4 bg-muted/50 rounded-lg flex items-center gap-3">
+                        <MapPin className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">Location</p>
+                          <p className="font-semibold text-foreground">{selectedProgram.location}</p>
+                        </div>
+                      </div>
+                    )}
+                    {selectedProgram.preRecordedVideoUrl && (selectedProgram.format === 'Pre-recorded') && (
                         <div className="aspect-video w-full rounded-lg overflow-hidden border bg-muted">
                             <iframe
                                 className="w-full h-full"
@@ -299,7 +308,7 @@ const ProgramsPage = () => {
                 <Button variant="accent" className="w-full mb-3" size="lg" onClick={handleEnrollClick}>
                   Enroll Now
                 </Button>
-                {(selectedProgram.format === 'Live' || selectedProgram.format === 'Hybrid') && selectedProgram.googleMeetUrl && (
+                {(selectedProgram.format === 'Live') && selectedProgram.googleMeetUrl && (
                   <Button asChild variant="default" className="w-full mb-3" size="lg">
                     <a href={selectedProgram.googleMeetUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
                         <Video className="mr-2 h-5 w-5" />

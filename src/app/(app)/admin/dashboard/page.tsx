@@ -89,11 +89,11 @@ export default function AdminDashboardPage() {
                     <p className="text-xs text-muted-foreground">Review sponsored ads</p>
                 </div>
             </Button>
-             <Button variant="outline" size="lg" className="h-20 justify-start" onClick={() => {}}>
+             <Button variant="outline" size="lg" className="h-20 justify-start" onClick={() => router.push('/admin/withdrawals')}>
                 <DollarSign className="mr-4 h-6 w-6" />
                 <div className="text-left">
                     <p className="font-semibold">Withdrawal Requests</p>
-                    <p className="text-xs text-muted-foreground">Process member withdrawals (coming soon)</p>
+                    <p className="text-xs text-muted-foreground">Process member withdrawals</p>
                 </div>
             </Button>
         </CardContent>
