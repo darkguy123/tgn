@@ -288,7 +288,16 @@
           "type": "array",
           "items": { "type": "object", "properties": { "url": { "type": "string" }, "type": { "type": "string" } } }
         },
-        "likes": { "type": "number" },
+        "likes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "An array of user UIDs who liked the post."
+        },
+        "savedBy": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "An array of user UIDs who have saved/bookmarked the post."
+        },
         "commentsCount": { "type": "number" },
         "createdAt": { "type": "string", "format": "date-time" }
       },

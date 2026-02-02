@@ -107,7 +107,8 @@ export type Post = {
   authorRole: string;
   content: string;
   media?: { url: string; type: string }[];
-  likes: number;
+  likes: string[];
+  savedBy?: string[];
   commentsCount: number;
   createdAt: any; // Firestore Timestamp
 };

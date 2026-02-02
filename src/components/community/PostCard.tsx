@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -16,8 +17,8 @@ import Image from 'next/image';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { Separator } from '@/components/ui/separator';
 import type { Post, Comment as CommentType } from '@/lib/types';
-import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query, orderBy, updateDoc, doc, increment } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError, useUser } from '@/firebase';
+import { collection, addDoc, serverTimestamp, query, orderBy, updateDoc, doc, increment, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -26,6 +27,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 function PostComments({ post }: { post: Post }) {
   const { profile } = useMemberProfile();
@@ -119,20 +121,55 @@ function PostComments({ post }: { post: Post }) {
 
 export function PostCard({ post }: { post: Post }) {
   const firestore = useFirestore();
+  const { user: currentUser } = useUser();
+  const { toast } = useToast();
+
+  const isLiked = useMemo(() => post.likes?.includes(currentUser?.uid ?? ''), [post.likes, currentUser]);
+  const isSaved = useMemo(() => post.savedBy?.includes(currentUser?.uid ?? ''), [post.savedBy, currentUser]);
 
   const handleLike = () => {
-    if (!firestore) return;
+    if (!firestore || !currentUser) {
+        toast({ variant: 'destructive', title: 'You must be logged in to like posts.'});
+        return;
+    };
     const postRef = doc(firestore, 'posts', post.id);
-    // Non-blocking update for likes
-    updateDoc(postRef, { likes: increment(1) })
+    const payload = {
+        likes: isLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid)
+    };
+
+    updateDoc(postRef, payload)
       .catch((error) => {
         console.error("Error liking post: ", error);
         const permissionError = new FirestorePermissionError({
             path: postRef.path,
             operation: 'update',
-            requestResourceData: { likes: increment(1) }
+            requestResourceData: { likes: 'update' } 
         });
         errorEmitter.emit('permission-error', permissionError);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not update like.' });
+      });
+  };
+
+  const handleBookmark = () => {
+    if (!firestore || !currentUser) {
+        toast({ variant: 'destructive', title: 'You must be logged in to save posts.'});
+        return;
+    };
+    const postRef = doc(firestore, 'posts', post.id);
+    const payload = {
+        savedBy: isSaved ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid)
+    };
+
+    updateDoc(postRef, payload)
+      .catch((error) => {
+        console.error("Error saving post: ", error);
+        const permissionError = new FirestorePermissionError({
+            path: postRef.path,
+            operation: 'update',
+            requestResourceData: { savedBy: 'update' }
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not save post.' });
       });
   };
 
@@ -180,10 +217,10 @@ export function PostCard({ post }: { post: Post }) {
         <Collapsible>
             <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
                 <div className="flex items-center gap-1">
-                    {post.likes > 0 && (
+                    {(post.likes?.length || 0) > 0 && (
                         <>
                         <ThumbsUp className="h-4 w-4 text-blue-500" />
-                        <span>{Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(post.likes || 0)}</span>
+                        <span>{Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(post.likes.length || 0)}</span>
                         </>
                     )}
                 </div>
@@ -194,7 +231,7 @@ export function PostCard({ post }: { post: Post }) {
             <Separator className="mb-2" />
             <div className="flex justify-around">
                  <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground" onClick={handleLike}>
-                    <ThumbsUp className="h-5 w-5" /> Like
+                    <ThumbsUp className={cn("h-5 w-5", isLiked && "fill-blue-500 text-blue-500")} /> Like
                 </Button>
                 <CollapsibleTrigger asChild>
                     <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground">
@@ -204,8 +241,8 @@ export function PostCard({ post }: { post: Post }) {
                 <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground">
                     <Share2 className="h-5 w-5" /> Share
                 </Button>
-                <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground">
-                    <Bookmark className="h-5 w-5" /> Save
+                <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground" onClick={handleBookmark}>
+                    <Bookmark className={cn("h-5 w-5", isSaved && "fill-yellow-400 text-yellow-400")} /> Save
                 </Button>
             </div>
             <CollapsibleContent>
@@ -216,3 +253,5 @@ export function PostCard({ post }: { post: Post }) {
     </Card>
   );
 }
+
+    
