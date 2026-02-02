@@ -1,49 +1,86 @@
 'use client';
 
 import { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, Users, Briefcase, BookOpen, Heart, DollarSign } from 'lucide-react';
+import { Download, Users, Briefcase, BookOpen, DollarSign } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { subMonths, format } from 'date-fns';
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
-
-// Mock Data to prevent overloading the connection
-const mockStats = {
-  totalMembers: 1250,
-  activeMentors: 150,
-  totalPrograms: 45,
-  totalRaised: 52340,
-};
-
-const mockMemberGrowthData = [
-    { name: 'Jan', users: 150 },
-    { name: 'Feb', users: 220 },
-    { name: 'Mar', users: 300 },
-    { name: 'Apr', users: 280 },
-    { name: 'May', users: 450 },
-    { name: 'Jun', users: 600 },
-];
-
-const mockProgramPopularityData = [
-    { name: 'Intro to AI', enrolled: 120 },
-    { name: 'Leadership 101', enrolled: 95 },
-    { name: 'Startup Scaling', enrolled: 80 },
-    { name: 'Digital Marketing', enrolled: 150 },
-    { name: 'Personal Branding', enrolled: 70 },
-];
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import type { TGNMember, Program, Cause } from '@/lib/types';
 
 
 export default function AdminAnalyticsPage() {
-  // All firebase fetching logic is removed to prevent network errors.
-  const isLoading = false; // We are not loading live data anymore.
+  const firestore = useFirestore();
 
-  // Use mock data
-  const stats = mockStats;
-  const memberGrowthData = mockMemberGrowthData;
-  const programPopularityData = mockProgramPopularityData;
+  // Queries
+  const usersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const programsRef = useMemoFirebase(() => collection(firestore, 'programs'), [firestore]);
+  const causesRef = useMemoFirebase(() => collection(firestore, 'causes'), [firestore]);
+
+  // Data fetching
+  const { data: members, isLoading: membersLoading } = useCollection<TGNMember>(usersRef);
+  const { data: programs, isLoading: programsLoading } = useCollection<Program>(programsRef);
+  const { data: causes, isLoading: causesLoading } = useCollection<Cause>(causesRef);
+
+  const isLoading = membersLoading || programsLoading || causesLoading;
+
+  const stats = useMemo(() => {
+    if (isLoading || !members || !programs || !causes) {
+      return {
+        totalMembers: 0,
+        activeMentors: 0,
+        totalPrograms: 0,
+        totalRaised: 0,
+      };
+    }
+    return {
+      totalMembers: members.length,
+      activeMentors: members.filter(m => m.isVerifiedMentor).length,
+      totalPrograms: programs.length,
+      totalRaised: causes.reduce((acc, cause) => acc + cause.currentAmount, 0),
+    };
+  }, [isLoading, members, programs, causes]);
+
+  const memberGrowthData = useMemo(() => {
+    if (!members) return [];
+    const now = new Date();
+    
+    const monthlyCounts: { [key: string]: number } = {};
+
+    // Initialize the last 6 months
+    for (let i = 5; i >= 0; i--) {
+        const month = format(subMonths(now, i), 'MMM');
+        monthlyCounts[month] = 0;
+    }
+
+    members.forEach(member => {
+        if (member.createdAt?.toDate) {
+            const createdAtDate = member.createdAt.toDate();
+            // Check if the member was created within the last 6 months
+            if (createdAtDate >= subMonths(now, 6)) {
+                const month = format(createdAtDate, 'MMM');
+                if (monthlyCounts.hasOwnProperty(month)) {
+                    monthlyCounts[month]++;
+                }
+            }
+        }
+    });
+    
+    return Object.entries(monthlyCounts).map(([name, users]) => ({ name, users }));
+
+  }, [members]);
+
+  const programPopularityData = useMemo(() => {
+    if (!programs) return [];
+    return programs
+      .map(p => ({ name: p.title, enrolled: p.enrolled || 0 }))
+      .sort((a, b) => b.enrolled - a.enrolled)
+      .slice(0, 5); // Top 5
+  }, [programs]);
+
 
   return (
     <div className="space-y-6">
@@ -76,7 +113,7 @@ export default function AdminAnalyticsPage() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <p className="text-4xl font-bold">{stats.totalMembers}</p>
+                <p className="text-4xl font-bold">{stats.totalMembers.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground">All registered users.</p>
               </CardContent>
             </Card>
@@ -86,7 +123,7 @@ export default function AdminAnalyticsPage() {
                 <Briefcase className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <p className="text-4xl font-bold">{stats.activeMentors}</p>
+                <p className="text-4xl font-bold">{stats.activeMentors.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground">Verified and active mentors.</p>
               </CardContent>
             </Card>
@@ -96,7 +133,7 @@ export default function AdminAnalyticsPage() {
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <p className="text-4xl font-bold">{stats.totalPrograms}</p>
+                <p className="text-4xl font-bold">{stats.totalPrograms.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground">Live & self-paced courses.</p>
               </CardContent>
             </Card>
@@ -128,7 +165,7 @@ export default function AdminAnalyticsPage() {
                             <YAxis />
                             <Tooltip />
                             <Legend />
-                            <Line type="monotone" dataKey="users" stroke="#8884d8" activeDot={{ r: 8 }} />
+                            <Line type="monotone" dataKey="users" stroke="hsl(var(--primary))" activeDot={{ r: 8 }} />
                         </LineChart>
                     </ResponsiveContainer>
                 </CardContent>
@@ -136,7 +173,7 @@ export default function AdminAnalyticsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Program Popularity</CardTitle>
-                    <CardDescription>Number of enrolled members per program.</CardDescription>
+                    <CardDescription>Top 5 programs by enrollment.</CardDescription>
                 </CardHeader>
                 <CardContent>
                      <ResponsiveContainer width="100%" height={300}>
@@ -146,7 +183,7 @@ export default function AdminAnalyticsPage() {
                             <YAxis />
                             <Tooltip />
                             <Legend />
-                            <Bar dataKey="enrolled" fill="#82ca9d" />
+                            <Bar dataKey="enrolled" fill="hsl(var(--primary))" />
                         </BarChart>
                     </ResponsiveContainer>
                 </CardContent>

@@ -25,7 +25,6 @@ import {
   LayoutGrid,
   Network,
   Menu,
-  UploadCloud,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -68,7 +67,6 @@ const NAV_ITEMS = [
   { id: 'referrals', label: 'Referrals', icon: Share2, path: '/referrals' },
   { id: 'wallet', label: 'Wallet', icon: Wallet, path: '/wallet' },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/settings/profile' },
-  { id: 'upload-test', label: 'Upload Test', icon: UploadCloud, path: '/upload-test' },
 ];
 
 interface DashboardLayoutProps {
