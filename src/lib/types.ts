@@ -81,7 +81,7 @@ export type Program = {
   price?: number;
   imageId: string;
   description: string;
-  format: 'Physical' | 'Live' | 'Pre-recorded';
+  format: 'Physical' | 'Live' | 'Pre-recorded' | 'Hybrid';
   type: 'Free' | 'Paid' | 'Executive';
   location?: string;
   googleMeetUrl?: string;
@@ -290,3 +290,5 @@ declare global {
     hashCode(): number;
   }
 }
+
+    

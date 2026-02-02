@@ -32,7 +32,7 @@ const programSchema = z.object({
   description: z.string().min(10, 'Description is required'),
   mentor: z.string().min(2, 'Mentor name is required'),
   type: z.enum(['Free', 'Paid', 'Executive']),
-  format: z.enum(['Physical', 'Live', 'Pre-recorded']),
+  format: z.enum(['Physical', 'Live', 'Pre-recorded', 'Hybrid']),
   price: z.preprocess(
     a => (a === '' ? undefined : parseFloat(String(a))),
     z.number().optional()
@@ -51,24 +51,28 @@ const programSchema = z.object({
   location: z.string().optional(),
   googleMeetUrl: z.string().url("Please enter a valid URL.").optional().or(z.literal('')),
   preRecordedVideoUrl: z.string().url("Please enter a valid URL.").optional().or(z.literal('')),
-}).refine(data => {
-    if (data.format === 'Physical') return !!data.location && data.location.length > 0;
-    return true;
-}, {
-    message: "Location is required for physical programs.",
-    path: ["location"],
-}).refine(data => {
-    if (data.format === 'Live') return !!data.googleMeetUrl && data.googleMeetUrl.length > 0;
-    return true;
-}, {
-    message: "A meeting URL is required for live programs.",
-    path: ["googleMeetUrl"],
-}).refine(data => {
-    if (data.format === 'Pre-recorded') return !!data.preRecordedVideoUrl && data.preRecordedVideoUrl.length > 0;
-    return true;
-}, {
-    message: "A video URL is required for pre-recorded programs.",
-    path: ["preRecordedVideoUrl"],
+}).superRefine((data, ctx) => {
+    if ((data.format === 'Physical' || data.format === 'Hybrid') && (!data.location || data.location.trim() === '')) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Location is required for Physical or Hybrid programs.",
+            path: ["location"],
+        });
+    }
+    if ((data.format === 'Live' || data.format === 'Hybrid') && (!data.googleMeetUrl || data.googleMeetUrl.trim() === '')) {
+         ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "A meeting URL is required for Live or Hybrid programs.",
+            path: ["googleMeetUrl"],
+        });
+    }
+    if (data.format === 'Pre-recorded' && (!data.preRecordedVideoUrl || data.preRecordedVideoUrl.trim() === '')) {
+         ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "A video URL is required for pre-recorded programs.",
+            path: ["preRecordedVideoUrl"],
+        });
+    }
 });
 
 export type ProgramFormData = z.infer<typeof programSchema>;
@@ -184,13 +188,14 @@ export function ProgramForm({ initialData, onSave }: ProgramFormProps) {
                     <SelectItem value="Physical">Physical</SelectItem>
                     <SelectItem value="Live">Live</SelectItem>
                     <SelectItem value="Pre-recorded">Pre-recorded</SelectItem>
+                    <SelectItem value="Hybrid">Hybrid</SelectItem>
                   </SelectContent>
                 </Select>
               )}
             />
           </div>
 
-          {watchedFormat === 'Physical' && (
+          {(watchedFormat === 'Physical' || watchedFormat === 'Hybrid') && (
             <div className="space-y-2">
               <Label htmlFor="location">Location</Label>
               <Input id="location" {...register('location')} placeholder="e.g., Lagos, Nigeria" />
@@ -200,7 +205,7 @@ export function ProgramForm({ initialData, onSave }: ProgramFormProps) {
             </div>
           )}
 
-          {watchedFormat === 'Live' && (
+          {(watchedFormat === 'Live' || watchedFormat === 'Hybrid') && (
              <div className="space-y-2">
                 <Label htmlFor="googleMeetUrl">Live Session URL</Label>
                 <Input
@@ -315,3 +320,5 @@ export function ProgramForm({ initialData, onSave }: ProgramFormProps) {
     </form>
   );
 }
+
+    
