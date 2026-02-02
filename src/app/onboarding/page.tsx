@@ -36,18 +36,56 @@ const Onboarding = () => {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [step, setStep] = useState(1);
+  
+  const [step, setStep] = useState<number>(() => {
+    if (typeof window === 'undefined') return 1;
+    const savedStep = localStorage.getItem('onboardingStep');
+    return savedStep ? parseInt(savedStep, 10) : 1;
+  });
+
   const [completed, setCompleted] = useState(false);
   const [tgnMemberId, setTgnMemberId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { profile, isLoading: isProfileLoading } = useMemberProfile();
 
-  // Form state
-  const [selectedSectors, setSelectedSectors] = useState<string[]>([]);
-  const [bio, setBio] = useState("");
-  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
-  const [interests, setInterests] = useState("");
+  // Form state, initialized from localStorage
+  const [selectedSectors, setSelectedSectors] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    const saved = localStorage.getItem('onboardingSectors');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [bio, setBio] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem('onboardingBio') || '';
+  });
+  const [selectedGoals, setSelectedGoals] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    const saved = localStorage.getItem('onboardingGoals');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [interests, setInterests] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem('onboardingInterests') || '';
+  });
+
+  // Effects to persist state to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') localStorage.setItem('onboardingStep', step.toString());
+  }, [step]);
+  useEffect(() => {
+    if (typeof window !== 'undefined') localStorage.setItem('onboardingSectors', JSON.stringify(selectedSectors));
+  }, [selectedSectors]);
+  useEffect(() => {
+    if (typeof window !== 'undefined') localStorage.setItem('onboardingBio', bio);
+  }, [bio]);
+  useEffect(() => {
+    if (typeof window !== 'undefined') localStorage.setItem('onboardingGoals', JSON.stringify(selectedGoals));
+  }, [selectedGoals]);
+  useEffect(() => {
+    if (typeof window !== 'undefined') localStorage.setItem('onboardingInterests', interests);
+  }, [interests]);
+
 
   useEffect(() => {
     if (!isProfileLoading && profile) {
@@ -138,6 +176,14 @@ const Onboarding = () => {
             
             setTgnMemberId(newId);
             setCompleted(true);
+            
+            // Clear localStorage on successful completion
+            localStorage.removeItem('onboardingStep');
+            localStorage.removeItem('onboardingSectors');
+            localStorage.removeItem('onboardingBio');
+            localStorage.removeItem('onboardingGoals');
+            localStorage.removeItem('onboardingInterests');
+
         } catch (error) {
             console.error("Onboarding submission failed:", error);
             toast({
