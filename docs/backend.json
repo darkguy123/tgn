@@ -65,6 +65,7 @@
         "faceScanFrontUrl": { "type": "string", "format": "uri" },
         "faceScanLeftUrl": { "type": "string", "format": "uri" },
         "faceScanRightUrl": { "type": "string", "format": "uri" },
+        "faceScanSmileUrl": { "type": "string", "format": "uri" },
         "submittedAt": { "type": "string", "format": "date-time" },
         "reviewedAt": { "type": "string", "format": "date-time" },
         "rejectionReason": { "type": "string" }
@@ -174,6 +175,7 @@
         "sellerName": { "type": "string", "description": "Denormalized seller name." },
         "sellerAvatarUrl": { "type": "string", "description": "Denormalized seller avatar URL." },
         "approvalStatus": { "type": "string", "enum": ["pending", "in_review", "approved", "rejected"] },
+        "rejectionReason": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "name", "description", "price", "type", "imageUrl", "sellerMemberId", "sellerName", "approvalStatus", "createdAt"]
@@ -219,6 +221,7 @@
         "creatorMemberId": { "type": "string" },
         "name": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "in_review", "active", "paused", "rejected"] },
+        "rejectionReason": { "type": "string" },
         "budget": { "type": "number" }
       },
       "required": ["creatorMemberId", "name", "status", "budget"]
@@ -232,6 +235,7 @@
         "creatorMemberId": { "type": "string" },
         "title": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "rejectionReason": { "type": "string" },
         "goalAmount": { "type": "number" },
         "currentAmount": { "type": "number" }
       },
@@ -444,5 +448,3 @@
     "reasoning": "This Firestore structure is designed to support the Transcend Global Network Hub application, focusing on secure and scalable data access based on the core design principles outlined. The design emphasizes Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), QAPs (Rules are not Filters) and Invariants.\\n\\n**Authorization Independence:**\\n\\n*   The design avoids hierarchical authorization dependencies (`get()`). Access control relies primarily on the user's `uid` and roles stored directly within the documents or in dedicated role collections, enabling atomic operations.\\n\\n**Structural Segregation:**\\n\\n*   Different data types with different access requirements are stored in separate collections. Private user data is kept under `/users/{userId}`, while more public or collaborative data (e.g., events, products) reside in top-level collections with membership maps for access control.\\n\\n**Access Modeling:**\\n\\n*   **Private Data:** User-specific data (e.g., mentee verification, mentor certification, affiliate earnings) is stored under `/users/{userId}` for path-based ownership.\\n*   **Collaborative Data (Products):** Products use the `products` collection, with the `sellerId` field for identifying the seller. Although seemingly violating authorization independence, this is acceptable as ownership is directly on the document. Read access can be public, but writes must be restricted to the seller.\\n*   **Global Roles (DBAC):** The design doesn't explicitly use global roles stored in collections like `/roles_admin/{uid}` in this iteration, but this can be added if needed for administrative functions. The current structure relies on user-specific data and collaborative data.\\n\\n**QAPs (Rules are not Filters):**\\n\\n*   The structure supports secure list operations by segregating data with different access requirements into different collections. For example, only authenticated users can list members via `/members` (requiring proper security rules for filtering based on some public attribute), while private member details are protected under `/users/{userId}`.\\n\\n*Denormalization Strategy:*\\nAccess control is made independent by denormalizing access related data. In the /products collection, the `sellerId` property holds the uid of the document's owner. This allows security rules to make access decisions based solely on the contents of the document, without needing to perform costly and brittle `get()` calls to parent or related documents."
   }
 }
-
-    

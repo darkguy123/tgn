@@ -49,6 +49,7 @@ export interface MentorKYC {
   faceScanFrontUrl?: string;
   faceScanLeftUrl?: string;
   faceScanRightUrl?: string;
+  faceScanSmileUrl?: string;
   submittedAt: any; // Firestore Timestamp
   reviewedAt?: any; // Firestore Timestamp
   rejectionReason?: string;
@@ -285,11 +286,4 @@ export interface FriendRequest {
     recipientId: string;
     status: 'pending' | 'accepted' | 'declined';
     createdAt: any; // Firestore Timestamp
-}
-
-// This allows us to add a new function to the String prototype in a type-safe way.
-declare global {
-  interface String {
-    hashCode(): number;
-  }
 }

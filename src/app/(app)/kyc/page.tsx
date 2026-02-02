@@ -33,7 +33,7 @@ export default function KycPage() {
   const { toast } = useToast();
 
   const [isScanning, setIsScanning] = useState(false);
-  const [scanCompleted, setScanCompleted] = useState(false);
+  const [scanResults, setScanResults] = useState<Record<string, string> | null>(null);
   
   const [avatarUrl, setAvatarUrl] = useState('');
   const [certificateUrl, setCertificateUrl] = useState('');
@@ -60,7 +60,7 @@ export default function KycPage() {
       return;
     }
     
-    if (!scanCompleted) {
+    if (!scanResults) {
         toast({ variant: 'destructive', title: 'Facial Scan Required', description: 'Please complete the facial scan before submitting.' });
         return;
     }
@@ -72,15 +72,13 @@ export default function KycPage() {
 
     const dataToSave = {
       ...data,
+      ...scanResults,
       avatarUrl,
       certificateUrl,
       degreeUrl,
       memberId: user.uid,
       status: 'pending' as const,
       submittedAt: serverTimestamp(),
-      faceScanFrontUrl: 'simulated_url/face_front.jpg',
-      faceScanLeftUrl: 'simulated_url/face_left.jpg',
-      faceScanRightUrl: 'simulated_url/face_right.jpg',
     };
 
     setDoc(kycDocRef, dataToSave, { merge: true })
@@ -120,10 +118,10 @@ export default function KycPage() {
   if (isScanning) {
     return (
         <FacialScan 
-            onComplete={() => {
-                setScanCompleted(true);
+            onComplete={(results) => {
+                setScanResults(results);
                 setIsScanning(false);
-                toast({ title: "Scan Complete!", description: "Your facial scan has been captured." });
+                toast({ title: "Scan Complete!", description: "Your facial scans have been captured." });
             }}
             onCancel={() => setIsScanning(false)}
         />
@@ -240,7 +238,7 @@ export default function KycPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                {scanCompleted ? (
+                {scanResults ? (
                     <div className="flex items-center gap-3 p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-700">
                         <CheckCircle className="h-6 w-6" />
                         <div>

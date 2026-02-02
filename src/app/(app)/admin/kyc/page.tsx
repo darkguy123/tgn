@@ -23,6 +23,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -142,6 +143,12 @@ export default function AdminKycPage() {
                             <ExternalLink className="mr-2 h-4 w-4" /> View Degree
                         </a>
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Facial Scans</DropdownMenuLabel>
+                    {kyc.faceScanFrontUrl && <DropdownMenuItem asChild><a href={kyc.faceScanFrontUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="mr-2 h-4 w-4" /> View Front Face</a></DropdownMenuItem>}
+                    {kyc.faceScanLeftUrl && <DropdownMenuItem asChild><a href={kyc.faceScanLeftUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="mr-2 h-4 w-4" /> View Left Face</a></DropdownMenuItem>}
+                    {kyc.faceScanRightUrl && <DropdownMenuItem asChild><a href={kyc.faceScanRightUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="mr-2 h-4 w-4" /> View Right Face</a></DropdownMenuItem>}
+                    {kyc.faceScanSmileUrl && <DropdownMenuItem asChild><a href={kyc.faceScanSmileUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="mr-2 h-4 w-4" /> View Smile</a></DropdownMenuItem>}
                 </DropdownMenuContent>
               </DropdownMenu>
             </TableCell>

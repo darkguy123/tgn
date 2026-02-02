@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Briefcase, Edit, Send, Award, ShoppingBag, MessageSquare } from 'lucide-react';
+import { MapPin, Briefcase, Edit, Send, Award, ShoppingBag, MessageSquare, ShieldCheck } from 'lucide-react';
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, doc, orderBy } from 'firebase/firestore';
 import type { TGNMember, Product, Post } from '@/lib/types';
@@ -125,12 +125,18 @@ export default function MemberProfilePage() {
             />
           <div className="relative">
             <div className="p-6 pt-20 flex flex-col md:flex-row justify-between items-start">
-                <div>
-                  <h1 className="text-2xl font-bold">{name}</h1>
-                  <p className="text-muted-foreground capitalize">{role}</p>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                    <MapPin className="h-4 w-4" />
-                    <span>{location}</span>
+                <div className="flex items-center gap-4">
+                  <Avatar className="absolute -top-16 left-6 h-32 w-32 rounded-full border-4 border-card">
+                    <AvatarImage src={member.avatarUrl} alt={name} />
+                    <AvatarFallback className="text-4xl">{avatarFallback}</AvatarFallback>
+                  </Avatar>
+                  <div className="pt-16 md:pt-0">
+                    <h1 className="text-2xl font-bold">{name}</h1>
+                    <p className="text-muted-foreground capitalize">{role}</p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                      <MapPin className="h-4 w-4" />
+                      <span>{location}</span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mt-4 md:mt-0 shrink-0">
@@ -145,10 +151,6 @@ export default function MemberProfilePage() {
                     )}
                 </div>
             </div>
-             <Avatar className="absolute -top-16 left-6 h-32 w-32 rounded-full border-4 border-card">
-              <AvatarImage src={member.avatarUrl} alt={name} />
-              <AvatarFallback className="text-4xl">{avatarFallback}</AvatarFallback>
-            </Avatar>
           </div>
         </Card>
 
@@ -182,6 +184,17 @@ export default function MemberProfilePage() {
       </main>
 
       <aside className="lg:col-span-1 space-y-6 lg:sticky lg:top-24">
+         {member.isVerifiedMentor && (
+            <Card className="bg-blue-500/10 border-blue-500/20">
+                <CardContent className="p-4 flex items-center gap-3">
+                    <ShieldCheck className="h-8 w-8 text-blue-500" />
+                    <div>
+                        <h4 className="font-semibold text-blue-800 dark:text-blue-300">Verified Mentor</h4>
+                        <p className="text-xs text-blue-700/80 dark:text-blue-400">This member has been verified by the TGN team.</p>
+                    </div>
+                </CardContent>
+            </Card>
+        )}
         {member.sectorPreferences && member.sectorPreferences.length > 0 && (
             <Card>
                 <CardHeader><CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" />Sectors</CardTitle></CardHeader>
@@ -200,7 +213,6 @@ export default function MemberProfilePage() {
                 </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
-                {member.isVerifiedMentor && <Badge variant="secondary">Verified Mentor</Badge>}
                 <Badge variant="outline">Early Adopter</Badge>
             </CardContent>
         </Card>
