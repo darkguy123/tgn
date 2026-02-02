@@ -102,8 +102,9 @@ service cloud.firestore {
     
     // --- CHAT & CONNECTIONS ---
     match /chats/{chatId} {
-      // A user can read a chat document if their UID is in the `members` array.
-      allow get: if isSignedIn() && request.auth.uid in resource.data.members;
+      // A user can read a chat document if their UID is in the chatId.
+      // This rule works for non-existent documents because it does not access `resource.data`.
+      allow get: if isSignedIn() && request.auth.uid in chatId.split('_');
 
       // A user can list chats they are a member of.
       // The client MUST use a `where('members', 'array-contains', request.auth.uid)` clause.
@@ -128,7 +129,7 @@ service cloud.firestore {
         
         // Allow LIST for queries, using a non-blocking check against the chatId format.
         // This is necessary because `get()` is not allowed in `list` rules.
-        allow list: if isSignedIn() && chatId.matches('.*' + request.auth.uid + '.*');
+        allow list: if isSignedIn() && request.auth.uid in chatId.split('_');
         
         // Allow create as before
         allow create: if isParentChatMember() && request.resource.data.senderId == request.auth.uid;
