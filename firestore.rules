@@ -112,7 +112,8 @@ service cloud.firestore {
           return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
         }
         allow get: if isChatMember();
-        allow list: if isSignedIn() && chatId.split('_').includes(request.auth.uid);
+        // Corrected rule: Use 'in' operator instead of 'includes' method
+        allow list: if isSignedIn() && request.auth.uid in chatId.split('_');
         allow create: if isChatMember() && request.resource.data.senderId == request.auth.uid;
         allow update, delete: if false;
       }
