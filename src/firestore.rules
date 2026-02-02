@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -101,38 +102,31 @@ service cloud.firestore {
     
     // --- CHAT & CONNECTIONS ---
     match /chats/{chatId} {
-      // A user can read a chat document if their UID is in the chatId.
+      // Allow a user to GET a chat document only if they are a participant.
+      // This works even if the document doesn't exist yet, which is crucial for starting new chats.
       allow get: if isSignedIn() && request.auth.uid in chatId.split('_');
-
-      // A user can list chats they are a member of.
-      // The client MUST use a `where('members', 'array-contains', request.auth.uid)` clause.
+      
+      // Allow a user to LIST chats. The client query MUST secure this by filtering
+      // on the 'members' array, e.g., `where('members', 'array-contains', request.auth.uid)`.
       allow list: if isSignedIn();
       
-      // A member can update a chat (e.g., lastMessage, typing indicator).
-      allow update: if isSignedIn() && request.auth.uid in resource.data.members;
-      
-      // A user can create a chat if they are including themselves in the members list.
+      // Allow a user to CREATE a chat document if they include themselves in the `members` array.
       allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
+      
+      // Allow a user to UPDATE a chat (e.g., for lastMessage, typing) only if they are already a member.
+      allow update: if isSignedIn() && request.auth.uid in resource.data.members;
 
-      // --- MESSAGES SUBCOLLECTION ---
+      // --- Messages Subcollection ---
       match /messages/{messageId} {
-        // Helper to check if the user is a member of the parent chat.
-        function isParentChatMember() {
-          return isSignedIn() && 
-                 request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
-        }
+        // Allow read if user is a participant based on the chat ID.
+        // This works for both `get` and `list` and avoids using `get()` in `list` rules.
+        allow read: if isSignedIn() && request.auth.uid in chatId.split('_');
         
-        // Allow GET for single messages, using the more secure check.
-        allow get: if isParentChatMember();
+        // Allow create if the user is a participant in the chat ID and is the sender.
+        // This is safe for transactions where the parent chat document might not exist yet.
+        allow create: if isSignedIn() && request.auth.uid in chatId.split('_') && request.resource.data.senderId == request.auth.uid;
         
-        // Allow LIST for queries, using a non-blocking check against the chatId format.
-        // This is necessary because `get()` is not allowed in `list` rules.
-        allow list: if isSignedIn() && request.auth.uid in chatId.split('_');
-        
-        // Allow create as before
-        allow create: if isParentChatMember() && request.resource.data.senderId == request.auth.uid;
-        
-        // Disallow updating or deleting messages for simplicity and integrity.
+        // Disallow updates and deletes on messages for data integrity.
         allow update, delete: if false;
       }
     }
