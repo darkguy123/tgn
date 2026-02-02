@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import ReCAPTCHA from 'react-google-recaptcha';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,8 +39,6 @@ const AuthPageClient = () => {
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
-  const recaptchaRef = useRef<ReCAPTCHA>(null);
-
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [isForgotPassDialogOpen, setForgotPassDialogOpen] = useState(false);
   const [isSendingResetLink, setIsSendingResetLink] = useState(false);
@@ -102,18 +99,7 @@ const AuthPageClient = () => {
 
   const handleEmailSubmit = async (data: z.infer<typeof signUpSchema>) => {
     if (isSignUp) {
-      const token = await recaptchaRef.current?.executeAsync();
-      if (!token) {
-        toast({
-          variant: "destructive",
-          title: "CAPTCHA required",
-          description: "Please complete the CAPTCHA to continue.",
-        });
-        return;
-      }
       initiateEmailSignUp(auth, data.email, data.password, (err) => handleAuthError(err, data.email));
-      recaptchaRef.current?.reset();
-
     } else {
       initiateEmailSignIn(auth, data.email, data.password, (err) => handleAuthError(err, data.email));
     }
@@ -205,11 +191,6 @@ const AuthPageClient = () => {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit(handleEmailSubmit)} className="mt-8 space-y-4">
-                  <ReCAPTCHA
-                      ref={recaptchaRef}
-                      size="invisible"
-                      sitekey="6LcJlF0sAAAAABAyv_Bma2qYK5qCLobDFGFRO_kL"
-                  />
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input id="email" type="email" placeholder="you@example.com" {...register("email")} required className="h-12 text-base"/>
