@@ -27,8 +27,8 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { useMentorCertification } from '@/hooks/useMentorCertification';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collection, query, where } from 'firebase/firestore';
-import type { TGNMember, Program, Product, Event, Sector } from '@/lib/types';
+import { collection, query, where, documentId } from 'firebase/firestore';
+import type { TGNMember, Program, Product, Event, Sector, EnrolledProgram } from '@/lib/types';
 import { getRecommendations, type RecommendationResult } from '@/app/actions';
 
 export function MenteeDashboard() {
@@ -39,30 +39,57 @@ export function MenteeDashboard() {
   const router = useRouter();
   const firestore = useFirestore();
 
-  // --- Data fetching for recommendations ---
+  // --- Data fetching for recommendations and stats ---
   const programsCollectionRef = useMemoFirebase(() => query(collection(firestore, 'programs'), where('deactivatedAt', '==', null)), [firestore]);
   const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const sectorsCollectionRef = useMemoFirebase(() => collection(firestore, 'sectors'), [firestore]);
   const productsCollectionRef = useMemoFirebase(() => query(collection(firestore, 'products'), where('approvalStatus', '==', 'approved')), [firestore]);
   const eventsCollectionRef = useMemoFirebase(() => query(collection(firestore, 'events'), where('deactivatedAt', '==', null)), [firestore]);
+  
+  const enrolledProgramsQuery = useMemoFirebase(
+    () => user ? collection(firestore, 'users', user.uid, 'enrolled_programs') : null,
+    [firestore, user]
+  );
 
+  const connectionIds = useMemo(() => profile?.connections || [], [profile]);
+  const connectionsQuery = useMemoFirebase(
+    () => (firestore && connectionIds.length > 0)
+      ? query(collection(firestore, 'users'), where(documentId(), 'in', connectionIds))
+      : null,
+    [connectionIds, firestore]
+  );
+  
   const { data: allPrograms, isLoading: programsLoading } = useCollection<Program>(programsCollectionRef);
   const { data: allMembers, isLoading: membersLoading } = useCollection<TGNMember>(usersCollectionRef);
   const { data: allSectors, isLoading: sectorsLoading } = useCollection<Sector>(sectorsCollectionRef);
   const { data: allProducts, isLoading: productsLoading } = useCollection<Product>(productsCollectionRef);
   const { data: allEvents, isLoading: eventsLoading } = useCollection<Event>(eventsCollectionRef);
+  const { data: enrolledPrograms, isLoading: programsEnrolledLoading } = useCollection<EnrolledProgram>(enrolledProgramsQuery);
+  const { data: connections, isLoading: connectionsLoading } = useCollection<TGNMember>(connectionsQuery);
   
   const [recommendations, setRecommendations] = useState<RecommendationResult | { error: string } | null>(null);
   const [isLoadingRecs, setIsLoadingRecs] = useState(true);
 
+  // --- Stat Calculations ---
+  const enrolledProgramsCount = enrolledPrograms?.length || 0;
+  const mentorCount = useMemo(() => {
+    if (!connections) return 0;
+    return connections.filter(c => c.role.includes('mentor')).length;
+  }, [connections]);
+  
+  const programIds = useMemo(() => enrolledPrograms?.map(e => e.id) || [], [enrolledPrograms]);
+  const myProgramsQuery = useMemoFirebase(
+    () => (firestore && programIds.length > 0) ? query(collection(firestore, 'programs'), where(documentId(), 'in', programIds)) : null,
+    [firestore, programIds]
+  );
+  const { data: myPrograms, isLoading: myProgramsLoading } = useCollection<Program>(myProgramsQuery);
+
   const dataForRecsIsLoading = isProfileLoading || programsLoading || membersLoading || sectorsLoading || productsLoading || eventsLoading;
 
   useEffect(() => {
-    // Only run if we have all the data and haven't fetched recommendations yet.
     if (!dataForRecsIsLoading && profile && allPrograms && allMembers && allProducts && allEvents && allSectors) {
       if(recommendations === null) {
         setIsLoadingRecs(true);
-        // Manually serialize the data to remove Firestore Timestamps before sending to the server action.
         const serializableProfile = JSON.parse(JSON.stringify(profile));
         const serializableMembers = JSON.parse(JSON.stringify(allMembers));
         const serializablePrograms = JSON.parse(JSON.stringify(allPrograms));
@@ -82,7 +109,7 @@ export function MenteeDashboard() {
             .finally(() => setIsLoadingRecs(false));
       }
     } else if (!dataForRecsIsLoading && !profile) {
-        setIsLoadingRecs(false); // Stop loading if there's no profile to work with
+        setIsLoadingRecs(false);
     }
   }, [dataForRecsIsLoading, profile, allPrograms, allMembers, allProducts, allEvents, allSectors, recommendations]);
 
@@ -147,8 +174,8 @@ export function MenteeDashboard() {
             </CardContent>
           </Card>
         )}
-        <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Courses</p><p className="text-2xl font-bold text-foreground">0</p></div><BookOpen className="h-8 w-8 text-primary" /></div></CardContent></Card>
-        <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Mentors</p><p className="text-2xl font-bold text-foreground">0</p></div><Users className="h-8 w-8 text-primary" /></div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Courses</p><p className="text-2xl font-bold text-foreground">{programsEnrolledLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : enrolledProgramsCount}</p></div><BookOpen className="h-8 w-8 text-primary" /></div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Mentors</p><p className="text-2xl font-bold text-foreground">{connectionsLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : mentorCount}</p></div><Users className="h-8 w-8 text-primary" /></div></CardContent></Card>
         <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Wallet</p><p className="text-2xl font-bold text-foreground">$0</p></div><Wallet className="h-8 w-8 text-accent" /></div></CardContent></Card>
       </div>
 
@@ -160,9 +187,30 @@ export function MenteeDashboard() {
                 <CardTitle className="text-lg">My Courses</CardTitle>
                 <CardDescription>View progress • Resume learning</CardDescription>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => router.push('/marketplace')}><ChevronRight className="h-4 w-4 ml-1" /></Button>
+              <Button variant="ghost" size="sm" onClick={() => router.push('/cohorts')}><ChevronRight className="h-4 w-4 ml-1" /></Button>
             </CardHeader>
-            <CardContent><div className="text-center text-muted-foreground p-6"><p>Your enrolled courses will appear here.</p></div></CardContent>
+            <CardContent>
+              {myProgramsLoading ? (
+                 <div className="space-y-2 p-2">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : myPrograms && myPrograms.length > 0 ? (
+                 <div className="space-y-2">
+                  {myPrograms.slice(0, 2).map(program => (
+                    <div key={program.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
+                      <p className="font-medium">{program.title}</p>
+                      <Button variant="ghost" size="sm" onClick={() => router.push('/programs')}>View</Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-muted-foreground p-6">
+                  <p>Your enrolled courses will appear here.</p>
+                  <Button onClick={() => router.push('/programs')} className="mt-4" variant="outline">Explore Programs</Button>
+                </div>
+              )}
+            </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
