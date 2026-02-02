@@ -26,6 +26,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
 import { ToastAction } from '@/components/ui/toast';
+import { EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 
 const profileSettingsSchema = z.object({
   name: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -51,6 +52,7 @@ const cardSchema = z.object({
 type CardFormData = z.infer<typeof cardSchema>;
 
 const pinSchema = z.object({
+  currentPassword: z.string().optional(),
   pin: z.string().length(4, "PIN must be 4 digits.").regex(/^\d{4}$/, "PIN must be 4 digits."),
   confirmPin: z.string().length(4, "PIN must be 4 digits."),
 }).refine(data => data.pin === data.confirmPin, {
@@ -253,7 +255,7 @@ const SettingsPage = () => {
   };
   
   const handleRemoveCard = async (cardId: string) => {
-    if (!user) return;
+    if (!user || !firestore) return;
     const cardDocRef = doc(firestore, 'users', user.uid, 'cards', cardId);
     try {
         await deleteDoc(cardDocRef);
@@ -290,16 +292,45 @@ const SettingsPage = () => {
     }
   };
 
-  const handleSetPin = async (data: PinFormData) => {
-    if (!user || !firestore) return;
+  const handlePinSubmitForm = async (data: PinFormData) => {
+    if (!user || !firestore || !user.email) {
+      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
+      return;
+    }
+
+    // If user already has a PIN, we must re-authenticate them first.
+    if (profile?.hasTransactionPin) {
+        if (!data.currentPassword) {
+            toast({ variant: 'destructive', title: 'Password Required', description: 'Please enter your current password to change your PIN.' });
+            return;
+        }
+
+        try {
+            const credential = EmailAuthProvider.credential(user.email, data.currentPassword);
+            await reauthenticateWithCredential(user, credential);
+            // If re-auth is successful, we fall through to the success logic.
+        } catch (error: any) {
+            console.error("Failed to re-authenticate:", error);
+            if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                toast({ variant: 'destructive', title: 'Incorrect Password', description: 'The current password you entered is incorrect.' });
+            } else {
+                toast({ variant: 'destructive', title: 'Authentication Error', description: 'Could not verify your password. Please try again.' });
+            }
+            return; // Stop execution if re-auth fails
+        }
+    }
+    
+    // This part runs for both initial setup and successful updates.
     const userDocRef = doc(firestore, 'users', user.uid);
     try {
-      await updateDoc(userDocRef, { hasTransactionPin: true, updatedAt: serverTimestamp() });
-      toast({ title: "Transaction PIN Set!", description: "You can now send funds from your wallet." });
-      resetPinForm();
+        if (!profile?.hasTransactionPin) {
+            await updateDoc(userDocRef, { hasTransactionPin: true, updatedAt: serverTimestamp() });
+        }
+        toast({ title: `Transaction PIN ${profile?.hasTransactionPin ? 'Updated' : 'Set'}!`, description: "Your PIN has been successfully configured." });
+        resetPinForm();
     } catch (error: any) {
-      console.error("Failed to set PIN:", error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not set your PIN.' });
+        console.error("Failed to update PIN status:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not save PIN status.' });
     }
   };
 
@@ -600,22 +631,24 @@ const SettingsPage = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5 text-primary" />Transaction PIN</CardTitle>
-              <CardDescription>Set up a 4-digit PIN to authorize wallet transactions like sending money.</CardDescription>
+              <CardDescription>Set up a 4-digit PIN to authorize wallet transactions like sending money. Changing your PIN requires your current password.</CardDescription>
             </CardHeader>
-            <form onSubmit={handlePinSubmit(handleSetPin)}>
+            <form onSubmit={handlePinSubmit(handlePinSubmitForm)}>
               <CardContent className="space-y-4 max-w-sm">
-                {profile?.hasTransactionPin ? (
-                  <p className="text-sm text-green-600 font-medium">You have already set a transaction PIN. You can update it below.</p>
-                ) : (
-                  <p className="text-sm text-yellow-600 font-medium">You have not set a transaction PIN yet.</p>
+                {profile?.hasTransactionPin && (
+                   <div className="space-y-2">
+                        <Label htmlFor="currentPassword">Current Password</Label>
+                        <Input id="currentPassword" type="password" {...registerPin("currentPassword")} />
+                        {pinErrors.currentPassword && <p className="text-sm text-destructive">{pinErrors.currentPassword.message}</p>}
+                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label htmlFor="pin">New 4-Digit PIN</Label>
+                  <Label htmlFor="pin">{profile?.hasTransactionPin ? 'New' : ''} 4-Digit PIN</Label>
                   <Input id="pin" type="password" maxLength={4} {...registerPin("pin")} />
                   {pinErrors.pin && <p className="text-sm text-destructive">{pinErrors.pin.message}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPin">Confirm New PIN</Label>
+                  <Label htmlFor="confirmPin">Confirm {profile?.hasTransactionPin ? 'New' : ''} PIN</Label>
                   <Input id="confirmPin" type="password" maxLength={4} {...registerPin("confirmPin")} />
                   {pinErrors.confirmPin && <p className="text-sm text-destructive">{pinErrors.confirmPin.message}</p>}
                 </div>

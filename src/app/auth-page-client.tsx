@@ -7,10 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth, useUser, initiateEmailSignUp, initiateEmailSignIn, initiateSocialSignIn } from '@/firebase';
-import { Chrome, Mail, Eye, EyeOff } from 'lucide-react';
+import { Chrome, Mail, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Logo } from '@/components/icons';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
 const AuthPageClient = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -18,6 +20,10 @@ const AuthPageClient = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [isForgotPassDialogOpen, setForgotPassDialogOpen] = useState(false);
+  const [isSendingResetLink, setIsSendingResetLink] = useState(false);
 
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
@@ -52,6 +58,7 @@ const AuthPageClient = () => {
       case 'auth/email-already-in-use':
         title = 'Account Exists';
         description = 'An account with this email address already exists. Please sign in instead.';
+        setIsSignUp(false);
         break;
       case 'auth/weak-password':
         title = 'Weak Password';
@@ -80,6 +87,29 @@ const AuthPageClient = () => {
 
   const handleSocialLogin = (providerName: 'google') => {
     initiateSocialSignIn(auth, providerName, handleAuthError);
+  };
+  
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!auth) return;
+    setIsSendingResetLink(true);
+    try {
+      await sendPasswordResetEmail(auth, forgotPasswordEmail);
+      toast({
+        title: "Reset Link Sent",
+        description: "Please check your email to reset your password.",
+      });
+      setForgotPassDialogOpen(false);
+      setForgotPasswordEmail('');
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to send reset link.",
+      });
+    } finally {
+      setIsSendingResetLink(false);
+    }
   };
 
   if (isUserLoading || user) {
@@ -171,9 +201,41 @@ const AuthPageClient = () => {
                         <Checkbox id="remember-me" />
                         <Label htmlFor="remember-me" className="text-sm font-normal">Remember me</Label>
                     </div>
-                    <a href="#" className="text-sm text-primary hover:underline">
-                        Forgot password?
-                    </a>
+                     <Dialog open={isForgotPassDialogOpen} onOpenChange={setForgotPassDialogOpen}>
+                        <DialogTrigger asChild>
+                            <button type="button" className="text-sm text-primary hover:underline">
+                                Forgot password?
+                            </button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Reset Your Password</DialogTitle>
+                                <DialogDescription>
+                                    Enter your email address and we'll send you a link to reset your password.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <form onSubmit={handleForgotPassword}>
+                                <div className="py-4">
+                                    <Label htmlFor="forgot-email">Email Address</Label>
+                                    <Input
+                                        id="forgot-email"
+                                        type="email"
+                                        placeholder="you@example.com"
+                                        value={forgotPasswordEmail}
+                                        onChange={e => setForgotPasswordEmail(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <DialogFooter>
+                                    <Button type="button" variant="outline" onClick={() => setForgotPassDialogOpen(false)}>Cancel</Button>
+                                    <Button type="submit" disabled={isSendingResetLink}>
+                                        {isSendingResetLink && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Send Reset Link
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
                 </div>
 
                 <Button type="submit" className="w-full h-12">
