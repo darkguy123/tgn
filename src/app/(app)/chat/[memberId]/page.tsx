@@ -140,31 +140,40 @@ export default function ChatPage() {
           type: 'text' as const,
           createdAt: serverTimestamp(),
         };
-  
-        if (!chatDoc.exists()) {
-          const newChatData: Partial<Chat> = {
-            members: [currentUser.uid, otherMemberId],
-            typing: {},
-          };
-          transaction.set(chatDocRef, newChatData);
-        }
-  
+
+        // Always set the new message in the subcollection
         transaction.set(newMessageRef, messageData);
   
-        transaction.update(chatDocRef, {
+        const lastMessageData = {
           lastMessage: {
             text: content,
             senderId: currentUser.uid,
             timestamp: serverTimestamp(),
           },
-        });
+        };
+
+        if (!chatDoc.exists()) {
+          // If chat doesn't exist, create it with members and the last message
+          const newChatData: Partial<Chat> = {
+            members: [currentUser.uid, otherMemberId],
+            typing: {},
+            ...lastMessageData
+          };
+          transaction.set(chatDocRef, newChatData);
+        } else {
+          // If chat exists, just update the last message
+          transaction.update(chatDocRef, lastMessageData);
+        }
       });
     } catch (error) {
       console.error("Failed to send message:", error);
       const permissionError = new FirestorePermissionError({
         path: chatDocRef.path,
         operation: 'write',
-        requestResourceData: { message: content },
+        requestResourceData: { 
+            lastMessage: { text: content }, 
+            members: [currentUser.uid, otherMemberId]
+        },
       });
       errorEmitter.emit('permission-error', permissionError);
     }
