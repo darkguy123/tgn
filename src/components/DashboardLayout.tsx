@@ -86,6 +86,8 @@ const ADMIN_NAV_ITEMS = [
   { id: 'causes', label: 'Fundraisers', icon: Heart, path: '/admin/causes' },
   { id: 'ads', label: 'Ad Campaigns', icon: Megaphone, path: '/admin/ads' },
   { id: 'withdrawals', label: 'Withdrawals', icon: DollarSign, path: '/admin/withdrawals' },
+  { id: 'commissions', label: 'Commissions', icon: DollarSign, path: '/admin/commissions' },
+  { id: 'referrals', label: 'Referrals', icon: Share2, path: '/admin/referrals' },
 ];
 
 interface DashboardLayoutProps {

@@ -2,7 +2,7 @@
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Shield, Users, BookOpen, Calendar, BarChart3, ShoppingBag, Heart, Megaphone, Briefcase, DollarSign } from 'lucide-react';
+import { Shield, Users, BookOpen, Calendar, BarChart3, ShoppingBag, Heart, Megaphone, Briefcase, DollarSign, Share2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function AdminDashboardPage() {
@@ -94,6 +94,20 @@ export default function AdminDashboardPage() {
                 <div className="text-left">
                     <p className="font-semibold">Withdrawal Requests</p>
                     <p className="text-xs text-muted-foreground">Process member withdrawals</p>
+                </div>
+            </Button>
+            <Button variant="outline" size="lg" className="h-20 justify-start" onClick={() => router.push('/admin/commissions')}>
+                <DollarSign className="mr-4 h-6 w-6" />
+                <div className="text-left">
+                    <p className="font-semibold">Commissions</p>
+                    <p className="text-xs text-muted-foreground">View affiliate commissions</p>
+                </div>
+            </Button>
+            <Button variant="outline" size="lg" className="h-20 justify-start" onClick={() => router.push('/admin/referrals')}>
+                <Share2 className="mr-4 h-6 w-6" />
+                <div className="text-left">
+                    <p className="font-semibold">Referrals</p>
+                    <p className="text-xs text-muted-foreground">Browse affiliate network</p>
                 </div>
             </Button>
         </CardContent>

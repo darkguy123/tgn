@@ -162,14 +162,14 @@ service cloud.firestore {
     
     // --- AFFILIATE SYSTEM ---
     match /commissions/{commissionId} {
-      allow read: if isSignedIn() && resource.data.referrerId == request.auth.uid;
+      allow read: if isAdmin() || (isSignedIn() && resource.data.referrerId == request.auth.uid);
       // Commissions are created via transaction.
       allow create: if isSignedIn(); 
       allow update, delete: if false;
     }
     
     match /affiliate_referrals/{referralId} {
-      allow read: if isSignedIn() && (resource.data.referrerMemberId == request.auth.uid || resource.data.referredMemberId == request.auth.uid);
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.referrerMemberId == request.auth.uid || resource.data.referredMemberId == request.auth.uid));
       // Referrals are created during onboarding.
       allow create: if isSignedIn();
       allow update, delete: if false;
