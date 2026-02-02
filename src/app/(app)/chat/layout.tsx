@@ -1,5 +1,5 @@
 'use client';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -12,6 +12,21 @@ import { MessageSquarePlus } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+
+// Extends String prototype for a stable sort fallback if it doesn't exist
+if (typeof (String.prototype as any).hashCode !== 'function') {
+  (String.prototype as any).hashCode = function() {
+    var hash = 0, i, chr;
+    if (this.length === 0) return hash;
+    for (i = 0; i < this.length; i++) {
+      chr   = this.charCodeAt(i);
+      hash  = ((hash << 5) - hash) + chr;
+      hash |= 0; // Convert to 32bit integer
+    }
+    return hash;
+  };
+}
+
 
 function ChatListItem({ chat, isActive }: { chat: Chat, isActive: boolean }) {
   const { user: currentUser } = useUser();
@@ -109,7 +124,7 @@ function ChatList() {
                 <CardTitle>Messages</CardTitle>
                 <CardDescription>Your private conversations.</CardDescription>
             </CardHeader>
-            <CardContent className="p-0 flex-1 overflow-y-auto">
+            <CardContent className="p-2 flex-1 overflow-y-auto">
                 {isLoading && (
                     <div className="p-3 space-y-2">
                         {Array.from({ length: 4 }).map((_, i) => (
@@ -131,8 +146,8 @@ function ChatList() {
                     </div>
                 )}
                 {!isLoading && sortedChats && sortedChats.length > 0 && (
-                    <div className="divide-y">
-                        {sortedChats.filter(chat => chat.lastMessage).map(chat => (
+                    <div className="space-y-1">
+                        {sortedChats.map(chat => (
                             <ChatListItem key={chat.id} chat={chat} isActive={pathname.includes(chat.members.find(id => id !== user?.uid) || '')} />
                         ))}
                     </div>
@@ -163,3 +178,5 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
         </div>
     );
 }
+
+    

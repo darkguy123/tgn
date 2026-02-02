@@ -1,6 +1,5 @@
 
 
-
 export interface TGNMember {
     id: string;
     tgnMemberId: string;
@@ -278,3 +277,12 @@ export interface FriendRequest {
     status: 'pending' | 'accepted' | 'declined';
     createdAt: any; // Firestore Timestamp
 }
+
+// This allows us to add a new function to the String prototype in a type-safe way.
+declare global {
+  interface String {
+    hashCode(): number;
+  }
+}
+
+    

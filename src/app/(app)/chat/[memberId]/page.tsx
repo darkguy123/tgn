@@ -49,7 +49,7 @@ export default function ChatPage() {
   
   // Prevent users from navigating to a chat with themselves
   if (currentUser && otherMemberId === currentUser.uid) {
-    notFound();
+    notFound(); // This is a valid use of notFound, as it's a state that should never happen through UI.
   }
 
   // Create a stable chat ID
@@ -67,12 +67,11 @@ export default function ChatPage() {
   const { data: chatData, isLoading: isChatLoading } = useDoc<Chat>(chatDocRef);
   
   const messagesQuery = useMemoFirebase(() => {
-    // Only query for messages if the chat document is known to exist.
-    if (chatData && chatDocRef) {
+    if (chatDocRef) { // Query can be set up even if chatDoc doesn't exist yet. The hook will return empty.
         return query(collection(chatDocRef, 'messages'), orderBy('createdAt', 'asc'));
     }
     return null;
-  }, [chatDocRef, chatData]);
+  }, [chatDocRef]);
 
   const { data: messages, isLoading: areMessagesLoading } = useCollection<ChatMessage>(messagesQuery);
   
@@ -89,30 +88,23 @@ export default function ChatPage() {
 
   // Typing indicator logic
   useEffect(() => {
-    // Ensure all dependencies are ready and the chat document exists
     if (!chatDocRef || !currentUser || !chatData) return;
-    
-    // This is a crucial guard: ensure the user is a member of the chat before writing.
     if (!chatData.members?.includes(currentUser.uid)) {
         return;
     }
 
-    // Clear previous timeout if it exists
     if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
     }
     
     const isTyping = newMessage.length > 0;
-    
     const typingUpdate = { [`typing.${currentUser.uid}`]: isTyping };
 
-    // Immediately update status to 'typing' if user types.
     if (isTyping) {
         updateDoc(chatDocRef, typingUpdate).catch((e) => {
             console.warn("Non-critical: Could not update typing indicator:", e.message);
         });
     } else {
-        // If user stops typing, wait 2 seconds before setting status to false.
         typingTimeoutRef.current = setTimeout(() => {
             updateDoc(chatDocRef, { [`typing.${currentUser.uid}`]: false }).catch((e) => {
                 console.warn("Non-critical: Could not clear typing indicator:", e.message);
@@ -120,7 +112,6 @@ export default function ChatPage() {
         }, 2000);
     }
     
-    // Cleanup on unmount
     return () => {
         if(typingTimeoutRef.current) {
             clearTimeout(typingTimeoutRef.current);
@@ -129,14 +120,10 @@ export default function ChatPage() {
   }, [newMessage, chatDocRef, currentUser, chatData]);
   
   const otherUserIsTyping = chatData?.typing?.[otherMemberId] === true;
-  const otherMemberName = otherMember?.name || (otherMember?.email ? otherMember.email.split('@')[0] : '') || 'User';
-  const isLoading = isOtherUserLoading || isChatLoading;
-  const onlineStatus = getOnlineStatus(otherMember?.lastSeen);
-
-
+  
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newMessage.trim() === '' || !currentUser || !chatDocRef || !firestore) return;
+    if (newMessage.trim() === '' || !currentUser || !chatDocRef || !firestore || !otherMember) return;
   
     const content = newMessage;
     setNewMessage('');
@@ -154,19 +141,16 @@ export default function ChatPage() {
           createdAt: serverTimestamp(),
         };
   
-        // If chat doesn't exist, create it within the transaction
         if (!chatDoc.exists()) {
-          const newChatData = {
+          const newChatData: Partial<Chat> = {
             members: [currentUser.uid, otherMemberId],
             typing: {},
           };
           transaction.set(chatDocRef, newChatData);
         }
   
-        // Set the new message
         transaction.set(newMessageRef, messageData);
   
-        // Update the lastMessage on the chat doc
         transaction.update(chatDocRef, {
           lastMessage: {
             text: content,
@@ -201,10 +185,25 @@ export default function ChatPage() {
         </div>
     )
   }
-  
-  if (otherMemberError || !otherMember) {
-      notFound();
+
+  if (otherMemberError) {
+    return (
+        <div className="flex flex-col h-full items-center justify-center bg-card">
+            <p className="text-destructive">Error loading user.</p>
+        </div>
+    );
   }
+
+  if (!otherMember) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center bg-card">
+        <p className="text-muted-foreground">User not found.</p>
+      </div>
+    );
+  }
+  
+  const otherMemberName = otherMember?.name || (otherMember?.email ? otherMember.email.split('@')[0] : '') || 'User';
+  const onlineStatus = getOnlineStatus(otherMember?.lastSeen);
 
   return (
     <div className="flex flex-col h-full bg-card">
@@ -242,7 +241,7 @@ export default function ChatPage() {
       </CardHeader>
 
       <div ref={scrollRef} className="flex-1 p-4 overflow-y-auto space-y-4 chat-background">
-        {(isLoading || areMessagesLoading) && !messages && <div className="flex justify-center items-center h-full"><Loader2 className="h-6 w-6 animate-spin"/></div>}
+        {(isChatLoading || areMessagesLoading) && !messages && <div className="flex justify-center items-center h-full"><Loader2 className="h-6 w-6 animate-spin"/></div>}
         {messages?.map(msg => (
           <div key={msg.id} className={cn("flex items-end gap-2", msg.senderId === currentUser?.uid ? "justify-end" : "justify-start")}>
             <div className={cn(
@@ -258,9 +257,10 @@ export default function ChatPage() {
             </div>
           </div>
         ))}
-         {chatData && messages?.length === 0 && !areMessagesLoading && (
+         {!areMessagesLoading && (!messages || messages.length === 0) && (
             <div className="text-center text-muted-foreground pt-10">
                 <p>This is the beginning of your conversation with {otherMemberName}.</p>
+                <p className="text-xs mt-1">Messages you send will appear here.</p>
             </div>
         )}
       </div>
@@ -294,3 +294,4 @@ export default function ChatPage() {
     </div>
   );
 }
+    
