@@ -83,7 +83,7 @@ export default function KycPage() {
       faceScanRightUrl: 'simulated_url/face_right.jpg',
     };
 
-    setDoc(kycDocRef, dataToSave)
+    setDoc(kycDocRef, dataToSave, { merge: true })
       .then(() => {
         toast({ title: 'KYC Submitted!', description: 'Your information has been sent for admin review.' });
       })
@@ -167,6 +167,11 @@ export default function KycPage() {
                   <p className="text-sm">
                     There was an issue with your submission. Reason: {kycStatus.rejectionReason || "No reason provided."}
                   </p>
+                   <Button variant="link" className="p-0 h-auto text-destructive" onClick={() => {
+                       setDoc(kycDocRef, {status: 'pending'}, {merge: true})
+                       // This is a simplified way to allow resubmission. 
+                       // In a real app, you might want to delete the doc or handle state more gracefully.
+                   }}>Resubmit</Button>
                 </div>
               </div>
             )}
