@@ -1,9 +1,8 @@
-
 'use client';
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Shield, Users, BookOpen, Calendar, BarChart3, ShoppingBag, Heart, Megaphone, Briefcase } from 'lucide-react';
+import { Shield, Users, BookOpen, Calendar, BarChart3, ShoppingBag, Heart, Megaphone, Briefcase, DollarSign } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function AdminDashboardPage() {
@@ -65,8 +64,8 @@ export default function AdminDashboardPage() {
             <Button variant="outline" size="lg" className="h-20 justify-start" onClick={() => router.push('/admin/products')}>
                 <ShoppingBag className="mr-4 h-6 w-6" />
                 <div className="text-left">
-                    <p className="font-semibold">Product Management</p>
-                    <p className="text-xs text-muted-foreground">Approve member products</p>
+                    <p className="font-semibold">Product Approvals</p>
+                    <p className="text-xs text-muted-foreground">Review member products</p>
                 </div>
             </Button>
             <Button variant="outline" size="lg" className="h-20 justify-start" onClick={() => router.push('/admin/sectors')}>
@@ -80,14 +79,21 @@ export default function AdminDashboardPage() {
                 <Heart className="mr-4 h-6 w-6" />
                 <div className="text-left">
                     <p className="font-semibold">Fundraisers</p>
-                    <p className="text-xs text-muted-foreground">Manage community causes</p>
+                    <p className="text-xs text-muted-foreground">Approve community causes</p>
                 </div>
             </Button>
              <Button variant="outline" size="lg" className="h-20 justify-start" onClick={() => router.push('/admin/ads')}>
                 <Megaphone className="mr-4 h-6 w-6" />
                 <div className="text-left">
                     <p className="font-semibold">Ad Campaigns</p>
-                    <p className="text-xs text-muted-foreground">Approve sponsored ads</p>
+                    <p className="text-xs text-muted-foreground">Review sponsored ads</p>
+                </div>
+            </Button>
+             <Button variant="outline" size="lg" className="h-20 justify-start" onClick={() => {}}>
+                <DollarSign className="mr-4 h-6 w-6" />
+                <div className="text-left">
+                    <p className="font-semibold">Withdrawal Requests</p>
+                    <p className="text-xs text-muted-foreground">Process member withdrawals (coming soon)</p>
                 </div>
             </Button>
         </CardContent>

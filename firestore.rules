@@ -37,8 +37,9 @@ service cloud.firestore {
         allow read, write: if isOwner(userId);
       }
       match /transactions/{transactionId} {
-        allow read, create: if isOwner(userId); // Only user can read/create their own transactions
-        allow update, delete: if false;
+        allow read, create: if isOwner(userId);
+        allow update: if isAdmin(); // Admin can update to approve withdrawals
+        allow delete: if false;
       }
       match /enrolled_programs/{programId} {
           allow read, create: if isOwner(userId);
