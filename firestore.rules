@@ -111,7 +111,8 @@ service cloud.firestore {
         function isChatMember() {
           return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
         }
-        allow read: if isChatMember();
+        allow get: if isChatMember();
+        allow list: if isSignedIn() && chatId.split('_').includes(request.auth.uid);
         allow create: if isChatMember() && request.resource.data.senderId == request.auth.uid;
         allow update, delete: if false;
       }
