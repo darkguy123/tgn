@@ -16,7 +16,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 // Component for a single connection item
-function ConnectionItem({ member, onRemove }: { member: TGNMember, onRemove: (memberId: string) => void }) {
+function ConnectionItem({ member, onRemove, isRemoving }: { member: TGNMember, onRemove: (memberId: string) => void, isRemoving: boolean }) {
   const router = useRouter();
   const name = member.name || member.email.split('@')[0];
   return (
@@ -33,14 +33,17 @@ function ConnectionItem({ member, onRemove }: { member: TGNMember, onRemove: (me
       </Link>
       <div className="flex gap-2">
         <Button size="sm" variant="outline" onClick={() => router.push(`/chat/${member.id}`)}><Mail className="mr-2 h-4 w-4" /> Message</Button>
-        <Button size="sm" variant="destructive" onClick={() => onRemove(member.id)}><UserX className="mr-2 h-4 w-4" /> Remove</Button>
+        <Button size="sm" variant="destructive" onClick={() => onRemove(member.id)} disabled={isRemoving}>
+            {isRemoving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <UserX className="mr-2 h-4 w-4" />}
+            Remove
+        </Button>
       </div>
     </div>
   );
 }
 
 // Component for a single request item
-function RequestItem({ request, type, onAction }: { request: FriendRequest & { userProfile: TGNMember }, type: 'received' | 'sent', onAction: (requestId: string, action: 'accept' | 'decline' | 'cancel') => void }) {
+function RequestItem({ request, type, onAction, isSubmitting }: { request: FriendRequest & { userProfile: TGNMember }, type: 'received' | 'sent', onAction: (requestId: string, action: 'accept' | 'decline' | 'cancel') => void, isSubmitting: boolean }) {
   const { userProfile } = request;
   const name = userProfile.name || userProfile.email.split('@')[0];
   return (
@@ -58,12 +61,20 @@ function RequestItem({ request, type, onAction }: { request: FriendRequest & { u
       <div className="flex gap-2">
         {type === 'received' && (
           <>
-            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => onAction(request.id, 'accept')}><UserCheck className="mr-2 h-4 w-4" /> Accept</Button>
-            <Button size="sm" variant="ghost" onClick={() => onAction(request.id, 'decline')}><UserX className="mr-2 h-4 w-4" /> Decline</Button>
+            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => onAction(request.id, 'accept')} disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
+                Accept
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => onAction(request.id, 'decline')} disabled={isSubmitting}>
+                <UserX className="mr-2 h-4 w-4" /> Decline
+            </Button>
           </>
         )}
         {type === 'sent' && (
-          <Button size="sm" variant="outline" onClick={() => onAction(request.id, 'cancel')}><Clock className="mr-2 h-4 w-4" /> Cancel Request</Button>
+          <Button size="sm" variant="outline" onClick={() => onAction(request.id, 'cancel')} disabled={isSubmitting}>
+            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Clock className="mr-2 h-4 w-4" />}
+             Cancel Request
+          </Button>
         )}
       </div>
     </div>
@@ -87,7 +98,7 @@ export default function NetworkPage() {
     
     // 2. Fetch profiles for current connections
     const connectionsQuery = useMemoFirebase(() =>
-        connectionIds.length > 0
+        connectionIds.length > 0 && firestore
             ? query(collection(firestore, 'users'), where(documentId(), 'in', connectionIds))
             : null,
         [connectionIds, firestore]
@@ -106,14 +117,14 @@ export default function NetworkPage() {
 
     // 3. Fetch incoming friend requests
     const receivedRequestsQuery = useMemoFirebase(() =>
-        currentUser ? query(collection(firestore, 'friend_requests'), where('recipientId', '==', currentUser.uid), where('status', '==', 'pending')) : null,
+        currentUser && firestore ? query(collection(firestore, 'friend_requests'), where('recipientId', '==', currentUser.uid), where('status', '==', 'pending')) : null,
         [currentUser, firestore]
     );
     const { data: receivedRequests, isLoading: receivedLoading } = useCollection<FriendRequest>(receivedRequestsQuery);
 
     // 4. Fetch outgoing friend requests
     const sentRequestsQuery = useMemoFirebase(() =>
-        currentUser ? query(collection(firestore, 'friend_requests'), where('senderId', '==', currentUser.uid), where('status', '==', 'pending')) : null,
+        currentUser && firestore ? query(collection(firestore, 'friend_requests'), where('senderId', '==', currentUser.uid), where('status', '==', 'pending')) : null,
         [currentUser, firestore]
     );
     const { data: sentRequests, isLoading: sentLoading } = useCollection<FriendRequest>(sentRequestsQuery);
@@ -128,7 +139,7 @@ export default function NetworkPage() {
 
     // 6. Fetch profiles for users in requests
     const requestUsersQuery = useMemoFirebase(() =>
-        requestUserIds.length > 0 ? query(collection(firestore, 'users'), where(documentId(), 'in', requestUserIds)) : null,
+        requestUserIds.length > 0 && firestore ? query(collection(firestore, 'users'), where(documentId(), 'in', requestUserIds)) : null,
         [requestUserIds, firestore]
     );
     const { data: requestUsers, isLoading: requestUsersLoading } = useCollection<TGNMember>(requestUsersQuery);
@@ -144,7 +155,7 @@ export default function NetworkPage() {
     // --- ACTIONS ---
 
     const handleAction = async (requestId: string, action: 'accept' | 'decline' | 'cancel') => {
-        if (!currentUser) return;
+        if (!currentUser || !firestore) return;
         setIsSubmitting(requestId);
         const requestRef = doc(firestore, 'friend_requests', requestId);
     
@@ -158,6 +169,8 @@ export default function NetworkPage() {
                     const recipientRef = doc(firestore, 'users', currentUser.uid);
                     const senderRef = doc(firestore, 'users', senderId);
 
+                    // This transaction will fail if the rules don't allow the recipient to update the sender's document.
+                    // This is a known limitation in client-side only scenarios without more permissive rules or cloud functions.
                     transaction.update(requestRef, { status: 'accepted' });
                     transaction.update(recipientRef, { connections: arrayUnion(senderId) });
                     transaction.update(senderRef, { connections: arrayUnion(currentUser.uid) });
@@ -172,6 +185,7 @@ export default function NetworkPage() {
                 toast({ title: "Request cancelled" });
             }
         } catch (e: any) {
+            console.error(`Failed to ${action} request:`, e);
             toast({ variant: 'destructive', title: "Error", description: e.message || `Failed to ${action} request.` });
         } finally {
             setIsSubmitting(null);
@@ -179,7 +193,7 @@ export default function NetworkPage() {
     };
     
     const handleRemove = async (memberIdToRemove: string) => {
-        if (!currentUser || !window.confirm("Are you sure you want to remove this connection?")) return;
+        if (!currentUser || !firestore || !window.confirm("Are you sure you want to remove this connection?")) return;
         setIsSubmitting(memberIdToRemove);
 
         const currentUserRef = doc(firestore, 'users', currentUser.uid);
@@ -187,11 +201,13 @@ export default function NetworkPage() {
 
         try {
             await runTransaction(firestore, async (transaction) => {
+                 // This transaction will fail if the rules don't allow the user to update the other member's document.
                 transaction.update(currentUserRef, { connections: arrayRemove(memberIdToRemove) });
                 transaction.update(memberToRemoveRef, { connections: arrayRemove(currentUser.uid) });
             });
             toast({ title: "Connection removed." });
-        } catch (e) {
+        } catch (e: any) {
+             console.error(`Failed to remove connection:`, e);
             toast({ variant: 'destructive', title: "Error", description: "Failed to remove connection." });
         } finally {
             setIsSubmitting(null);
@@ -253,7 +269,7 @@ export default function NetworkPage() {
                     <CardContent>
                         <TabsContent value="connections">
                             {isLoading ? renderSkeleton() : filteredConnections && filteredConnections.length > 0
-                                ? <div className="space-y-2">{filteredConnections.map(c => <ConnectionItem key={c.id} member={c} onRemove={handleRemove}/>)}</div>
+                                ? <div className="space-y-2">{filteredConnections.map(c => <ConnectionItem key={c.id} member={c} onRemove={handleRemove} isRemoving={isSubmitting === c.id}/>)}</div>
                                 : renderEmptyState(
                                     searchQuery ? "No Connections Found" : "No Connections Yet", 
                                     searchQuery ? "No connections match your search." : "Use the directory to find and connect with members."
@@ -264,7 +280,7 @@ export default function NetworkPage() {
                              {isLoading ? renderSkeleton() : receivedRequests && receivedRequests.length > 0
                                 ? <div className="space-y-2">{receivedRequests.map(req => {
                                     const sender = requestUsersMap.get(req.senderId);
-                                    return sender ? <RequestItem key={req.id} request={{...req, userProfile: sender}} type="received" onAction={handleAction}/> : null;
+                                    return sender ? <RequestItem key={req.id} request={{...req, userProfile: sender}} type="received" onAction={handleAction} isSubmitting={isSubmitting === req.id}/> : null;
                                   })}</div>
                                 : renderEmptyState("No Pending Requests", "You have no new connection requests.")
                             }
@@ -273,7 +289,7 @@ export default function NetworkPage() {
                             {isLoading ? renderSkeleton() : sentRequests && sentRequests.length > 0
                                 ? <div className="space-y-2">{sentRequests.map(req => {
                                     const recipient = requestUsersMap.get(req.recipientId);
-                                    return recipient ? <RequestItem key={req.id} request={{...req, userProfile: recipient}} type="sent" onAction={handleAction}/> : null;
+                                    return recipient ? <RequestItem key={req.id} request={{...req, userProfile: recipient}} type="sent" onAction={handleAction} isSubmitting={isSubmitting === req.id}/> : null;
                                   })}</div>
                                 : renderEmptyState("No Sent Requests", "Your sent connection requests will appear here.")
                             }
