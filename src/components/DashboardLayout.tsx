@@ -49,7 +49,7 @@ import { BottomNav } from './BottomNav';
 import { NotificationsMenu } from './NotificationsMenu';
 import { collection, query, where, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import type { FriendRequest } from '@/lib/types';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
 import { isUserAdmin } from '@/lib/auth-utils';
 import { useEffect } from 'react';
 
@@ -202,6 +202,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="w-64 p-0">
+                  <SheetHeader className="sr-only">
+                    <SheetTitle>Navigation Menu</SheetTitle>
+                    <SheetDescription>
+                      Main menu for navigating the application.
+                    </SheetDescription>
+                  </SheetHeader>
                   <div className="p-4 border-b border-border">
                     <Link href="/dashboard">
                       <Logo className="h-10 object-contain" />
