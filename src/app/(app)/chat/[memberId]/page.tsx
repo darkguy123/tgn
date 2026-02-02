@@ -9,6 +9,16 @@ import {
   ArrowLeft, Phone, Video, MoreVertical, Paperclip, Smile, Send,
   File, Video as VideoIcon, Image as ImageIcon, Loader2
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import type { TGNMember, ChatMessage, Chat } from '@/lib/types';
@@ -243,8 +253,38 @@ export default function ChatPage() {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon"><Phone /></Button>
-          <Button variant="ghost" size="icon"><Video /></Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="icon"><Phone /></Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Feature Coming Soon!</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Voice and video calls are currently under development. We're working hard to bring this feature to you soon.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogAction>OK</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="icon"><Video /></Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Feature Coming Soon!</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Voice and video calls are currently under development. We're working hard to bring this feature to you soon.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogAction>OK</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Button variant="ghost" size="icon"><MoreVertical /></Button>
         </div>
       </CardHeader>
