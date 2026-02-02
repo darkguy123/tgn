@@ -29,7 +29,7 @@ import { useMentorCertification } from '@/hooks/useMentorCertification';
 import { Skeleton } from '@/components/ui/skeleton';
 import { collection, query, where } from 'firebase/firestore';
 import type { TGNMember, Program, Product, Event, Sector } from '@/lib/types';
-import { getRecommendations, RecommendationResult } from '@/app/actions';
+import { getRecommendations, type RecommendationResult } from '@/app/actions';
 
 export function MenteeDashboard() {
   const { user } = useUser();
@@ -39,6 +39,7 @@ export function MenteeDashboard() {
   const router = useRouter();
   const firestore = useFirestore();
 
+  // --- Data fetching for recommendations ---
   const programsCollectionRef = useMemoFirebase(() => query(collection(firestore, 'programs'), where('deactivatedAt', '==', null)), [firestore]);
   const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const sectorsCollectionRef = useMemoFirebase(() => collection(firestore, 'sectors'), [firestore]);
@@ -50,42 +51,40 @@ export function MenteeDashboard() {
   const { data: allSectors, isLoading: sectorsLoading } = useCollection<Sector>(sectorsCollectionRef);
   const { data: allProducts, isLoading: productsLoading } = useCollection<Product>(productsCollectionRef);
   const { data: allEvents, isLoading: eventsLoading } = useCollection<Event>(eventsCollectionRef);
-
+  
   const [recommendations, setRecommendations] = useState<RecommendationResult | { error: string } | null>(null);
-  const [isLoadingRecs, setIsLoadingRecs] = useState(false);
+  const [isLoadingRecs, setIsLoadingRecs] = useState(true);
+
+  const dataForRecsIsLoading = isProfileLoading || programsLoading || membersLoading || sectorsLoading || productsLoading || eventsLoading;
 
   useEffect(() => {
-    if (
-      profile &&
-      allPrograms &&
-      allMembers &&
-      allProducts &&
-      allEvents &&
-      allSectors &&
-      !recommendations &&
-      !isLoadingRecs
-    ) {
-      setIsLoadingRecs(true);
-      // Manually serialize the data to remove Firestore Timestamps.
-      const serializableProfile = JSON.parse(JSON.stringify(profile));
-      const serializableMembers = JSON.parse(JSON.stringify(allMembers));
-      const serializablePrograms = JSON.parse(JSON.stringify(allPrograms));
-      const serializableProducts = JSON.parse(JSON.stringify(allProducts));
-      const serializableEvents = JSON.parse(JSON.stringify(allEvents));
-      const serializableSectors = JSON.parse(JSON.stringify(allSectors));
+    // Only run if we have all the data and haven't fetched recommendations yet.
+    if (!dataForRecsIsLoading && profile && allPrograms && allMembers && allProducts && allEvents && allSectors) {
+      if(recommendations === null) {
+        setIsLoadingRecs(true);
+        // Manually serialize the data to remove Firestore Timestamps before sending to the server action.
+        const serializableProfile = JSON.parse(JSON.stringify(profile));
+        const serializableMembers = JSON.parse(JSON.stringify(allMembers));
+        const serializablePrograms = JSON.parse(JSON.stringify(allPrograms));
+        const serializableProducts = JSON.parse(JSON.stringify(allProducts));
+        const serializableEvents = JSON.parse(JSON.stringify(allEvents));
+        const serializableSectors = JSON.parse(JSON.stringify(allSectors));
 
-      getRecommendations(
-        serializableProfile,
-        serializableMembers,
-        serializablePrograms,
-        serializableProducts,
-        serializableEvents,
-        serializableSectors
-      )
-        .then(setRecommendations)
-        .finally(() => setIsLoadingRecs(false));
+        getRecommendations(
+            serializableProfile,
+            serializableMembers,
+            serializablePrograms,
+            serializableProducts,
+            serializableEvents,
+            serializableSectors
+        )
+            .then(setRecommendations)
+            .finally(() => setIsLoadingRecs(false));
+      }
+    } else if (!dataForRecsIsLoading && !profile) {
+        setIsLoadingRecs(false); // Stop loading if there's no profile to work with
     }
-  }, [profile, allPrograms, allMembers, allProducts, allEvents, allSectors, recommendations, isLoadingRecs]);
+  }, [dataForRecsIsLoading, profile, allPrograms, allMembers, allProducts, allEvents, allSectors, recommendations]);
 
   const defaultProgress = {
     paidProgramsCompleted: 0,
@@ -123,7 +122,7 @@ export function MenteeDashboard() {
     [currentProgress]
   );
 
-  const isLoading = isProfileLoading || isCertLoading || programsLoading || membersLoading || sectorsLoading || productsLoading || eventsLoading;
+  const isLoading = isProfileLoading || isCertLoading;
 
   return (
     <div className="space-y-6">
@@ -186,11 +185,11 @@ export function MenteeDashboard() {
               {recommendations && 'recommendations' in recommendations && recommendations.recommendations.map((item, i) => (
                 <div key={i} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors" onClick={() => {
                   let path = '#';
-                  if (item.recommendedType === 'Mentor') path = `/profile/${item.id}`;
-                  if (item.recommendedType === 'Program') path = `/programs`;
-                  if (item.recommendedType === 'Product') path = `/marketplace`;
-                  if (item.recommendedType === 'Event') path = `/community/events`;
-                  if (item.recommendedType === 'Sector') path = `/directory`;
+                  if (item.recommendedType === 'Mentor') path = `/member/${item.tgnMemberId || item.id}`;
+                  else if (item.recommendedType === 'Program') path = `/programs`;
+                  else if (item.recommendedType === 'Product') path = `/marketplace`;
+                  else if (item.recommendedType === 'Event') path = `/community/events`;
+                  else if (item.recommendedType === 'Sector') path = `/directory`;
                   router.push(path);
                 }}>
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
