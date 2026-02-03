@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -18,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/avatar";
 import {
   Tooltip,
   TooltipContent,
@@ -61,20 +60,22 @@ const DirectoryPage = () => {
   
   const firestore = useFirestore();
   const { user: currentUser } = useUser();
-  const { profile: currentUserProfile } = useMemberProfile();
-  const membersRef = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
+  const { profile: currentUserProfile, isLoading: isProfileLoading } = useMemberProfile();
+  
+  // Load to check if user is normal user before loading lists to validate permission
+  const membersRef = useMemoFirebase(() => (firestore && currentUserProfile ? collection(firestore, 'users') : null), [firestore, currentUserProfile]);
   const { data: members, isLoading: membersLoading, error } = useCollection<TGNMember>(membersRef);
   const { toast } = useToast();
 
   const sentRequestsQuery = useMemoFirebase(() =>
-      currentUser
+      (currentUser && currentUserProfile)
           ? query(
               collection(firestore, 'friend_requests'),
               where('senderId', '==', currentUser.uid),
               where('status', '==', 'pending')
             )
           : null,
-      [firestore, currentUser]
+      [firestore, currentUser, currentUserProfile]
   );
   const { data: sentRequests, isLoading: requestsLoading } = useCollection<FriendRequest>(sentRequestsQuery);
 
@@ -136,7 +137,7 @@ const DirectoryPage = () => {
     return member.name || (member.email ? member.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '');
   }
 
-  const isLoading = membersLoading || requestsLoading;
+  const isLoading = membersLoading || requestsLoading || isProfileLoading;
 
   const filteredMembers = members?.filter((member) => {
     // Don't show the current user in the directory
@@ -386,5 +387,3 @@ const DirectoryPage = () => {
 };
 
 export default DirectoryPage;
-
-    

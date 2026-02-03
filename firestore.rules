@@ -95,7 +95,7 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid;
       
       // Update/Delete: only by the seller or admin
-      allow update, delete: if (isSignedIn() && resource.data.sellerMemberId == request.auth.uid) || isAdmin();
+      allow update, delete: if (isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid) || isAdmin();
     }
 
     match /programs/{programId} {

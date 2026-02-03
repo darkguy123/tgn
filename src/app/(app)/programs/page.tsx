@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from "react";
@@ -20,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useWallet } from "@/hooks/useWallet";
 import { useToast } from "@/hooks/use-toast";
+import { useMemberProfile } from "@/hooks/useMemberProfile";
 
 const getImage = (imageId: string) => {
   return placeholderImages.placeholderImages.find((p) => p.id === imageId);
@@ -35,11 +37,16 @@ const ProgramsPage = () => {
   const router = useRouter();
   const firestore = useFirestore();
   const { user } = useUser();
+  const { profile, isLoading: isProfileLoading } = useMemberProfile();
   const { wallet, isLoading: isWalletLoading } = useWallet();
   const { toast } = useToast();
   
-  const programsCollectionRef = useMemoFirebase(() => query(collection(firestore, 'programs'), where('deactivatedAt', '==', null)), [firestore]);
-  const { data: allPrograms, isLoading, error } = useCollection<Program>(programsCollectionRef);
+  // Load to check if user is normal user before loading lists to validate permission
+  const programsCollectionRef = useMemoFirebase(() => 
+    (firestore && profile) ? query(collection(firestore, 'programs'), where('deactivatedAt', '==', null)) : null, 
+    [firestore, profile]
+  );
+  const { data: allPrograms, isLoading: programsLoading, error } = useCollection<Program>(programsCollectionRef);
 
   const programsByType = useMemo(() => {
     if (!allPrograms) return { free: [], paid: [], executive: [] };
@@ -412,6 +419,8 @@ const ProgramsPage = () => {
     </div>
   );
 
+
+  const isLoading = programsLoading || isProfileLoading;
 
   return (
     <div>

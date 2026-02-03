@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -195,20 +196,21 @@ function CreatePostDialog({ open, onOpenChange, startWithMedia }: { open: boolea
 }
 
 export default function CommunityPage() {
-  const { profile } = useMemberProfile();
+  const { profile, isLoading: isProfileLoading } = useMemberProfile();
   const [isPostDialogOpen, setPostDialogOpen] = useState(false);
   const [startWithMedia, setStartWithMedia] = useState(false);
   const firestore = useFirestore();
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'all';
 
+  // Load to check if user is normal user before loading lists to validate permission
   const postsQuery = useMemoFirebase(() =>
-    firestore ? query(collection(firestore, 'posts'), orderBy('createdAt', 'desc')) : null,
-    [firestore]
+    (firestore && profile) ? query(collection(firestore, 'posts'), orderBy('createdAt', 'desc')) : null,
+    [firestore, profile]
   );
   
   const savedPostsQuery = useMemoFirebase(() =>
-    firestore && profile ? query(collection(firestore, 'posts'), where('savedBy', 'array-contains', profile.id), orderBy('createdAt', 'desc')) : null,
+    (firestore && profile) ? query(collection(firestore, 'posts'), where('savedBy', 'array-contains', profile.id), orderBy('createdAt', 'desc')) : null,
     [firestore, profile]
   );
   
@@ -216,7 +218,7 @@ export default function CommunityPage() {
   const { data: savedPosts, isLoading: savedPostsLoading } = useCollection<Post>(savedPostsQuery);
 
   const renderPosts = (postList: Post[] | null, isLoading: boolean, emptyState: React.ReactNode) => {
-    if (isLoading) {
+    if (isLoading || isProfileLoading) {
       return Array.from({ length: 2 }).map((_, i) => (
         <Card key={i}>
           <CardContent className="p-4">
