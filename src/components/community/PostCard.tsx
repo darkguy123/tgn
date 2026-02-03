@@ -124,8 +124,8 @@ export function PostCard({ post }: { post: Post }) {
   const { user: currentUser } = useUser();
   const { toast } = useToast();
 
-  const isLiked = useMemo(() => post.likes?.includes(currentUser?.uid ?? ''), [post.likes, currentUser]);
-  const isSaved = useMemo(() => post.savedBy?.includes(currentUser?.uid ?? ''), [post.savedBy, currentUser]);
+  const isLiked = useMemo(() => Array.isArray(post.likes) && post.likes.includes(currentUser?.uid ?? ''), [post.likes, currentUser]);
+  const isSaved = useMemo(() => Array.isArray(post.savedBy) && post.savedBy.includes(currentUser?.uid ?? ''), [post.savedBy, currentUser]);
 
   const handleLike = () => {
     if (!firestore || !currentUser) {
@@ -173,6 +173,8 @@ export function PostCard({ post }: { post: Post }) {
       });
   };
 
+  const likesCount = Array.isArray(post.likes) ? post.likes.length : 0;
+
   return (
     <Card>
       <CardContent className="p-4">
@@ -217,10 +219,10 @@ export function PostCard({ post }: { post: Post }) {
         <Collapsible>
             <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
                 <div className="flex items-center gap-1">
-                    {(post.likes?.length || 0) > 0 && (
+                    {likesCount > 0 && (
                         <>
                         <ThumbsUp className="h-4 w-4 text-blue-500" />
-                        <span>{Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(post.likes.length || 0)}</span>
+                        <span>{Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(likesCount)}</span>
                         </>
                     )}
                 </div>
@@ -253,5 +255,3 @@ export function PostCard({ post }: { post: Post }) {
     </Card>
   );
 }
-
-    
