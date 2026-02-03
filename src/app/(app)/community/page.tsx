@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -203,7 +202,7 @@ export default function CommunityPage() {
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'all';
 
-  // Load to check if user is normal user before loading lists to validate permission
+  // Load queries ONLY when profile is available to prevent early null auth errors
   const postsQuery = useMemoFirebase(() =>
     (firestore && profile) ? query(collection(firestore, 'posts'), orderBy('createdAt', 'desc')) : null,
     [firestore, profile]

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -17,7 +16,7 @@ function RequestItem({ request }: { request: FriendRequest & { id: string } }) {
   const { toast } = useToast();
   const { user: currentUser } = useUser();
 
-  const senderRef = useMemoFirebase(() => doc(firestore, 'users', request.senderId), [firestore, request.senderId]);
+  const senderRef = useMemoFirebase(() => (firestore && request.senderId) ? doc(firestore, 'users', request.senderId) : null, [firestore, request.senderId]);
   const { data: sender, isLoading: isSenderLoading } = useDoc<TGNMember>(senderRef);
 
   const handleAccept = async () => {
@@ -83,14 +82,14 @@ export function NotificationsMenu() {
   const firestore = useFirestore();
 
   const requestsQuery = useMemoFirebase(
-    () => user ? query(collection(firestore, 'friend_requests'), where('recipientId', '==', user.uid), where('status', '==', 'pending')) : null,
+    () => (user && firestore) ? query(collection(firestore, 'friend_requests'), where('recipientId', '==', user.uid), where('status', '==', 'pending')) : null,
     [user, firestore]
   );
   
   const { data: requests, isLoading } = useCollection<FriendRequest>(requestsQuery);
 
   if (isLoading) {
-    return <div className="p-2"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></div>;
+    return <div className="p-2 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></div>;
   }
   
   return (

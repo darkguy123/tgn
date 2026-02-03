@@ -27,17 +27,21 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError, useUser } from '@/firebase';
 import { collection, doc, updateDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
 import type { MentorKYC } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { useMemberProfile } from '@/hooks/useMemberProfile';
 
 export default function AdminKycPage() {
   const firestore = useFirestore();
-  const kycRef = useMemoFirebase(() => (firestore ? collection(firestore, 'mentor_kyc') : null), [firestore]);
+  const { profile } = useMemberProfile();
+  
+  // Guard the query to wait for profile (admin validation)
+  const kycRef = useMemoFirebase(() => (firestore && profile) ? collection(firestore, 'mentor_kyc') : null, [firestore, profile]);
   const { data: kycSubmissions, isLoading, error } = useCollection<MentorKYC>(kycRef);
   const { toast } = useToast();
 
