@@ -62,7 +62,6 @@ const DirectoryPage = () => {
   const { user: currentUser } = useUser();
   const { profile: currentUserProfile, isLoading: isProfileLoading } = useMemberProfile();
   
-  // Guard the directory and request queries to strictly wait for profile validation
   const membersRef = useMemoFirebase(() => (firestore && currentUser && currentUserProfile) ? collection(firestore, 'users') : null, [firestore, currentUser, currentUserProfile]);
   const { data: members, isLoading: membersLoading, error } = useCollection<TGNMember>(membersRef);
   const { toast } = useToast();
@@ -140,7 +139,6 @@ const DirectoryPage = () => {
   const isLoading = membersLoading || requestsLoading || isProfileLoading;
 
   const filteredMembers = members?.filter((member) => {
-    // Don't show the current user in the directory
     if (currentUser && member.id === currentUser.uid) {
         return false;
     }
@@ -168,7 +166,6 @@ const DirectoryPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
           Member Directory
@@ -176,7 +173,6 @@ const DirectoryPage = () => {
         <p className="text-muted-foreground">Search and connect globally.</p>
       </div>
 
-      {/* Search & Filters */}
       <div className="mb-6 space-y-4">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
@@ -285,7 +281,6 @@ const DirectoryPage = () => {
         )}
       </div>
 
-      {/* Members Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {isLoading && Array.from({ length: 8 }).map((_, i) => (
             <Card key={i}><CardContent className="p-4 space-y-4"><div className="flex items-start gap-3 mb-4"><Skeleton className="h-12 w-12 rounded-full" /><div className="flex-1 space-y-2"><Skeleton className="h-5 w-3/4" /><Skeleton className="h-4 w-1/2" /></div></div><Skeleton className="h-4 w-5/6" /><Skeleton className="h-4 w-3/4" /><div className="flex gap-2 pt-2"><Skeleton className="h-9 w-1/2" /><Skeleton className="h-9 w-1/2" /></div></CardContent></Card>
@@ -293,6 +288,7 @@ const DirectoryPage = () => {
         {filteredMembers?.map((member) => {
           const name = getName(member);
           const isConnected = currentUserProfile?.connections?.includes(member.id);
+          // NEW: Check if members are in the same category
           const isSameCategory = currentUserProfile?.role === member.role;
           const requestSent = sentRequestRecipientIds.has(member.id);
 
@@ -343,6 +339,7 @@ const DirectoryPage = () => {
                 </div>
 
                 <div className="flex gap-2">
+                    {/* UPDATED: Same category users can message directly */}
                     {isConnected || isSameCategory ? (
                         <Button size="sm" className="flex-1" onClick={() => router.push(`/chat/${member.id}`)}>
                             <MessageSquare className="h-4 w-4 mr-1" />

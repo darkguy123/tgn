@@ -17,7 +17,6 @@ import { useMemo } from 'react';
 import { PostCard } from '@/components/community/PostCard';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 
-// Helper to get image URL from placeholder data
 const getImageUrl = (imageId?: string) => {
   if (!imageId) return "https://images.unsplash.com/photo-1557683316-9ca2a4f4e427?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxhYnN0cmFjdCUyMGJsdWV8ZW58MHx8fHwxNzE3Nzc4MDUwfDA&ixlib=rb-4.1.0&q=80&w=1080";
   const image = placeholderImages.placeholderImages.find((p) => p.id === imageId);
@@ -28,34 +27,31 @@ export default function MemberProfilePage() {
   const params = useParams();
   const router = useRouter();
   const { user: currentUser } = useUser();
-  const { profile: currentUserProfile } = useMemberProfile();
+  const { profile: currentUserProfile, isLoading: isProfileLoading } = useMemberProfile();
   const memberId = params.memberId as string;
   const firestore = useFirestore();
 
   const isTgnId = useMemo(() => memberId.startsWith('TGN-'), [memberId]);
 
-  // Fetching logic based on ID type
   const memberQueryByTgnId = useMemoFirebase(() => {
-    if (!firestore || !isTgnId) return null;
+    if (!firestore || !isTgnId || isProfileLoading) return null;
     return query(collection(firestore, 'users'), where('tgnMemberId', '==', memberId));
-  }, [firestore, memberId, isTgnId]);
+  }, [firestore, memberId, isTgnId, isProfileLoading]);
 
   const memberRefByUid = useMemoFirebase(() => {
-    if (!firestore || isTgnId) return null;
+    if (!firestore || isTgnId || isProfileLoading) return null;
     return doc(firestore, 'users', memberId);
-  }, [firestore, memberId, isTgnId]);
+  }, [firestore, memberId, isTgnId, isProfileLoading]);
   
   const { data: membersByTgnId, isLoading: isLoadingByTgnId } = useCollection<TGNMember>(memberQueryByTgnId);
   const { data: memberByUid, isLoading: isLoadingByUid } = useDoc<TGNMember>(memberRefByUid);
 
-  // Determine the final member and loading state
   const member = isTgnId ? membersByTgnId?.[0] : memberByUid;
   const isLoading = isTgnId ? isLoadingByTgnId : isLoadingByUid;
   
-  // Use a separate useMemoFirebase for products query
   const productsQuery = useMemoFirebase(
     () =>
-      member
+      (member && firestore)
         ? query(
             collection(firestore, 'products'),
             where('sellerMemberId', '==', member.id),
@@ -68,7 +64,7 @@ export default function MemberProfilePage() {
 
   const postsQuery = useMemoFirebase(
     () =>
-      member
+      (member && firestore)
         ? query(
             collection(firestore, 'posts'),
             where('authorId', '==', member.id),
@@ -80,10 +76,11 @@ export default function MemberProfilePage() {
   const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
   const isOwnProfile = currentUser && member && currentUser.uid === member.id;
+  // NEW: Category-based networking check
   const isSameCategory = currentUserProfile && member && currentUserProfile.role === member.role;
   const isConnected = currentUserProfile?.connections?.includes(member?.id || '');
   
-  if (isLoading) {
+  if (isLoading || isProfileLoading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
@@ -107,12 +104,10 @@ export default function MemberProfilePage() {
     );
   }
 
-  // If after loading, no member is found, show the not-found page.
   if (!member) {
-    return <p className="p-6">Member not found.</p>;
+    return <p className="p-6 text-center text-muted-foreground">Member not found.</p>;
   }
 
-  // --- Safe defaults for rendering ---
   const name = member.name || (member.email ? member.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '') || "TGN Member";
   const role = member.role?.replace('-', ' ') || 'Member';
   const location = member.locationCountry || 'Location not set';
@@ -148,6 +143,7 @@ export default function MemberProfilePage() {
                         <Button onClick={() => router.push('/settings/profile')}>
                             <Edit className="mr-2 h-4 w-4" /> Edit Profile
                         </Button>
+                    // UPDATED: Allow messaging for same category
                     ) : (isConnected || isSameCategory) ? (
                         <Button onClick={() => router.push(`/chat/${member.id}`)}>
                             <MessageSquare className="mr-2 h-4 w-4" /> Message
