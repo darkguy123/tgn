@@ -213,15 +213,8 @@ export default function CommunityPage() {
 
   const filteredAllPosts = useMemo(() => {
     if (!posts || !profile) return [];
-    return posts.filter(post => {
-      // 1. Same member type as the user
-      const isSameRole = post.authorRole === profile.role;
-      // 2. Mentors of the logged in user
-      const isMyMentor = (profile.connections || []).includes(post.authorId) && 
-                         (post.authorRole.includes('mentor'));
-      
-      return isSameRole || isMyMentor;
-    });
+    // Show all posts to all users as requested
+    return posts;
   }, [posts, profile]);
 
   const renderPosts = (postList: Post[] | null, isLoading: boolean, error: any, emptyState: React.ReactNode) => {

@@ -11,6 +11,7 @@ import {
   Share2,
   Bookmark,
   MoreHorizontal,
+  Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -18,7 +19,7 @@ import { useMemberProfile } from '@/hooks/useMemberProfile';
 import { Separator } from '@/components/ui/separator';
 import type { Post, Comment as CommentType } from '@/lib/types';
 import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError, useUser } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query, orderBy, updateDoc, doc, increment, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, updateDoc, doc, increment, arrayUnion, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -28,6 +29,12 @@ import {
 } from "@/components/ui/collapsible";
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 function PostComments({ post }: { post: Post }) {
   const { profile } = useMemberProfile();
@@ -57,7 +64,7 @@ function PostComments({ post }: { post: Post }) {
     
     addDoc(commentsColRef, dataToSave)
       .then(() => {
-        // Social interaction logic: Anyone can update the commentsCount
+        // Increment the commentsCount on the post
         updateDoc(postRef, { commentsCount: increment(1) });
         reset();
       })
@@ -122,6 +129,7 @@ function PostComments({ post }: { post: Post }) {
 export function PostCard({ post }: { post: Post }) {
   const firestore = useFirestore();
   const { user: currentUser } = useUser();
+  const { profile } = useMemberProfile();
   const { toast } = useToast();
 
   // Safety check: ensure likes and savedBy are treated as arrays
@@ -130,6 +138,7 @@ export function PostCard({ post }: { post: Post }) {
 
   const isLiked = useMemo(() => likesArr.includes(currentUser?.uid ?? ''), [likesArr, currentUser]);
   const isSaved = useMemo(() => savedByArr.includes(currentUser?.uid ?? ''), [savedByArr, currentUser]);
+  const isAuthor = currentUser?.uid === post.authorId;
 
   const handleLike = () => {
     if (!firestore || !currentUser) {
@@ -177,6 +186,26 @@ export function PostCard({ post }: { post: Post }) {
       });
   };
 
+  const handleDelete = () => {
+    if (!firestore || !currentUser || !isAuthor) return;
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+
+    const postRef = doc(firestore, 'posts', post.id);
+    deleteDoc(postRef)
+      .then(() => {
+        toast({ title: 'Success', description: 'Post deleted.' });
+      })
+      .catch((error) => {
+        console.error("Error deleting post: ", error);
+        const permissionError = new FirestorePermissionError({
+            path: postRef.path,
+            operation: 'delete'
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not delete post.' });
+      });
+  };
+
   const likesCount = likesArr.length;
 
   return (
@@ -197,9 +226,22 @@ export function PostCard({ post }: { post: Post }) {
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon">
-            <MoreHorizontal className="h-5 w-5" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreHorizontal className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {isAuthor && (
+                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleDelete}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Post
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem>Report Post</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         {post.content && <p className="text-sm mb-4 whitespace-pre-wrap">{post.content}</p>}
         {post.media && post.media.length > 0 && (
