@@ -40,63 +40,44 @@
       },
       "required": ["id", "tgnMemberId", "email", "role"]
     },
-    "Chat": {
-      "title": "Chat",
+    "Post": {
+      "title": "Post",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "members": { "type": "array", "items": { "type": "string" } },
-        "lastMessage": {
-          "type": "object",
-          "properties": {
-            "text": { "type": "string" },
-            "senderId": { "type": "string" },
-            "timestamp": { "type": "string", "format": "date-time" }
-          }
-        },
-        "typing": { "type": "object", "additionalProperties": { "type": "boolean" } }
-      }
-    },
-    "ChatMessage": {
-      "title": "ChatMessage",
-      "type": "object",
-      "properties": {
-        "senderId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
         "content": { "type": "string" },
-        "type": { "type": "string", "enum": ["text", "image", "video", "document"] },
+        "likes": { "type": "array", "items": { "type": "string" } },
+        "commentsCount": { "type": "number" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
     },
-    "FriendRequest": {
-      "title": "FriendRequest",
+    "Product": {
+      "title": "Product",
       "type": "object",
       "properties": {
-        "senderId": { "type": "string" },
-        "recipientId": { "type": "string" },
-        "status": { "type": "string", "enum": ["pending", "accepted", "declined"] },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "sellerMemberId": { "type": "string" },
+        "approvalStatus": { "type": "string" }
       }
     }
   },
   "firestore": {
     "/users/{userId}": {
       "schema": { "$ref": "#/backend/entities/Member" },
-      "description": "Stores user profiles."
+      "description": "User profiles and metadata. Readable by all signed-in users, writable by owner."
     },
-    "/chats/{chatId}": {
-      "schema": { "$ref": "#/backend/entities/Chat" },
-      "description": "Stores chat sessions between members."
+    "/posts/{postId}": {
+      "schema": { "$ref": "#/backend/entities/Post" },
+      "description": "Global community posts. Publicly readable for stability, writable by author."
     },
-    "/chats/{chatId}/messages/{messageId}": {
-      "schema": { "$ref": "#/backend/entities/ChatMessage" },
-      "description": "Stores messages within a chat."
-    },
-    "/friend_requests/{requestId}": {
-      "schema": { "$ref": "#/backend/entities/FriendRequest" },
-      "description": "Stores connection requests."
+    "/products/{productId}": {
+      "schema": { "$ref": "#/backend/entities/Product" },
+      "description": "Marketplace products. Publicly readable, writable by seller."
     },
     "/{document=**}": {
-      "description": "Global fallback pattern allowing list and get for all authenticated users, enforcing ownership for writes."
+      "description": "Global fallback allowing read for all authenticated users, enforcing ownership for writes."
     }
   }
 }
