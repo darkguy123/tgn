@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -23,13 +22,12 @@ service cloud.firestore {
     }
 
     // --- USERS ---
-    // 🔑 Explicit collection-level list permission
     match /users {
       allow list: if isSignedIn();
     }
     
     match /users/{userId} {
-      allow get: if isSignedIn();
+      allow read: if isSignedIn();
       allow create: if isOwner(userId) || isAdmin();
       allow update: if (isOwner(userId) && (request.resource.data.role == resource.data.role)) || isAdmin();
 
@@ -61,13 +59,12 @@ service cloud.firestore {
     }
 
     // --- POSTS ---
-    // 🔑 Explicit collection-level list permission
     match /posts {
       allow list: if isSignedIn();
     }
 
     match /posts/{postId} {
-      allow get: if isSignedIn();
+      allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
       allow update: if isSignedIn(); // For likes/saves
       allow delete: if (isSignedIn() && resource.data.authorId == request.auth.uid) || isAdmin();
@@ -85,7 +82,7 @@ service cloud.firestore {
     }
 
     match /chats/{chatId} {
-      allow get: if isSignedIn() && (request.auth.uid in resource.data.members || request.auth.uid in chatId.split('_'));
+      allow read: if isSignedIn() && (request.auth.uid in resource.data.members || request.auth.uid in chatId.split('_'));
       allow update: if isSignedIn() && request.auth.uid in resource.data.members;
       allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
 
@@ -102,7 +99,7 @@ service cloud.firestore {
     }
 
     match /friend_requests/{friendRequestId} {
-      allow get: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
+      allow read: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
       allow update: if isSignedIn() && (resource.data.recipientId == request.auth.uid || resource.data.senderId == request.auth.uid);
       allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
@@ -124,7 +121,7 @@ service cloud.firestore {
     }
 
     match /products/{productId} {
-      allow get: if true;
+      allow read: if true;
       allow create: if isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid;
       allow update, delete: if (isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid) || isAdmin();
     }
@@ -134,7 +131,7 @@ service cloud.firestore {
     }
 
     match /programs/{programId} {
-      allow get: if isSignedIn();
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
@@ -143,7 +140,7 @@ service cloud.firestore {
     }
 
     match /events/{eventId} {
-      allow get: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
@@ -152,7 +149,7 @@ service cloud.firestore {
     }
 
     match /sectors/{sectorId} {
-      allow get: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
@@ -162,7 +159,7 @@ service cloud.firestore {
     }
 
     match /ads/{adId} {
-      allow get: if true;
+      allow read: if true;
       allow create: if isSignedIn();
       allow update: if isAdmin();
     }
@@ -172,7 +169,7 @@ service cloud.firestore {
     }
 
     match /causes/{causeId} {
-      allow get: if true;
+      allow read: if true;
       allow create: if isSignedIn();
       allow update: if isSignedIn(); 
     }
@@ -183,7 +180,7 @@ service cloud.firestore {
     }
 
     match /mentor_certifications/{memberId} {
-      allow get: if isOwner(memberId) || isAdmin();
+      allow read: if isOwner(memberId) || isAdmin();
       allow write: if isAdmin();
     }
 
@@ -192,7 +189,7 @@ service cloud.firestore {
     }
 
     match /mentor_kyc/{memberId} {
-      allow get: if isOwner(memberId) || isAdmin();
+      allow read: if isOwner(memberId) || isAdmin();
       allow create: if isOwner(memberId);
       allow update: if isOwner(memberId) || isAdmin();
     }
@@ -203,7 +200,7 @@ service cloud.firestore {
     }
 
     match /commissions/{commissionId} {
-      allow get: if isAdmin() || (isSignedIn() && resource.data.referrerId == request.auth.uid);
+      allow read: if isAdmin() || (isSignedIn() && resource.data.referrerId == request.auth.uid);
       allow create: if isSignedIn(); 
       allow update, delete: if false;
     }
@@ -213,7 +210,7 @@ service cloud.firestore {
     }
 
     match /affiliate_referrals/{referralId} {
-      allow get: if isAdmin() || (isSignedIn() && (resource.data.referrerMemberId == request.auth.uid || resource.data.referredMemberId == request.auth.uid));
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.referrerMemberId == request.auth.uid || resource.data.referredMemberId == request.auth.uid));
       allow create: if isSignedIn();
       allow update, delete: if false;
     }

@@ -76,6 +76,25 @@
         "status": { "type": "string", "enum": ["pending", "accepted", "declined"] },
         "createdAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "Program": {
+      "title": "Program",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "mentor": { "type": "string" },
+        "duration": { "type": "string" },
+        "enrolled": { "type": "number" },
+        "rating": { "type": "number" },
+        "certified": { "type": "boolean" },
+        "price": { "type": "number" },
+        "imageId": { "type": "string" },
+        "description": { "type": "string" },
+        "format": { "type": "string", "enum": ["Physical", "Live", "Pre-recorded", "Hybrid"] },
+        "type": { "type": "string", "enum": ["Free", "Paid", "Executive"] },
+        "deactivatedAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "firestore": {
@@ -97,6 +116,10 @@
     },
     "/posts/{postId}": {
       "description": "Stores community feed posts."
+    },
+    "/programs/{programId}": {
+      "schema": { "$ref": "#/backend/entities/Program" },
+      "description": "Stores network learning programs."
     }
   }
 }
