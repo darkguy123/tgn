@@ -35,6 +35,7 @@
       "description": "Represents a post in the community feed.",
       "type": "object",
       "properties": {
+        "id": { "type": "string" },
         "authorId": { "type": "string" },
         "authorName": { "type": "string" },
         "content": { "type": "string" },
@@ -50,6 +51,7 @@
       "description": "Represents a wallet transaction.",
       "type": "object",
       "properties": {
+        "id": { "type": "string" },
         "type": { "type": "string", "enum": ["commission", "withdrawal", "deposit", "purchase"] },
         "status": { "type": "string", "enum": ["pending", "completed", "failed"] },
         "amount": { "type": "number" },
@@ -75,6 +77,9 @@
     "/users/{userId}/transactions/{transactionId}": {
       "schema": { "$ref": "#/backend/entities/Transaction" },
       "description": "User transaction history."
+    },
+    "/connections/{connectionId}": {
+      "description": "Stores scalable connection documents between members."
     }
   }
 }
