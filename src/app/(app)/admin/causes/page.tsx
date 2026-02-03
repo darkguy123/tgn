@@ -1,4 +1,3 @@
-
 'use client';
 import { useState } from 'react';
 import {
@@ -32,7 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError, useUser } from '@/firebase';
 import { collection, doc, updateDoc } from 'firebase/firestore';
 import type { Cause } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -42,10 +41,13 @@ import { formatDistanceToNow } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useMemberProfile } from '@/hooks/useMemberProfile';
 
 export default function AdminFundraisePage() {
   const firestore = useFirestore();
-  const fundraisersRef = useMemoFirebase(() => collection(firestore, 'causes'), [firestore]);
+  const { user } = useUser();
+  const { profile } = useMemberProfile();
+  const fundraisersRef = useMemoFirebase(() => (firestore && user && profile ? collection(firestore, 'causes') : null), [firestore, user, profile]);
   const { data: fundraisers, isLoading, error } = useCollection<Cause>(fundraisersRef);
   const { toast } = useToast();
 

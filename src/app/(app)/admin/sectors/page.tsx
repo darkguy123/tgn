@@ -27,7 +27,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError, useUser } from '@/firebase';
 import {
   collection,
   doc,
@@ -36,13 +36,16 @@ import {
 import type { Sector } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { useMemberProfile } from '@/hooks/useMemberProfile';
 
 export default function AdminSectorsPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
+  const { profile } = useMemberProfile();
   const { toast } = useToast();
   const sectorsRef = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'sectors') : null),
-    [firestore]
+    () => (firestore && user && profile ? collection(firestore, 'sectors') : null),
+    [firestore, user, profile]
   );
   const {
     data: sectors,

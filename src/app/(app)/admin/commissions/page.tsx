@@ -15,19 +15,22 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import type { Commission, TGNMember } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
+import { useMemberProfile } from '@/hooks/useMemberProfile';
 
 export default function AdminCommissionsPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
+  const { profile } = useMemberProfile();
   
-  const commissionsRef = useMemoFirebase(() => (firestore ? collection(firestore, 'commissions') : null), [firestore]);
+  const commissionsRef = useMemoFirebase(() => (firestore && user && profile ? collection(firestore, 'commissions') : null), [firestore, user, profile]);
   const { data: commissions, isLoading: commissionsLoading } = useCollection<Commission>(commissionsRef);
 
-  const usersRef = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
+  const usersRef = useMemoFirebase(() => (firestore && user && profile ? collection(firestore, 'users') : null), [firestore, user, profile]);
   const { data: users, isLoading: usersLoading } = useCollection<TGNMember>(usersRef);
 
   const usersMap = useMemo(() => {

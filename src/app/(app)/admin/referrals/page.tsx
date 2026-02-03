@@ -15,19 +15,22 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { AffiliateReferral, TGNMember } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
+import { useMemberProfile } from '@/hooks/useMemberProfile';
 
 export default function AdminReferralsPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
+  const { profile } = useMemberProfile();
   
-  const referralsRef = useMemoFirebase(() => (firestore ? collection(firestore, 'affiliate_referrals') : null), [firestore]);
+  const referralsRef = useMemoFirebase(() => (firestore && user && profile ? collection(firestore, 'affiliate_referrals') : null), [firestore, user, profile]);
   const { data: referrals, isLoading: referralsLoading } = useCollection<AffiliateReferral>(referralsRef);
 
-  const usersRef = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
+  const usersRef = useMemoFirebase(() => (firestore && user && profile ? collection(firestore, 'users') : null), [firestore, user, profile]);
   const { data: users, isLoading: usersLoading } = useCollection<TGNMember>(usersRef);
 
   const usersMap = useMemo(() => {

@@ -20,7 +20,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, Clock, ExternalLink } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError, useUser } from '@/firebase';
 import { collection, doc, updateDoc } from 'firebase/firestore';
 import type { AdCampaign } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -31,10 +31,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useMemberProfile } from '@/hooks/useMemberProfile';
 
 export default function AdminAdsPage() {
   const firestore = useFirestore();
-  const adsRef = useMemoFirebase(() => collection(firestore, 'ads'), [firestore]);
+  const { user } = useUser();
+  const { profile } = useMemberProfile();
+  const adsRef = useMemoFirebase(() => (firestore && user && profile ? collection(firestore, 'ads') : null), [firestore, user, profile]);
   const { data: ads, isLoading, error } = useCollection<AdCampaign>(adsRef);
   const { toast } = useToast();
 

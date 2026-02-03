@@ -7,18 +7,21 @@ import { Button } from '@/components/ui/button';
 import { Download, Users, Briefcase, BookOpen, DollarSign } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { subMonths, format } from 'date-fns';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { TGNMember, Program, Cause } from '@/lib/types';
+import { useMemberProfile } from '@/hooks/useMemberProfile';
 
 
 export default function AdminAnalyticsPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
+  const { profile } = useMemberProfile();
 
-  // Queries
-  const usersRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
-  const programsRef = useMemoFirebase(() => collection(firestore, 'programs'), [firestore]);
-  const causesRef = useMemoFirebase(() => collection(firestore, 'causes'), [firestore]);
+  // Queries - Guarded by profile availability
+  const usersRef = useMemoFirebase(() => (firestore && user && profile ? collection(firestore, 'users') : null), [firestore, user, profile]);
+  const programsRef = useMemoFirebase(() => (firestore && user && profile ? collection(firestore, 'programs') : null), [firestore, user, profile]);
+  const causesRef = useMemoFirebase(() => (firestore && user && profile ? collection(firestore, 'causes') : null), [firestore, user, profile]);
 
   // Data fetching
   const { data: members, isLoading: membersLoading } = useCollection<TGNMember>(usersRef);

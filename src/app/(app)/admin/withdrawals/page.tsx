@@ -18,28 +18,31 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, Clock } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError, useUser } from '@/firebase';
 import { collectionGroup, doc, updateDoc, query, where, runTransaction, collection } from 'firebase/firestore';
 import type { Transaction, TGNMember } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useMemberProfile } from '@/hooks/useMemberProfile';
 
 
 export default function AdminWithdrawalsPage() {
   const firestore = useFirestore();
+  const { user: currentUser } = useUser();
+  const { profile } = useMemberProfile();
   const { toast } = useToast();
 
   const withdrawalsQuery = useMemoFirebase(() => 
-    firestore 
+    (firestore && currentUser && profile) 
       ? query(collectionGroup(firestore, 'transactions'), where('type', '==', 'withdrawal'), where('status', '==', 'pending')) 
       : null,
-    [firestore]
+    [firestore, currentUser, profile]
   );
   const { data: withdrawals, isLoading: withdrawalsLoading } = useCollection<Transaction>(withdrawalsQuery);
 
-  const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
+  const usersQuery = useMemoFirebase(() => (firestore && currentUser && profile ? collection(firestore, 'users') : null), [firestore, currentUser, profile]);
   const { data: users, isLoading: usersLoading } = useCollection<TGNMember>(usersQuery);
 
   const usersMap = useMemo(() => {

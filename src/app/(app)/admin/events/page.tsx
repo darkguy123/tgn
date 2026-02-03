@@ -30,7 +30,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError, useUser } from '@/firebase';
 import {
   collection,
   doc,
@@ -43,13 +43,16 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { useMemberProfile } from '@/hooks/useMemberProfile';
 
 export default function AdminEventsPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
+  const { profile } = useMemberProfile();
   const { toast } = useToast();
   const eventsRef = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'events') : null),
-    [firestore]
+    () => (firestore && user && profile ? collection(firestore, 'events') : null),
+    [firestore, user, profile]
   );
   const {
     data: events,

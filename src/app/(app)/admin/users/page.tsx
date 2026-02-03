@@ -31,16 +31,19 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
-import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError, useUser } from '@/firebase';
 import { collection, doc, updateDoc } from 'firebase/firestore';
 import type { TGNMember } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { roles } from '@/lib/data';
+import { useMemberProfile } from '@/hooks/useMemberProfile';
 
 export default function AdminUsersPage() {
   const firestore = useFirestore();
-  const usersRef = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
+  const { user: currentUser } = useUser();
+  const { profile } = useMemberProfile();
+  const usersRef = useMemoFirebase(() => (firestore && currentUser && profile ? collection(firestore, 'users') : null), [firestore, currentUser, profile]);
   const { data: users, isLoading, error } = useCollection<TGNMember>(usersRef);
   const { toast } = useToast();
 
