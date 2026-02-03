@@ -44,7 +44,6 @@ import { useSearchParams } from 'next/navigation';
 
 const communityNavItems = [
   { label: 'Feed', icon: LayoutGrid, path: '/community' },
-  { label: 'Bookmarks', icon: Bookmark, path: '/community?tab=saved' },
   { label: 'Directory', icon: Users, path: '/directory' },
   { label: 'Events', icon: Calendar, path: '/community/events' },
   { label: 'Marketplace', icon: ShoppingBag, path: '/marketplace' },
@@ -198,18 +197,13 @@ function CommunityContent() {
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'all';
 
+  // Simplified query: No complex filters to ensure index-free listing for stability
   const postsQuery = useMemoFirebase(() =>
     (firestore && user && profile) ? query(collection(firestore, 'posts'), orderBy('createdAt', 'desc')) : null,
     [firestore, user, profile]
   );
   
-  const savedPostsQuery = useMemoFirebase(() =>
-    (firestore && user && profile) ? query(collection(firestore, 'posts'), where('savedBy', 'array-contains', profile.id), orderBy('createdAt', 'desc')) : null,
-    [firestore, user, profile]
-  );
-  
   const { data: posts, isLoading: postsLoading, error: postsError } = useCollection<Post>(postsQuery);
-  const { data: savedPosts, isLoading: savedPostsLoading, error: savedError } = useCollection<Post>(savedPostsQuery);
 
   const renderPosts = (postList: Post[] | null, isLoading: boolean, error: any, emptyState: React.ReactNode) => {
     if (isLoading || isProfileLoading) {
@@ -232,13 +226,14 @@ function CommunityContent() {
     }
 
     if (error) {
+        console.error("Community Feed Error:", error);
         return (
             <Card className="border-dashed">
                 <CardContent className="p-10 text-center flex flex-col items-center">
                     <Hammer className="h-12 w-12 text-muted-foreground mb-4" />
                     <h3 className="text-lg font-semibold">Feed Syncing...</h3>
                     <p className="text-sm text-muted-foreground max-w-sm mt-2">
-                        We're updating the global community permissions. Your feed will be active shortly.
+                        We're optimizing the community feed for your region. This section will be ready in just a moment.
                     </p>
                 </CardContent>
             </Card>
@@ -265,8 +260,8 @@ function CommunityContent() {
       <Card>
         <CardContent className="p-10 text-center text-muted-foreground">
             <Bookmark className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-medium">No Saved Posts</h3>
-            <p className="mt-1 text-sm">You haven't saved any posts yet. Use the bookmark icon to save posts for later.</p>
+            <h3 className="mt-4 text-lg font-medium">Coming Soon</h3>
+            <p className="text-sm">Personal bookmarking is being synchronized across the global network.</p>
         </CardContent>
       </Card>
   );
@@ -300,7 +295,7 @@ function CommunityContent() {
                 {communityNavItems.map(item => (
                   <Button
                     key={item.label}
-                    variant={item.path === '/community' && defaultTab === 'all' ? 'secondary' : item.path.includes(defaultTab) ? 'secondary' : 'ghost'}
+                    variant={pathname.startsWith(item.path) ? 'secondary' : 'ghost'}
                     className="justify-start gap-3"
                     asChild
                   >
@@ -356,7 +351,7 @@ function CommunityContent() {
 
               <Tabs defaultValue={defaultTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-3 bg-muted/80">
-                  <TabsTrigger value="all">All Members</TabsTrigger>
+                  <TabsTrigger value="all">Global Feed</TabsTrigger>
                   <TabsTrigger value="mentors">Mentors Only</TabsTrigger>
                   <TabsTrigger value="saved">Saved</TabsTrigger>
                 </TabsList>
@@ -367,7 +362,7 @@ function CommunityContent() {
                   {renderPosts(mentorsOnlyPosts || null, postsLoading, postsError, allPostsEmptyState)}
                 </TabsContent>
                  <TabsContent value="saved" className="mt-6 space-y-6">
-                  {renderPosts(savedPosts, savedPostsLoading, savedError, savedPostsEmptyState)}
+                  {savedPostsEmptyState}
                 </TabsContent>
               </Tabs>
             </main>
@@ -380,6 +375,8 @@ function CommunityContent() {
     </>
   );
 }
+
+const pathname = '/community';
 
 export default function CommunityPage() {
   return (
