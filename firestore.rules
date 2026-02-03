@@ -15,6 +15,8 @@ service cloud.firestore {
     
     function isAdmin() {
       // Safely check for admin privileges.
+      // 1. Check hardcoded super-admin email
+      // 2. Check user document role if it exists
       return isSignedIn() && (
         (request.auth.token.email == 'valentinoboss18@gmail.com') || 
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
@@ -93,7 +95,7 @@ service cloud.firestore {
     match /products/{productId} {
       allow read: if true;
       allow create: if isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid;
-      allow update, delete: if (isSignedIn() && resource.data.sellerMemberId == request.auth.uid) || isAdmin();
+      allow update, delete: if (isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid) || isAdmin();
     }
 
     match /programs/{programId} {
