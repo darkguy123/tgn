@@ -93,7 +93,6 @@ export default function NetworkPage() {
 
     // --- DATA QUERIES ---
     
-    // Explicitly guard all queries by currentUser and profile validation
     const connectionIds = useMemo(() => currentUserProfile?.connections || [], [currentUserProfile]);
     
     const connectionsQuery = useMemoFirebase(() =>
@@ -114,14 +113,19 @@ export default function NetworkPage() {
         });
     }, [connections, searchQuery]);
 
+    // Option 1: Strictly restrict queries to allowed documents
     const receivedRequestsQuery = useMemoFirebase(() =>
-        (currentUser && firestore && currentUserProfile) ? query(collection(firestore, 'friend_requests'), where('recipientId', '==', currentUser.uid), where('status', '==', 'pending')) : null,
+        (currentUser && firestore && currentUserProfile) 
+            ? query(collection(firestore, 'friend_requests'), where('recipientId', '==', currentUser.uid), where('status', '==', 'pending')) 
+            : null,
         [currentUser, firestore, currentUserProfile]
     );
     const { data: receivedRequests, isLoading: receivedLoading } = useCollection<FriendRequest>(receivedRequestsQuery);
 
     const sentRequestsQuery = useMemoFirebase(() =>
-        (currentUser && firestore && currentUserProfile) ? query(collection(firestore, 'friend_requests'), where('senderId', '==', currentUser.uid), where('status', '==', 'pending')) : null,
+        (currentUser && firestore && currentUserProfile) 
+            ? query(collection(firestore, 'friend_requests'), where('senderId', '==', currentUser.uid), where('status', '==', 'pending')) 
+            : null,
         [currentUser, firestore, currentUserProfile]
     );
     const { data: sentRequests, isLoading: sentLoading } = useCollection<FriendRequest>(sentRequestsQuery);

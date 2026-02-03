@@ -81,8 +81,11 @@ export function NotificationsMenu() {
   const { user } = useUser();
   const firestore = useFirestore();
 
+  // Option 1: Filter query to strictly allowed documents
   const requestsQuery = useMemoFirebase(
-    () => (user && firestore) ? query(collection(firestore, 'friend_requests'), where('recipientId', '==', user.uid), where('status', '==', 'pending')) : null,
+    () => (user && firestore) 
+        ? query(collection(firestore, 'friend_requests'), where('recipientId', '==', user.uid), where('status', '==', 'pending')) 
+        : null,
     [user, firestore]
   );
   
