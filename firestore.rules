@@ -58,9 +58,12 @@ service cloud.firestore {
       allow read, write: if isOwner(userId) || isAdmin();
     }
 
-    // --- POSTS ---
+    // --- POSTS (FORCE READ) ---
+    match /posts {
+      allow list: if true;
+    }
     match /posts/{postId} {
-      allow get, list: if isSignedIn();
+      allow get: if true;
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
       
       // Allow update if owner OR if only social fields (likes, commentsCount, savedBy) are changing
@@ -72,43 +75,61 @@ service cloud.firestore {
       allow delete: if (isSignedIn() && resource.data.authorId == request.auth.uid) || isAdmin();
 
       match /comments/{commentId} {
-        allow get, list: if isSignedIn();
+        allow read: if true;
         allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
         allow update, delete: if isAdmin() || (isSignedIn() && request.resource.data.authorId == request.auth.uid);
       }
     }
 
-    // --- MARKETPLACE & CONTENT ---
+    // --- MARKETPLACE & CONTENT (FORCE READ) ---
+    match /products {
+      allow list: if true;
+    }
     match /products/{productId} {
-      allow get, list: if true;
+      allow get: if true;
       allow create: if isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid;
       allow update, delete: if (isSignedIn() && resource.data.sellerMemberId == request.auth.uid) || isAdmin();
     }
 
+    match /programs {
+      allow list: if true;
+    }
     match /programs/{programId} {
-      allow get, list: if isSignedIn();
+      allow get: if true;
       allow write: if isAdmin();
     }
 
+    match /events {
+      allow list: if true;
+    }
     match /events/{eventId} {
-      allow get, list: if true;
+      allow get: if true;
       allow write: if isAdmin();
     }
 
+    match /sectors {
+      allow list: if true;
+    }
     match /sectors/{sectorId} {
-      allow get, list: if true;
+      allow get: if true;
       allow write: if isAdmin();
     }
 
     // --- COMMUNITY & ADS ---
+    match /ads {
+      allow list: if true;
+    }
     match /ads/{adId} {
-      allow get, list: if true;
+      allow get: if true;
       allow create: if isSignedIn();
       allow update: if isAdmin();
     }
 
+    match /causes {
+      allow list: if true;
+    }
     match /causes/{causeId} {
-      allow get, list: if true;
+      allow get: if true;
       allow create: if isSignedIn();
       allow update: if isSignedIn();
     }
@@ -128,16 +149,21 @@ service cloud.firestore {
     }
 
     // --- FRIEND REQUESTS ---
-    match /friend_requests/{friendRequestId} {
+    match /friend_requests {
       allow list: if isSignedIn();
+    }
+    match /friend_requests/{friendRequestId} {
       allow get: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
       allow update: if isSignedIn() && (resource.data.recipientId == request.auth.uid || resource.data.senderId == request.auth.uid);
       allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
     }
 
+    match /connections {
+      allow list: if isSignedIn();
+    }
     match /connections/{connectionId} {
-      allow get, list: if isSignedIn();
+      allow get: if isSignedIn();
       allow create, delete: if isSignedIn() && request.auth.uid in connectionId.split('_');
     }
 
@@ -154,8 +180,11 @@ service cloud.firestore {
     }
 
     // --- AFFILIATE SYSTEM ---
+    match /commissions {
+      allow list: if isSignedIn();
+    }
     match /commissions/{commissionId} {
-      allow get, list: if isAdmin() || (isSignedIn() && resource.data.referrerId == request.auth.uid);
+      allow get: if isAdmin() || (isSignedIn() && resource.data.referrerId == request.auth.uid);
       allow create: if isSignedIn();
       allow update, delete: if false;
     }

@@ -1,66 +1,84 @@
+
 {
   "entities": {
     "Member": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Member",
-      "description": "Represents a member of the Transcend Global Network Hub.",
       "type": "object",
+      "description": "Represents a member of the Transcend Global Network Hub.",
       "properties": {
-        "id": { "type": "string" },
-        "tgnMemberId": { "type": "string" },
-        "name": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "role": { "type": "string", "enum": ["mentee", "mentor-candidate", "associate-mentor", "collaborator", "sponsor", "country-manager", "volunteer", "media", "admin"] },
+        "id": { "type": "string", "description": "Unique identifier for the Member entity (matches Firebase Auth UID)." },
+        "tgnMemberId": { "type": "string", "description": "Unique TGN Member ID assigned during onboarding." },
+        "name": { "type": "string", "description": "The member's full name." },
+        "signInType": { "type": "string", "description": "The authentication method used (e.g., 'password', 'google.com')." },
+        "email": { "type": "string", "description": "The member's email address.", "format": "email" },
+        "phone": { "type": "string", "description": "The member's phone number." },
+        "locationContinent": { "type": "string" },
         "locationCountry": { "type": "string" },
+        "locationRegion": { "type": "string" },
+        "timezone": { "type": "string" },
         "sectorPreferences": { "type": "array", "items": { "type": "string" } },
-        "avatarUrl": { "type": "string" },
-        "bannerUrl": { "type": "string" },
-        "isVerifiedMentor": { "type": "boolean" },
+        "role": { "type": "string", "enum": ["mentee", "mentor-candidate", "associate-mentor", "collaborator", "sponsor", "country-manager", "volunteer", "media", "admin"] },
+        "purpose": { "type": "string", "description": "The member's bio or statement of purpose." },
+        "identityProfile": { "type": "string", "description": "A JSON string containing member's goals and interests." },
+        "avatarUrl": { "type": "string", "description": "URL to the member's profile image." },
+        "bannerUrl": { "type": "string", "description": "URL for the user's profile banner image." },
+        "isVerifiedMentor": { "type": "boolean", "default": false },
+        "hasTransactionPin": { "type": "boolean", "default": false },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastSeen": { "type": "string", "format": "date-time" },
         "connections": { "type": "array", "items": { "type": "string" } },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "notificationPreferences": {
+          "type": "object",
+          "properties": {
+            "emailUpdates": { "type": "boolean" },
+            "sessionReminders": { "type": "boolean" },
+            "communityActivity": { "type": "boolean" },
+            "marketingEmails": { "type": "boolean" },
+            "pushNotifications": { "type": "boolean" }
+          }
+        }
       },
       "required": ["id", "tgnMemberId", "email", "role"]
     },
-    "Chat": {
-      "title": "Chat",
+    "Post": {
+      "title": "Post",
       "type": "object",
       "properties": {
-        "members": { "type": "array", "items": { "type": "string" } },
-        "lastMessage": {
-          "type": "object",
-          "properties": {
-            "text": { "type": "string" },
-            "senderId": { "type": "string" },
-            "timestamp": { "type": "string", "format": "date-time" }
-          }
-        }
-      }
-    },
-    "FriendRequest": {
-      "title": "FriendRequest",
-      "type": "object",
-      "properties": {
-        "senderId": { "type": "string" },
-        "recipientId": { "type": "string" },
-        "status": { "type": "string", "enum": ["pending", "accepted", "declined"] },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "content": { "type": "string" },
+        "likes": { "type": "array", "items": { "type": "string" } },
+        "commentsCount": { "type": "number" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "Product": {
+      "title": "Product",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "sellerMemberId": { "type": "string" },
+        "approvalStatus": { "type": "string" }
+      }
     }
-  },
-  "auth": {
-    "providers": ["password", "google.com"]
   },
   "firestore": {
     "/users/{userId}": {
       "schema": { "$ref": "#/backend/entities/Member" },
       "description": "User profiles and metadata."
     },
-    "/friend_requests/{requestId}": {
-      "schema": { "$ref": "#/backend/entities/FriendRequest" },
-      "description": "Networking connection requests."
+    "/posts/{postId}": {
+      "schema": { "$ref": "#/backend/entities/Post" },
+      "description": "Global community posts."
     },
-    "/chats/{chatId}": {
-      "schema": { "$ref": "#/backend/entities/Chat" },
-      "description": "Private messaging sessions."
+    "/products/{productId}": {
+      "schema": { "$ref": "#/backend/entities/Product" },
+      "description": "Marketplace products."
+    },
+    "/{document=**}": {
+      "description": "Global fallback for reading data, enforcing ownership for writes."
     }
   }
 }
