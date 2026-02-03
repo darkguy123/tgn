@@ -57,7 +57,7 @@ function PostComments({ post }: { post: Post }) {
     
     addDoc(commentsColRef, dataToSave)
       .then(() => {
-        // Optimistically update comments count, but a transaction would be better
+        // Social interaction logic: Anyone can update the commentsCount
         updateDoc(postRef, { commentsCount: increment(1) });
         reset();
       })
@@ -124,8 +124,12 @@ export function PostCard({ post }: { post: Post }) {
   const { user: currentUser } = useUser();
   const { toast } = useToast();
 
-  const isLiked = useMemo(() => Array.isArray(post.likes) && post.likes.includes(currentUser?.uid ?? ''), [post.likes, currentUser]);
-  const isSaved = useMemo(() => Array.isArray(post.savedBy) && post.savedBy.includes(currentUser?.uid ?? ''), [post.savedBy, currentUser]);
+  // Safety check: ensure likes and savedBy are treated as arrays
+  const likesArr = Array.isArray(post.likes) ? post.likes : [];
+  const savedByArr = Array.isArray(post.savedBy) ? post.savedBy : [];
+
+  const isLiked = useMemo(() => likesArr.includes(currentUser?.uid ?? ''), [likesArr, currentUser]);
+  const isSaved = useMemo(() => savedByArr.includes(currentUser?.uid ?? ''), [savedByArr, currentUser]);
 
   const handleLike = () => {
     if (!firestore || !currentUser) {
@@ -143,7 +147,7 @@ export function PostCard({ post }: { post: Post }) {
         const permissionError = new FirestorePermissionError({
             path: postRef.path,
             operation: 'update',
-            requestResourceData: { likes: 'update' } 
+            requestResourceData: payload
         });
         errorEmitter.emit('permission-error', permissionError);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not update like.' });
@@ -166,14 +170,14 @@ export function PostCard({ post }: { post: Post }) {
         const permissionError = new FirestorePermissionError({
             path: postRef.path,
             operation: 'update',
-            requestResourceData: { savedBy: 'update' }
+            requestResourceData: payload
         });
         errorEmitter.emit('permission-error', permissionError);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not save post.' });
       });
   };
 
-  const likesCount = Array.isArray(post.likes) ? post.likes.length : 0;
+  const likesCount = likesArr.length;
 
   return (
     <Card>

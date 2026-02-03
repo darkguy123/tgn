@@ -61,7 +61,13 @@ service cloud.firestore {
     match /posts/{postId} {
       allow get, list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-      allow update: if isSignedIn();
+      
+      // Allow update if owner OR if only social fields (likes, commentsCount) are changing
+      allow update: if isSignedIn() && (
+        (resource.data.authorId == request.auth.uid || isAdmin()) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'commentsCount', 'savedBy']))
+      );
+      
       allow delete: if (isSignedIn() && resource.data.authorId == request.auth.uid) || isAdmin();
 
       match /comments/{commentId} {
@@ -120,9 +126,9 @@ service cloud.firestore {
       }
     }
 
-    // --- FRIEND REQUESTS (FIXED) ---
+    // --- FRIEND REQUESTS ---
     match /friend_requests/{friendRequestId} {
-      allow list: if isSignedIn(); // safe global listing
+      allow list: if isSignedIn();
       allow get: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
       allow update: if isSignedIn() && (resource.data.recipientId == request.auth.uid || resource.data.senderId == request.auth.uid);
@@ -160,7 +166,6 @@ service cloud.firestore {
     }
 
     // --- GLOBAL FALLBACK ---
-    // This ensures any new collection or document is readable by signed-in users by default.
     match /{document=**} {
       allow get, list: if isSignedIn();
       allow create, update, delete: if false;
