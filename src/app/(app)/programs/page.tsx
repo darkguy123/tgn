@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from "react";
@@ -9,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Clock, Users, Award,
   ChevronRight, Star, Calendar, ArrowLeft,
-  Video, Book, Wallet, Loader2, PartyPopper, MapPin, Hammer
+  Video, Book, Wallet, Loader2, PartyPopper, MapPin, Hammer, GraduationCap
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, doc, runTransaction, serverTimestamp, increment, addDoc, getDocs } from 'firebase/firestore';

@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -62,7 +63,7 @@ service cloud.firestore {
       allow get, list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
       
-      // Allow update if owner OR if only social fields (likes, commentsCount) are changing
+      // Allow update if owner OR if only social fields (likes, commentsCount, savedBy) are changing
       allow update: if isSignedIn() && (
         (resource.data.authorId == request.auth.uid || isAdmin()) ||
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'commentsCount', 'savedBy']))
@@ -155,12 +156,6 @@ service cloud.firestore {
     // --- AFFILIATE SYSTEM ---
     match /commissions/{commissionId} {
       allow get, list: if isAdmin() || (isSignedIn() && resource.data.referrerId == request.auth.uid);
-      allow create: if isSignedIn();
-      allow update, delete: if false;
-    }
-
-    match /affiliate_referrals/{referralId} {
-      allow get, list: if isAdmin() || (isSignedIn() && (resource.data.referrerMemberId == request.auth.uid || resource.data.referredMemberId == request.auth.uid));
       allow create: if isSignedIn();
       allow update, delete: if false;
     }
