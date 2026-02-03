@@ -24,20 +24,23 @@ service cloud.firestore {
 
     // --- USER-OWNED DATA ---
     match /users/{userId} {
-      // Allow any signed-in user to view profiles or list users (for directory/search)
+      // 👀 Anyone signed in can view profiles or list users (for directory/search)
       allow get, list: if isSignedIn();
-      allow create: if isOwner(userId);
-      // User can update their own doc (but not their role). Admin can do anything.
-      allow update: if (isOwner(userId) && !(request.resource.data.role != resource.data.role)) || isAdmin();
+      
+      // ✍️ User can create their own doc. Admin can too.
+      allow create: if isOwner(userId) || isAdmin();
+      
+      // ✏️ User can update their own doc (but not their role via UI logic). Admin can do anything.
+      allow update: if isOwner(userId) || isAdmin();
 
       // Subcollections
       match /media/{mediaId} {
         allow read: if true;
-        allow create, delete: if isOwner(userId);
+        allow create, delete: if isOwner(userId) || isAdmin();
         allow update: if false;
       }
       match /cards/{cardId} {
-        allow read, write: if isOwner(userId);
+        allow read, write: if isOwner(userId) || isAdmin();
       }
       match /transactions/{transactionId} {
         allow create: if isOwner(userId);
@@ -46,11 +49,11 @@ service cloud.firestore {
         allow delete: if false;
       }
       match /enrolled_programs/{programId} {
-          allow read, create: if isOwner(userId);
-          allow update, delete: if false;
+          allow read, create: if isOwner(userId) || isAdmin();
+          allow update, delete: if isAdmin();
       }
       match /menteeVerifications/{verificationId} {
-          allow read, write: if isOwner(userId);
+          allow read, write: if isOwner(userId) || isAdmin();
       }
     }
     
@@ -59,43 +62,50 @@ service cloud.firestore {
       allow read, write: if isOwner(userId) || isAdmin();
     }
 
-    // --- GLOBAL/PUBLIC DATA ---
-    match /programs/{programId} {
-      allow get, list: if isSignedIn();
-      allow write: if isAdmin();
-    }
-    match /sectors/{sectorId} {
-      allow get, list: if true;
-      allow write: if isAdmin();
-    }
-    match /events/{eventId} {
-      allow get, list: if true;
-      allow write: if isAdmin();
-    }
-
-    // --- COMMUNITY & FEED ---
+    // --- POSTS (Social Media Style) ---
     match /posts/{postId} {
-      // Allow all signed-in users to view the feed and individual posts
+      // 👀 Anyone logged in can read posts (feeds, profiles, explore)
       allow get, list: if isSignedIn();
+
+      // ✍️ Create post (author must be the creator)
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-      // Allow updating for likes/saves. In a production app, you'd restrict this to only those fields.
+
+      // ✏️ Update for likes/saves (Any signed in user can update the likes/savedBy arrays)
       allow update: if isSignedIn();
-      // Only the author or an admin can delete
+      
+      // 🗑️ Delete only by owner or admin
       allow delete: if (isSignedIn() && resource.data.authorId == request.auth.uid) || isAdmin();
 
       match /comments/{commentId} {
         allow get, list: if isSignedIn();
         allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-        allow update, delete: if false;
+        allow update, delete: if isAdmin() || (isSignedIn() && resource.data.authorId == request.auth.uid);
       }
     }
-    
+
+    // --- MARKETPLACE & CONTENT ---
     match /products/{productId} {
       allow get, list: if true;
       allow create: if isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid;
       allow update, delete: if (isSignedIn() && resource.data.sellerMemberId == request.auth.uid) || isAdmin();
     }
 
+    match /programs/{programId} {
+      allow get, list: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /events/{eventId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+
+    match /sectors/{sectorId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+
+    // --- COMMUNITY & ADS ---
     match /ads/{adId} {
       allow get, list: if true;
       allow create: if isSignedIn();
@@ -117,7 +127,7 @@ service cloud.firestore {
 
       match /messages/{messageId} {
         allow read: if isSignedIn() && request.auth.uid in chatId.split('_');
-        allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid && request.auth.uid in chatId.split('_');
+        allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
         allow update, delete: if false;
       }
     }
