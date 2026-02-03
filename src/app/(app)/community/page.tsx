@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -33,7 +33,7 @@ import Link from 'next/link';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import type { Post } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError, useUser } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -211,6 +211,19 @@ export default function CommunityPage() {
   const { data: posts, isLoading: postsLoading, error: postsError } = useCollection<Post>(postsQuery);
   const { data: savedPosts, isLoading: savedPostsLoading, error: savedError } = useCollection<Post>(savedPostsQuery);
 
+  const filteredAllPosts = useMemo(() => {
+    if (!posts || !profile) return [];
+    return posts.filter(post => {
+      // 1. Same member type as the user
+      const isSameRole = post.authorRole === profile.role;
+      // 2. Mentors of the logged in user
+      const isMyMentor = (profile.connections || []).includes(post.authorId) && 
+                         (post.authorRole.includes('mentor'));
+      
+      return isSameRole || isMyMentor;
+    });
+  }, [posts, profile]);
+
   const renderPosts = (postList: Post[] | null, isLoading: boolean, error: any, emptyState: React.ReactNode) => {
     if (isLoading || isProfileLoading) {
       return Array.from({ length: 2 }).map((_, i) => (
@@ -359,7 +372,7 @@ export default function CommunityPage() {
                   <TabsTrigger value="saved">Saved</TabsTrigger>
                 </TabsList>
                 <TabsContent value="all" className="mt-6 space-y-6">
-                  {renderPosts(posts, postsLoading, postsError, allPostsEmptyState)}
+                  {renderPosts(filteredAllPosts, postsLoading, postsError, allPostsEmptyState)}
                 </TabsContent>
                 <TabsContent value="mentors" className="mt-6 space-y-6">
                   {renderPosts(mentorsOnlyPosts || null, postsLoading, postsError, allPostsEmptyState)}

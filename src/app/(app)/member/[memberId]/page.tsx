@@ -8,13 +8,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Briefcase, Edit, Send, Award, ShoppingBag, MessageSquare, ShieldCheck } from 'lucide-react';
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, doc, orderBy } from 'firebase/firestore';
-import type { TGNMember, Product, Post } from '@/lib/types';
+import { collection, query, where, doc } from 'firebase/firestore';
+import type { TGNMember, Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { useMemo } from 'react';
-import { PostCard } from '@/components/community/PostCard';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 
 const getImageUrl = (imageId?: string) => {
@@ -62,21 +61,7 @@ export default function MemberProfilePage() {
   );
   const { data: products, isLoading: productsLoading } = useCollection<Product>(productsQuery);
 
-  const postsQuery = useMemoFirebase(
-    () =>
-      (member && firestore)
-        ? query(
-            collection(firestore, 'posts'),
-            where('authorId', '==', member.id),
-            orderBy('createdAt', 'desc')
-          )
-        : null,
-    [firestore, member]
-  );
-  const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
-
   const isOwnProfile = currentUser && member && currentUser.uid === member.id;
-  // NEW: Category-based networking check
   const isSameCategory = currentUserProfile && member && currentUserProfile.role === member.role;
   const isConnected = currentUserProfile?.connections?.includes(member?.id || '');
   
@@ -143,7 +128,6 @@ export default function MemberProfilePage() {
                         <Button onClick={() => router.push('/settings/profile')}>
                             <Edit className="mr-2 h-4 w-4" /> Edit Profile
                         </Button>
-                    // UPDATED: Allow messaging for same category
                     ) : (isConnected || isSameCategory) ? (
                         <Button onClick={() => router.push(`/chat/${member.id}`)}>
                             <MessageSquare className="mr-2 h-4 w-4" /> Message
@@ -161,29 +145,6 @@ export default function MemberProfilePage() {
         <Card>
             <CardHeader><CardTitle>About</CardTitle></CardHeader>
             <CardContent><p className="text-foreground/90 whitespace-pre-line">{member.purpose || 'No bio provided.'}</p></CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-primary" />
-              Posts
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {postsLoading && (
-              Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-48 w-full" />)
-            )}
-            {!postsLoading && posts && posts.length > 0 ? (
-              posts.map(post => <PostCard key={post.id} post={post} />)
-            ) : (
-              !postsLoading && (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  This member hasn't posted anything yet.
-                </p>
-              )
-            )}
-          </CardContent>
         </Card>
       </main>
 
