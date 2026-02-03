@@ -28,11 +28,8 @@ service cloud.firestore {
     /* =========================
        USERS
     ========================== */
-    match /users {
-      allow list: if isSignedIn();
-    }
-
     match /users/{userId} {
+      allow list: if isSignedIn();
       allow get: if isSignedIn();
       allow create, update: if isOwner(userId) || isAdmin();
 
@@ -46,14 +43,11 @@ service cloud.firestore {
     }
 
     /* =========================
-       POSTS & COMMENTS (HARDCODED READ)
+       POSTS (FINAL FIX)
     ========================== */
-    match /posts {
-      allow list: if true;
-    }
-
     match /posts/{postId} {
-      allow get: if true;
+      allow list: if isSignedIn();
+      allow get: if isSignedIn();
 
       allow create: if isSignedIn()
         && request.resource.data.authorId == request.auth.uid;
@@ -65,11 +59,12 @@ service cloud.firestore {
         || (isSignedIn() && resource.data.authorId == request.auth.uid);
 
       match /comments {
-        allow list: if true;
+        allow list: if isSignedIn();
       }
 
       match /comments/{commentId} {
-        allow get: if true;
+        allow get: if isSignedIn();
+        allow list: if isSignedIn();
         allow create: if isSignedIn();
         allow update, delete: if isAdmin()
           || (isSignedIn() && resource.data.authorId == request.auth.uid);
@@ -77,25 +72,19 @@ service cloud.firestore {
     }
 
     /* =========================
-       PROGRAMS (HARDCODED READ)
+       PROGRAMS
     ========================== */
-    match /programs {
-      allow list: if true;
-    }
-
     match /programs/{id} {
+      allow list: if true;
       allow get: if true;
       allow write: if isAdmin();
     }
 
     /* =========================
-       PRODUCTS (HARDCODED READ)
+       PRODUCTS
     ========================== */
-    match /products {
-      allow list: if true;
-    }
-
     match /products/{id} {
+      allow list: if true;
       allow get: if true;
       allow create: if isSignedIn()
         && request.resource.data.sellerMemberId == request.auth.uid;
@@ -106,11 +95,8 @@ service cloud.firestore {
     /* =========================
        FRIEND REQUESTS
     ========================== */
-    match /friend_requests {
-      allow list: if isSignedIn();
-    }
-
     match /friend_requests/{id} {
+      allow list: if isSignedIn();
       allow get, update, delete: if isSignedIn()
         && (
           resource.data.senderId == request.auth.uid ||
@@ -124,19 +110,13 @@ service cloud.firestore {
     /* =========================
        CHATS
     ========================== */
-    match /chats {
-      allow list: if isSignedIn();
-    }
-
     match /chats/{chatId} {
+      allow list: if isSignedIn();
       allow get, create, update: if isSignedIn()
         && (request.auth.uid in chatId.split('_') || request.auth.uid in resource.data.members);
 
-      match /messages {
-        allow list: if isSignedIn();
-      }
-
       match /messages/{id} {
+        allow list: if isSignedIn();
         allow read, create: if isSignedIn();
       }
     }
@@ -144,11 +124,8 @@ service cloud.firestore {
     /* =========================
        CONNECTIONS
     ========================== */
-    match /connections {
-      allow list: if isSignedIn();
-    }
-
     match /connections/{id} {
+      allow list: if isSignedIn();
       allow get, create, delete: if isSignedIn()
         && request.auth.uid in id.split('_');
     }
