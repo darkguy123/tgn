@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -139,7 +139,7 @@ function CreatePostDialog({ open, onOpenChange, startWithMedia }: { open: boolea
             <div className="flex items-start gap-4">
               <Avatar>
                 <AvatarImage src={profile?.avatarUrl} />
-                <AvatarFallback>{profile?.email.charAt(0)}</AvatarFallback>
+                <AvatarFallback>{profile?.email?.charAt(0) || '?'}</AvatarFallback>
               </Avatar>
               <div className="flex-1 space-y-2">
                 <Textarea
@@ -189,7 +189,7 @@ function CreatePostDialog({ open, onOpenChange, startWithMedia }: { open: boolea
   );
 }
 
-export default function CommunityPage() {
+function CommunityContent() {
   const { user } = useUser();
   const { profile, isLoading: isProfileLoading } = useMemberProfile();
   const [isPostDialogOpen, setPostDialogOpen] = useState(false);
@@ -231,15 +231,14 @@ export default function CommunityPage() {
       ));
     }
 
-    // Handle permission or collection errors gracefully for presentation
     if (error) {
         return (
             <Card className="border-dashed">
                 <CardContent className="p-10 text-center flex flex-col items-center">
                     <Hammer className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold">Feed Optimization in Progress</h3>
+                    <h3 className="text-lg font-semibold">Feed Syncing...</h3>
                     <p className="text-sm text-muted-foreground max-w-sm mt-2">
-                        We're currently fine-tuning the global community permissions. Your feed will be active shortly.
+                        We're updating the global community permissions. Your feed will be active shortly.
                     </p>
                 </CardContent>
             </Card>
@@ -287,9 +286,9 @@ export default function CommunityPage() {
                 <>
                   <Avatar className="h-16 w-16 mx-auto mb-2">
                     <AvatarImage src={profile.avatarUrl} />
-                    <AvatarFallback>{profile.name ? profile.name.charAt(0) : profile.email.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{profile.name ? profile.name.charAt(0) : profile.email?.charAt(0) || '?'}</AvatarFallback>
                   </Avatar>
-                  <h3 className="font-semibold">{profile.name || profile.email.split('@')[0]}</h3>
+                  <h3 className="font-semibold">{profile.name || profile.email?.split('@')[0]}</h3>
                   <p className="text-sm text-muted-foreground">@{profile.tgnMemberId}</p>
                 </>
               )}
@@ -323,7 +322,7 @@ export default function CommunityPage() {
                 <CardContent className="p-4 flex items-center gap-3 border-b">
                     <Avatar>
                         <AvatarImage src={profile?.avatarUrl} />
-                        <AvatarFallback>{profile?.email.charAt(0)}</AvatarFallback>
+                        <AvatarFallback>{profile?.email?.charAt(0) || '?'}</AvatarFallback>
                     </Avatar>
                     <button
                     className="w-full text-left h-12 px-4 rounded-full bg-muted border border-input hover:bg-muted/80 transition-colors text-muted-foreground text-sm"
@@ -343,9 +342,11 @@ export default function CommunityPage() {
                         <ImageIcon className="mr-2" />
                         Media
                     </Button>
-                    <Button variant="ghost" className="text-muted-foreground font-medium flex-1">
-                        <Calendar className="mr-2" />
-                        Event
+                    <Button variant="ghost" className="text-muted-foreground font-medium flex-1" asChild>
+                        <Link href="/community/events">
+                            <Calendar className="mr-2" />
+                            Event
+                        </Link>
                     </Button>
                     <Button variant="ghost" className="text-muted-foreground font-medium flex-1">
                         Write article
@@ -377,5 +378,13 @@ export default function CommunityPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function CommunityPage() {
+  return (
+    <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+      <CommunityContent />
+    </Suspense>
   );
 }

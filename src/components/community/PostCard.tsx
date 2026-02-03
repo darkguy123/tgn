@@ -57,7 +57,7 @@ function PostComments({ post }: { post: Post }) {
     const dataToSave = {
         content: data.content,
         authorId: profile.id,
-        authorName: profile.name || profile.email.split('@')[0],
+        authorName: profile.name || profile.email?.split('@')[0] || 'Member',
         authorAvatarUrl: profile.avatarUrl || '',
         createdAt: serverTimestamp(),
     };
@@ -85,7 +85,7 @@ function PostComments({ post }: { post: Post }) {
       <form onSubmit={handleSubmit(handleCommentSubmit)} className="flex items-start gap-3 mb-6">
         <Avatar className="h-8 w-8">
           <AvatarImage src={profile?.avatarUrl} />
-          <AvatarFallback>{profile?.email.charAt(0)}</AvatarFallback>
+          <AvatarFallback>{profile?.email?.charAt(0) || '?'}</AvatarFallback>
         </Avatar>
         <div className="flex-1 space-y-2">
             <Textarea 
@@ -105,13 +105,13 @@ function PostComments({ post }: { post: Post }) {
            <div key={comment.id} className="flex items-start gap-3">
              <Avatar className="h-8 w-8">
                 <AvatarImage src={comment.authorAvatarUrl} />
-                <AvatarFallback>{comment.authorName.charAt(0)}</AvatarFallback>
+                <AvatarFallback>{comment.authorName?.charAt(0) || '?'}</AvatarFallback>
              </Avatar>
              <div className="bg-muted p-3 rounded-lg flex-1">
                 <div className="flex items-center justify-between">
                     <p className="font-semibold text-sm">{comment.authorName}</p>
                     <p className="text-xs text-muted-foreground">
-                        {comment.createdAt ? formatDistanceToNow(comment.createdAt.toDate(), { addSuffix: true }) : 'just now'}
+                        {comment.createdAt?.toDate ? formatDistanceToNow(comment.createdAt.toDate(), { addSuffix: true }) : 'just now'}
                     </p>
                 </div>
                 <p className="text-sm mt-1 whitespace-pre-wrap">{comment.content}</p>
@@ -215,14 +215,14 @@ export function PostCard({ post }: { post: Post }) {
           <div className="flex items-start gap-3">
             <Avatar>
               <AvatarImage src={post.authorAvatarUrl} />
-              <AvatarFallback>{post.authorName.charAt(0)}</AvatarFallback>
+              <AvatarFallback>{post.authorName?.charAt(0) || '?'}</AvatarFallback>
             </Avatar>
             <div>
               <Link href={`/member/${post.authorTgnMemberId || post.authorId}`}>
                 <h4 className="font-semibold hover:underline">{post.authorName}</h4>
               </Link>
               <p className="text-xs text-muted-foreground">
-                {post.createdAt ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : 'just now'}
+                {post.createdAt?.toDate ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : 'just now'}
               </p>
             </div>
           </div>
