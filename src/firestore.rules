@@ -121,11 +121,11 @@ service cloud.firestore {
 
     // --- MARKETPLACE & CONTENT ---
     match /products {
-      allow list: if true;
+      allow list: if isSignedIn();
     }
 
     match /products/{productId} {
-      allow get: if true;
+      allow get: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid;
       allow update, delete: if (isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid) || isAdmin();
     }
@@ -140,11 +140,11 @@ service cloud.firestore {
     }
 
     match /events {
-      allow list: if true;
+      allow list: if isSignedIn();
     }
 
     match /events/{eventId} {
-      allow get: if true;
+      allow get: if isSignedIn();
       allow write: if isAdmin();
     }
 
@@ -159,21 +159,21 @@ service cloud.firestore {
 
     // --- ADS & CAUSES ---
     match /ads {
-      allow list: if true;
+      allow list: if isSignedIn();
     }
 
     match /ads/{adId} {
-      allow get: if true;
+      allow get: if isSignedIn();
       allow create: if isSignedIn();
       allow update: if isAdmin();
     }
 
     match /causes {
-      allow list: if true;
+      allow list: if isSignedIn();
     }
 
     match /causes/{causeId} {
-      allow get: if true;
+      allow get: if isSignedIn();
       allow create: if isSignedIn();
       allow update: if isSignedIn(); 
     }

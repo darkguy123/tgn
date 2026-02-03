@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError, useUser } from '@/firebase';
 import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import type { Product } from '@/lib/types';
@@ -32,18 +32,19 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 export default function MyProductsPage() {
   const router = useRouter();
   const firestore = useFirestore();
+  const { user: currentUser } = useUser();
   const { profile, isLoading: profileLoading } = useMemberProfile();
   const { toast } = useToast();
 
   const productsQuery = useMemoFirebase(
     () =>
-      profile
+      (firestore && currentUser && profile)
         ? query(collection(firestore, 'products'), where('sellerMemberId', '==', profile.id))
         : null,
-    [firestore, profile]
+    [firestore, currentUser, profile]
   );
 
-  const { data: products, isLoading: productsLoading } = useCollection<Product>(productsQuery);
+  const { data: products, isLoading: productsLoading, error } = useCollection<Product>(productsQuery);
 
   const isLoading = profileLoading || productsLoading;
 
@@ -177,6 +178,8 @@ export default function MyProductsPage() {
         </Button>
       </div>
       
+      {error && <p className="text-destructive p-6 text-center">Failed to load your products.</p>}
+
       <Card>
         <Tabs defaultValue="live" className="w-full">
             <CardHeader>

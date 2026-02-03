@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -30,7 +30,7 @@ import {
   addDoc,
   getDocs,
 } from 'firebase/firestore';
-import type { Product, AffiliateReferral, Commission } from '@/lib/types';
+import type { Product, AffiliateReferral } from '@/lib/types';
 import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -47,6 +47,7 @@ import {
 import { Search, Wallet, CheckCircle, XCircle, ShoppingBag, List, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { AdPlacement } from '@/components/AdPlacement';
+import { useMemberProfile } from '@/hooks/useMemberProfile';
 
 export default function MarketplacePage() {
   const firestore = useFirestore();
@@ -54,6 +55,7 @@ export default function MarketplacePage() {
   const { wallet, isLoading: walletLoading } = useWallet();
   const { toast } = useToast();
   const { user: currentUser } = useUser();
+  const { profile, isLoading: profileLoading } = useMemberProfile();
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isBuyDialogOpen, setBuyDialogOpen] = useState(false);
@@ -61,15 +63,17 @@ export default function MarketplacePage() {
   
   const productsQuery = useMemoFirebase(
     () =>
-      query(
-        collection(firestore, 'products'),
-        where('approvalStatus', '==', 'approved')
-      ),
-    [firestore]
+      (firestore && currentUser && profile)
+        ? query(
+            collection(firestore, 'products'),
+            where('approvalStatus', '==', 'approved')
+          )
+        : null,
+    [firestore, currentUser, profile]
   );
   const {
     data: products,
-    isLoading,
+    isLoading: productsLoading,
     error,
   } = useCollection<Product>(productsQuery);
 
@@ -174,6 +178,8 @@ export default function MarketplacePage() {
     }
   };
 
+  const isLoading = walletLoading || profileLoading || productsLoading;
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
       <div className="lg:col-span-3 space-y-6">
@@ -242,7 +248,7 @@ export default function MarketplacePage() {
             </div>
         )}
 
-        {error && <p className="text-destructive">Failed to load products.</p>}
+        {error && <p className="text-destructive p-6 text-center">Failed to load products. Please try again.</p>}
 
         {!isLoading && products?.length === 0 && (
             <Card className="py-20 text-center">
