@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Member": {
@@ -115,19 +116,6 @@
       },
       "required": ["id", "memberId", "programCompletion", "platformActivityScore", "evaluationScore", "isVerifiedAssociate"]
     },
-    "MenteeVerification": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "MenteeVerification",
-      "type": "object",
-      "description": "Represents the verification status of a mentee.",
-      "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the MenteeVerification entity." },
-        "memberId": { "type": "string", "description": "Reference to Member. (Relationship: Member 1:1 MenteeVerification)" },
-        "isVerified": { "type": "boolean", "description": "Indicates if the mentee is verified." },
-        "verificationDate": { "type": "string", "description": "The date the mentee was verified.", "format": "date-time" }
-      },
-      "required": ["id", "memberId", "isVerified"]
-    },
     "Commission": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Commission",
@@ -179,102 +167,6 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "name", "description", "price", "type", "imageUrl", "sellerMemberId", "sellerName", "approvalStatus", "createdAt"]
-    },
-    "Match": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Match",
-      "type": "object",
-      "description": "Represents a match between two members.",
-      "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the Match entity." },
-        "memberId1": { "type": "string", "description": "Reference to the first Member in the match. (Relationship: Member 1:N Match)" },
-        "memberId2": { "type": "string", "description": "Reference to the second Member in the match. (Relationship: Member 1:N Match)" },
-        "matchType": { "type": "string", "description": "The type of match (mentor, program, sector, community, event)." },
-        "matchId": { "type": "string", "description": "Reference to the matched entity (e.g., Mentor.id, Program.id)." },
-        "matchReason": { "type": "string", "description": "Explanation for the match." },
-        "matchScore": { "type": "number", "description": "The score for the match." },
-        "matchDate": { "type": "string", "description": "The date of the match.", "format": "date-time" }
-      },
-      "required": ["id", "memberId1", "memberId2", "matchType", "matchId", "matchReason", "matchScore", "matchDate"]
-    },
-    "Event": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Event",
-      "type": "object",
-      "description": "Represents an event.",
-      "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the Event entity." },
-        "name": { "type": "string", "description": "The name of the event." },
-        "description": { "type": "string", "description": "The description of the event." },
-        "location": { "type": "string", "description": "The location of the event." },
-        "startTime": { "type": "string", "description": "The start time of the event.", "format": "date-time" },
-        "endTime": { "type": "string", "description": "The end time of the event.", "format": "date-time" }
-      },
-      "required": ["id", "name", "description", "location", "startTime", "endTime"]
-    },
-    "AdCampaign": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AdCampaign",
-      "type": "object",
-      "description": "Represents an ad campaign created by a member.",
-      "properties": {
-        "creatorMemberId": { "type": "string" },
-        "name": { "type": "string" },
-        "status": { "type": "string", "enum": ["pending", "in_review", "active", "paused", "rejected"] },
-        "rejectionReason": { "type": "string" },
-        "budget": { "type": "number" }
-      },
-      "required": ["creatorMemberId", "name", "status", "budget"]
-    },
-    "Cause": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Cause",
-      "type": "object",
-      "description": "Represents a fundraising cause created by a member.",
-      "properties": {
-        "creatorMemberId": { "type": "string" },
-        "title": { "type": "string" },
-        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
-        "rejectionReason": { "type": "string" },
-        "goalAmount": { "type": "number" },
-        "currentAmount": { "type": "number" }
-      },
-      "required": ["creatorMemberId", "title", "status", "goalAmount", "currentAmount"]
-    },
-    "Wallet": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Wallet",
-      "type": "object",
-      "description": "Represents a user's wallet.",
-      "properties": {
-        "balance": { "type": "number" }
-      },
-      "required": ["balance"]
-    },
-    "SavedCard": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "SavedCard",
-      "type": "object",
-      "description": "Represents a saved payment card for a user.",
-      "properties": {
-        "last4": { "type": "string" },
-        "brand": { "type": "string" },
-        "isDefault": { "type": "boolean" }
-      },
-      "required": ["last4", "brand", "isDefault"]
-    },
-    "FriendRequest": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FriendRequest",
-      "type": "object",
-      "description": "Represents a connection request between two members.",
-      "properties": {
-        "senderId": { "type": "string", "description": "The UID of the member sending the request." },
-        "recipientId": { "type": "string", "description": "The UID of the member receiving the request." },
-        "status": { "type": "string", "enum": ["pending", "accepted", "declined"] },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["senderId", "recipientId", "status"]
     },
     "Post": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -347,16 +239,16 @@
         },
         "required": ["title", "mentor", "duration", "description", "format", "type", "imageId"]
     },
-    "Sector": {
+    "Connection": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Sector",
+      "title": "Connection",
       "type": "object",
-      "description": "Represents an industry sector for mentorship and programs.",
+      "description": "Represents a mutual connection between two members.",
       "properties": {
-        "name": { "type": "string" },
-        "description": { "type": "string" }
+        "members": { "type": "array", "items": { "type": "string" }, "description": "UIDs of the two connected members." },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["name"]
+      "required": ["members", "createdAt"]
     }
   },
   "auth": {
@@ -385,10 +277,6 @@
         "definition": { "entityName": "MentorCertification", "schema": { "$ref": "#/backend/entities/MentorCertification" }, "description": "Stores mentor certifications for each user. The document ID is the user's UID." }
       },
       {
-        "path": "/users/{userId}/menteeVerifications/{menteeVerificationId}",
-        "definition": { "entityName": "MenteeVerification", "schema": { "$ref": "#/backend/entities/MenteeVerification" }, "description": "Stores mentee verifications for each user. Path-based ownership." }
-      },
-      {
         "path": "/commissions/{commissionId}",
         "definition": { "entityName": "Commission", "schema": { "$ref": "#/backend/entities/Commission" }, "description": "Stores affiliate commissions." }
       },
@@ -405,12 +293,12 @@
         "definition": { "entityName": "Product", "schema": { "$ref": "#/backend/entities/Product" }, "description": "Stores product information. The `sellerMemberId` field is used for access control." }
       },
       {
-        "path": "/matches/{matchId}",
-        "definition": { "entityName": "Match", "schema": { "$ref": "#/backend/entities/Match" }, "description": "Stores matches between members." }
-      },
-      {
         "path": "/friend_requests/{friendRequestId}",
         "definition": { "entityName": "FriendRequest", "schema": { "$ref": "#/backend/entities/FriendRequest" }, "description": "Stores connection requests between members." }
+      },
+      {
+        "path": "/connections/{connectionId}",
+        "definition": { "entityName": "Connection", "schema": { "$ref": "#/backend/entities/Connection" }, "description": "Stores established mutual connections between members." }
       },
       {
         "path": "/events/{eventId}",
@@ -419,10 +307,6 @@
       {
         "path": "/programs/{programId}",
         "definition": { "entityName": "Program", "schema": { "$ref": "#/backend/entities/Program" }, "description": "Stores learning programs. Publicly readable but should only be writable by admins." }
-      },
-      {
-        "path": "/sectors/{sectorId}",
-        "definition": { "entityName": "Sector", "schema": { "$ref": "#/backend/entities/Sector" }, "description": "Stores mentorship and program sectors. Writable by admins." }
       },
       {
         "path": "/ads/{adId}",
@@ -445,6 +329,6 @@
         "definition": { "entityName": "Comment", "schema": { "$ref": "#/backend/entities/Comment" }, "description": "Stores comments for a specific post." }
       }
     ],
-    "reasoning": "This Firestore structure is designed to support the Transcend Global Network Hub application, focusing on secure and scalable data access based on the core design principles outlined. The design emphasizes Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), QAPs (Rules are not Filters) and Invariants.\\n\\n**Authorization Independence:**\\n\\n*   The design avoids hierarchical authorization dependencies (`get()`). Access control relies primarily on the user's `uid` and roles stored directly within the documents or in dedicated role collections, enabling atomic operations.\\n\\n**Structural Segregation:**\\n\\n*   Different data types with different access requirements are stored in separate collections. Private user data is kept under `/users/{userId}`, while more public or collaborative data (e.g., events, products) reside in top-level collections with membership maps for access control.\\n\\n**Access Modeling:**\\n\\n*   **Private Data:** User-specific data (e.g., mentee verification, mentor certification, affiliate earnings) is stored under `/users/{userId}` for path-based ownership.\\n*   **Collaborative Data (Products):** Products use the `products` collection, with the `sellerId` field for identifying the seller. Although seemingly violating authorization independence, this is acceptable as ownership is directly on the document. Read access can be public, but writes must be restricted to the seller.\\n*   **Global Roles (DBAC):** The design doesn't explicitly use global roles stored in collections like `/roles_admin/{uid}` in this iteration, but this can be added if needed for administrative functions. The current structure relies on user-specific data and collaborative data.\\n\\n**QAPs (Rules are not Filters):**\\n\\n*   The structure supports secure list operations by segregating data with different access requirements into different collections. For example, only authenticated users can list members via `/members` (requiring proper security rules for filtering based on some public attribute), while private member details are protected under `/users/{userId}`.\\n\\n*Denormalization Strategy:*\\nAccess control is made independent by denormalizing access related data. In the /products collection, the `sellerId` property holds the uid of the document's owner. This allows security rules to make access decisions based solely on the contents of the document, without needing to perform costly and brittle `get()` calls to parent or related documents."
+    "reasoning": "This Firestore structure is designed to support the Transcend Global Network Hub application, focusing on secure and scalable data access. It uses top-level collections for public or shared data (Posts, Products, Connections) and nested user subcollections for private or owner-specific data (Cards, Transactions, Enrolled Programs)."
   }
 }
