@@ -5,73 +5,45 @@
       "description": "Represents a member of the Transcend Global Network Hub.",
       "type": "object",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the Member entity (matches Firebase Auth UID)." },
-        "tgnMemberId": { "type": "string", "description": "Unique TGN Member ID assigned during onboarding." },
-        "name": { "type": "string", "description": "The member's full name." },
-        "signInType": { "type": "string", "description": "The authentication method used (e.g., 'password', 'google.com')." },
-        "email": { "type": "string", "description": "The member's email address.", "format": "email" },
-        "phone": { "type": "string", "description": "The member's phone number." },
-        "locationContinent": { "type": "string" },
-        "locationCountry": { "type": "string" },
-        "locationRegion": { "type": "string" },
-        "timezone": { "type": "string" },
-        "sectorPreferences": { "type": "array", "items": { "type": "string" } },
+        "id": { "type": "string" },
+        "tgnMemberId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
         "role": { "type": "string", "enum": ["mentee", "mentor-candidate", "associate-mentor", "collaborator", "sponsor", "country-manager", "volunteer", "media", "admin"] },
-        "purpose": { "type": "string", "description": "The member's bio or statement of purpose." },
-        "identityProfile": { "type": "string", "description": "A JSON string containing member's goals and interests." },
-        "avatarUrl": { "type": "string", "description": "URL to the member's profile image." },
-        "bannerUrl": { "type": "string", "description": "URL for the user's profile banner image." },
+        "locationCountry": { "type": "string" },
+        "sectorPreferences": { "type": "array", "items": { "type": "string" } },
+        "avatarUrl": { "type": "string" },
+        "bannerUrl": { "type": "string" },
         "isVerifiedMentor": { "type": "boolean" },
-        "hasTransactionPin": { "type": "boolean" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "lastSeen": { "type": "string", "format": "date-time" },
-        "connections": { "type": "array", "items": { "type": "string" } }
+        "connections": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "tgnMemberId", "email", "role"]
     },
-    "Post": {
-      "title": "Post",
-      "description": "Represents a post in the community feed.",
+    "Chat": {
+      "title": "Chat",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "authorId": { "type": "string" },
-        "authorName": { "type": "string" },
-        "content": { "type": "string" },
-        "likes": { "type": "array", "items": { "type": "string" } },
-        "savedBy": { "type": "array", "items": { "type": "string" } },
-        "commentsCount": { "type": "number" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["authorId", "authorName", "content"]
-    },
-    "Transaction": {
-      "title": "Transaction",
-      "description": "Represents a wallet transaction.",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "type": { "type": "string", "enum": ["commission", "withdrawal", "deposit", "purchase"] },
-        "status": { "type": "string", "enum": ["pending", "completed", "failed"] },
-        "amount": { "type": "number" },
-        "currency": { "type": "string" },
-        "description": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["type", "status", "amount", "createdAt"]
+        "members": { "type": "array", "items": { "type": "string" } },
+        "lastMessage": {
+          "type": "object",
+          "properties": {
+            "text": { "type": "string" },
+            "senderId": { "type": "string" },
+            "timestamp": { "type": "string", "format": "date-time" }
+          }
+        }
+      }
     },
     "FriendRequest": {
       "title": "FriendRequest",
-      "description": "Represents a connection request between two members.",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
         "senderId": { "type": "string" },
         "recipientId": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "accepted", "declined"] },
         "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["senderId", "recipientId", "status", "createdAt"]
+      }
     }
   },
   "auth": {
@@ -80,22 +52,15 @@
   "firestore": {
     "/users/{userId}": {
       "schema": { "$ref": "#/backend/entities/Member" },
-      "description": "Stores user profiles."
-    },
-    "/posts/{postId}": {
-      "schema": { "$ref": "#/backend/entities/Post" },
-      "description": "Stores community feed posts."
-    },
-    "/users/{userId}/transactions/{transactionId}": {
-      "schema": { "$ref": "#/backend/entities/Transaction" },
-      "description": "User transaction history."
-    },
-    "/connections/{connectionId}": {
-      "description": "Stores scalable connection documents between members."
+      "description": "User profiles and metadata."
     },
     "/friend_requests/{requestId}": {
       "schema": { "$ref": "#/backend/entities/FriendRequest" },
-      "description": "Stores connection requests."
+      "description": "Networking connection requests."
+    },
+    "/chats/{chatId}": {
+      "schema": { "$ref": "#/backend/entities/Chat" },
+      "description": "Private messaging sessions."
     }
   }
 }
