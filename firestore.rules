@@ -17,7 +17,7 @@ service cloud.firestore {
       return isSignedIn() && (
         (request.auth.token.email == 'valentinoboss18@gmail.com') || 
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['country-manager', 'admin'])
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'mentee') in ['country-manager', 'admin'])
       );
     }
 
@@ -68,7 +68,7 @@ service cloud.firestore {
     match /posts/{postId} {
       allow get: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-      allow update: if isSignedIn();
+      allow update: if isSignedIn(); // For likes/saves
       allow delete: if (isSignedIn() && resource.data.authorId == request.auth.uid) || isAdmin();
 
       match /comments/{commentId} {
@@ -91,7 +91,6 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
 
       match /messages/{messageId} {
-        // Users can read messages if they are a member of the parent chat
         allow read: if isSignedIn();
         allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
         allow update, delete: if false;
@@ -100,7 +99,7 @@ service cloud.firestore {
 
     // --- FRIEND REQUESTS ---
     match /friend_requests {
-      // 🔑 COLLECTION-LEVEL RULE
+      // 🔑 COLLECTION-LEVEL RULE (THIS FIXES THE ERROR)
       allow list: if isSignedIn();
     }
 
@@ -182,11 +181,17 @@ service cloud.firestore {
     }
     
     // --- ADMIN & VERIFICATION ---
+    match /mentor_certifications {
+      allow list: if isAdmin();
+    }
     match /mentor_certifications/{memberId} {
       allow read: if isOwner(memberId) || isAdmin();
       allow write: if isAdmin();
     }
 
+    match /mentor_kyc {
+      allow list: if isAdmin();
+    }
     match /mentor_kyc/{memberId} {
       allow read: if isOwner(memberId) || isAdmin();
       allow create: if isOwner(memberId);
