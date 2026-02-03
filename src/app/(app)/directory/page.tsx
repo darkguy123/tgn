@@ -33,6 +33,7 @@ import {
   CheckCircle2,
   Send,
   Check,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -61,7 +62,7 @@ const DirectoryPage = () => {
   const { user: currentUser } = useUser();
   const { profile: currentUserProfile, isLoading: isProfileLoading } = useMemberProfile();
   
-  // Guard the directory and request queries to strictly wait for user validation
+  // Guard the directory and request queries to strictly wait for profile validation
   const membersRef = useMemoFirebase(() => (firestore && currentUser && currentUserProfile) ? collection(firestore, 'users') : null, [firestore, currentUser, currentUserProfile]);
   const { data: members, isLoading: membersLoading, error } = useCollection<TGNMember>(membersRef);
   const { toast } = useToast();
@@ -292,6 +293,7 @@ const DirectoryPage = () => {
         {filteredMembers?.map((member) => {
           const name = getName(member);
           const isConnected = currentUserProfile?.connections?.includes(member.id);
+          const isSameCategory = currentUserProfile?.role === member.role;
           const requestSent = sentRequestRecipientIds.has(member.id);
 
           return (
@@ -341,9 +343,9 @@ const DirectoryPage = () => {
                 </div>
 
                 <div className="flex gap-2">
-                    {isConnected ? (
+                    {isConnected || isSameCategory ? (
                         <Button size="sm" className="flex-1" onClick={() => router.push(`/chat/${member.id}`)}>
-                            <Send className="h-4 w-4 mr-1" />
+                            <MessageSquare className="h-4 w-4 mr-1" />
                             Message
                         </Button>
                     ) : requestSent ? (

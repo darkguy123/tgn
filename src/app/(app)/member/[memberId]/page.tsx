@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { useMemo } from 'react';
 import { PostCard } from '@/components/community/PostCard';
+import { useMemberProfile } from '@/hooks/useMemberProfile';
 
 // Helper to get image URL from placeholder data
 const getImageUrl = (imageId?: string) => {
@@ -27,6 +28,7 @@ export default function MemberProfilePage() {
   const params = useParams();
   const router = useRouter();
   const { user: currentUser } = useUser();
+  const { profile: currentUserProfile } = useMemberProfile();
   const memberId = params.memberId as string;
   const firestore = useFirestore();
 
@@ -78,6 +80,8 @@ export default function MemberProfilePage() {
   const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
 
   const isOwnProfile = currentUser && member && currentUser.uid === member.id;
+  const isSameCategory = currentUserProfile && member && currentUserProfile.role === member.role;
+  const isConnected = currentUserProfile?.connections?.includes(member?.id || '');
   
   if (isLoading) {
     return (
@@ -105,7 +109,7 @@ export default function MemberProfilePage() {
 
   // If after loading, no member is found, show the not-found page.
   if (!member) {
-    return <p className="p-6">Debug: Member not found or access denied.</p>;
+    return <p className="p-6">Member not found.</p>;
   }
 
   // --- Safe defaults for rendering ---
@@ -144,9 +148,13 @@ export default function MemberProfilePage() {
                         <Button onClick={() => router.push('/settings/profile')}>
                             <Edit className="mr-2 h-4 w-4" /> Edit Profile
                         </Button>
-                    ) : (
+                    ) : (isConnected || isSameCategory) ? (
                         <Button onClick={() => router.push(`/chat/${member.id}`)}>
-                            <Send className="mr-2 h-4 w-4" /> Message
+                            <MessageSquare className="mr-2 h-4 w-4" /> Message
+                        </Button>
+                    ) : (
+                        <Button onClick={() => router.push(`/directory`)}>
+                            <Send className="mr-2 h-4 w-4" /> Connect
                         </Button>
                     )}
                 </div>
