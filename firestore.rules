@@ -22,93 +22,103 @@ service cloud.firestore {
       );
     }
 
-    // --- GLOBAL/PUBLIC DATA ---
-    // Anyone signed in can read/list profiles, posts, products, programs, events, and sectors.
-    
+    // --- USER-OWNED DATA ---
     match /users/{userId} {
-      allow read, list: if isSignedIn();
-      allow create: if isOwner(userId);
+      // 👀 Anyone signed in can view profiles or list users (for directory/search)
+      allow get, list: if isSignedIn();
+      
+      // ✍️ User can create their own doc. Admin can too.
+      allow create: if isOwner(userId) || isAdmin();
+      
+      // ✏️ User can update their own doc (but not their role via UI logic). Admin can do anything.
       allow update: if isOwner(userId) || isAdmin();
 
-      // User subcollections
+      // Subcollections
       match /media/{mediaId} {
-        allow read: if isSignedIn();
-        allow create, delete: if isOwner(userId);
+        allow read: if true;
+        allow create, delete: if isOwner(userId) || isAdmin();
+        allow update: if false;
       }
       match /cards/{cardId} {
-        allow read, write: if isOwner(userId);
+        allow read, write: if isOwner(userId) || isAdmin();
       }
       match /transactions/{transactionId} {
         allow create: if isOwner(userId);
         allow read: if isOwner(userId) || isAdmin();
-        allow update: if isAdmin();
+        allow update: if isAdmin(); 
+        allow delete: if false;
       }
       match /enrolled_programs/{programId} {
-        allow read, create: if isOwner(userId);
-        allow update, delete: if isAdmin();
+          allow read, create: if isOwner(userId) || isAdmin();
+          allow update, delete: if isAdmin();
+      }
+      match /menteeVerifications/{verificationId} {
+          allow read, write: if isOwner(userId) || isAdmin();
       }
     }
+    
+    // Wallets are private to the owner and admin
+    match /wallets/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
 
+    // --- POSTS (Social Media Style) ---
     match /posts/{postId} {
-      allow read, list: if isSignedIn();
+      // 👀 Anyone logged in can read posts (feeds, profiles, explore)
+      allow get, list: if isSignedIn();
+
+      // ✍️ Create post (author must be the creator)
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-      // Allow any signed-in user to update (for likes/saves).
+
+      // ✏️ Update for likes/saves (Any signed in user can update the likes/savedBy arrays)
       allow update: if isSignedIn();
+      
+      // 🗑️ Delete only by owner or admin
       allow delete: if (isSignedIn() && resource.data.authorId == request.auth.uid) || isAdmin();
 
       match /comments/{commentId} {
-        allow read, list: if isSignedIn();
+        allow get, list: if isSignedIn();
         allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-        allow delete: if (isSignedIn() && resource.data.authorId == request.auth.uid) || isAdmin();
+        allow update, delete: if isAdmin() || (isSignedIn() && request.resource.data.authorId == request.auth.uid);
       }
     }
 
+    // --- MARKETPLACE & CONTENT ---
     match /products/{productId} {
-      allow read, list: if true;
+      allow get, list: if true;
       allow create: if isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid;
       allow update, delete: if (isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid) || isAdmin();
     }
 
     match /programs/{programId} {
-      allow read, list: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isAdmin();
     }
 
     match /events/{eventId} {
-      allow read, list: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
     match /sectors/{sectorId} {
-      allow read, list: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
-    // --- COMMUNITY & NETWORK ---
+    // --- COMMUNITY & ADS ---
     match /ads/{adId} {
-      allow read, list: if true;
+      allow get, list: if true;
       allow create: if isSignedIn();
       allow update: if isAdmin();
     }
 
     match /causes/{causeId} {
-      allow read, list: if true;
+      allow get, list: if true;
       allow create: if isSignedIn();
-      allow update: if isSignedIn(); // For contributing/backing
+      allow update: if isSignedIn(); // For contributing
     }
     
-    match /friend_requests/{friendRequestId} {
-      allow read, list: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
-      allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
-      allow update: if isSignedIn() && (resource.data.recipientId == request.auth.uid || resource.data.senderId == request.auth.uid);
-      allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
-    }
-
-    match /connections/{connectionId} {
-      allow read, list: if isSignedIn();
-      allow create, delete: if isSignedIn() && request.auth.uid in connectionId.split('_');
-    }
-
+    // --- CHAT & CONNECTIONS ---
     match /chats/{chatId} {
       allow get: if isSignedIn() && request.auth.uid in chatId.split('_');
       allow list: if isSignedIn();
@@ -118,34 +128,45 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read: if isSignedIn() && request.auth.uid in chatId.split('_');
         allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
+        allow update, delete: if false;
       }
     }
     
-    // --- WALLETS ---
-    match /wallets/{userId} {
-      allow read, write: if isOwner(userId) || isAdmin();
+    match /friend_requests/{friendRequestId} {
+      allow get, list: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
+      allow update: if isSignedIn() && (resource.data.recipientId == request.auth.uid || resource.data.senderId == request.auth.uid);
+      allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
     }
 
-    // --- ADMIN & CERTIFICATION ---
+    match /connections/{connectionId} {
+      allow get, list: if isSignedIn();
+      allow create, delete: if isSignedIn() && request.auth.uid in connectionId.split('_');
+    }
+    
+    // --- ADMIN & VERIFICATION ---
+    match /mentor_certifications/{memberId} {
+      allow get, list: if isOwner(memberId) || isAdmin();
+      allow write: if isAdmin();
+    }
+
     match /mentor_kyc/{memberId} {
-      allow read: if isOwner(memberId) || isAdmin();
+      allow get, list: if isOwner(memberId) || isAdmin();
       allow create: if isOwner(memberId);
       allow update: if isOwner(memberId) || isAdmin();
     }
-
-    match /mentor_certifications/{memberId} {
-      allow read: if isOwner(memberId) || isAdmin();
-      allow write: if isAdmin();
-    }
     
+    // --- AFFILIATE SYSTEM ---
     match /commissions/{commissionId} {
-      allow read: if isAdmin() || (isSignedIn() && resource.data.referrerId == request.auth.uid);
+      allow get, list: if isAdmin() || (isSignedIn() && resource.data.referrerId == request.auth.uid);
       allow create: if isSignedIn(); 
+      allow update, delete: if false;
     }
     
     match /affiliate_referrals/{referralId} {
-      allow read: if isAdmin() || (isSignedIn() && (resource.data.referrerMemberId == request.auth.uid || resource.data.referredMemberId == request.auth.uid));
+      allow get, list: if isAdmin() || (isSignedIn() && (resource.data.referrerMemberId == request.auth.uid || resource.data.referredMemberId == request.auth.uid));
       allow create: if isSignedIn();
+      allow update, delete: if false;
     }
   }
 }
