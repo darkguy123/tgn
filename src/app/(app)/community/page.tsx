@@ -32,7 +32,7 @@ import Link from 'next/link';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
 import type { Post } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -195,6 +195,7 @@ function CreatePostDialog({ open, onOpenChange, startWithMedia }: { open: boolea
 }
 
 export default function CommunityPage() {
+  const { user } = useUser();
   const { profile, isLoading: isProfileLoading } = useMemberProfile();
   const [isPostDialogOpen, setPostDialogOpen] = useState(false);
   const [startWithMedia, setStartWithMedia] = useState(false);
@@ -202,15 +203,15 @@ export default function CommunityPage() {
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'all';
 
-  // Load queries ONLY when profile is available to prevent early null auth errors
+  // Guard all community queries strictly by user and profile validation
   const postsQuery = useMemoFirebase(() =>
-    (firestore && profile) ? query(collection(firestore, 'posts'), orderBy('createdAt', 'desc')) : null,
-    [firestore, profile]
+    (firestore && user && profile) ? query(collection(firestore, 'posts'), orderBy('createdAt', 'desc')) : null,
+    [firestore, user, profile]
   );
   
   const savedPostsQuery = useMemoFirebase(() =>
-    (firestore && profile) ? query(collection(firestore, 'posts'), where('savedBy', 'array-contains', profile.id), orderBy('createdAt', 'desc')) : null,
-    [firestore, profile]
+    (firestore && user && profile) ? query(collection(firestore, 'posts'), where('savedBy', 'array-contains', profile.id), orderBy('createdAt', 'desc')) : null,
+    [firestore, user, profile]
   );
   
   const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);

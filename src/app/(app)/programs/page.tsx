@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from "react";
@@ -10,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Clock, Users, Award,
   ChevronRight, Star, Calendar, ArrowLeft,
-  BookCheck, Circle, CheckCircle, GraduationCap, Video, Book, Wallet, Loader2, PartyPopper, MapPin
+  Video, Book, Wallet, Loader2, PartyPopper, MapPin
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, doc, runTransaction, serverTimestamp, increment, addDoc, getDocs } from 'firebase/firestore';
@@ -37,14 +36,14 @@ const ProgramsPage = () => {
   const router = useRouter();
   const firestore = useFirestore();
   const { user } = useUser();
-  const { profile, isLoading: isProfileLoading } = useMemberProfile();
+  const { profile } = useMemberProfile();
   const { wallet, isLoading: isWalletLoading } = useWallet();
   const { toast } = useToast();
   
-  // Load to check if user is normal user before loading lists to validate permission
+  // Guard the query to ensure auth and profile are fully initialized before listing
   const programsCollectionRef = useMemoFirebase(() => 
-    (firestore && profile) ? query(collection(firestore, 'programs'), where('deactivatedAt', '==', null)) : null, 
-    [firestore, profile]
+    (firestore && user && profile) ? query(collection(firestore, 'programs'), where('deactivatedAt', '==', null)) : null, 
+    [firestore, user, profile]
   );
   const { data: allPrograms, isLoading: programsLoading, error } = useCollection<Program>(programsCollectionRef);
 
@@ -82,13 +81,11 @@ const ProgramsPage = () => {
     setIsSubmitting(true);
 
     try {
-        // 1. Find all referrers for the current user
         const referralsRef = collection(firestore, 'affiliate_referrals');
         const q = query(referralsRef, where('referredMemberId', '==', user.uid));
         const referralsSnapshot = await getDocs(q);
         const upline = referralsSnapshot.docs.map(doc => doc.data() as AffiliateReferral);
 
-        // 2. Perform atomic transaction
         await runTransaction(firestore, async (transaction) => {
             const programRef = doc(firestore, "programs", selectedProgram.id);
             const enrollmentRef = doc(firestore, "users", user.uid, "enrolled_programs", selectedProgram.id);
@@ -98,25 +95,19 @@ const ProgramsPage = () => {
                 throw new Error("You are already enrolled in this program.");
             }
 
-            // Create enrollment document
             transaction.set(enrollmentRef, {
                 programId: selectedProgram.id,
                 enrolledAt: serverTimestamp(),
                 progress: 0,
             });
 
-            // Increment enrolled count on program
             transaction.update(programRef, { enrolled: increment(1) });
 
-            // Handle payment and commissions if it's a paid program
             if (price > 0 && wallet) {
                 const buyerWalletRef = doc(firestore, "wallets", user.uid);
-                
-                // Debit Buyer
                 const newBalance = wallet.balance - price;
                 transaction.update(buyerWalletRef, { balance: newBalance });
 
-                // Distribute Commissions
                 for (const referral of upline) {
                     const commissionAmount = price * (referral.commissionPercentage / 100);
                     const referrerWalletRef = doc(firestore, 'wallets', referral.referrerMemberId);
@@ -129,7 +120,6 @@ const ProgramsPage = () => {
             }
         });
 
-        // 3. Log transactions and commissions after atomic update
         if (price > 0) {
             const buyerTransactionsRef = collection(firestore, "users", user.uid, "transactions");
             await addDoc(buyerTransactionsRef, {
@@ -420,7 +410,7 @@ const ProgramsPage = () => {
   );
 
 
-  const isLoading = programsLoading || isProfileLoading;
+  const isLoading = (programsLoading || !allPrograms) && !error;
 
   return (
     <div>
@@ -445,7 +435,7 @@ const ProgramsPage = () => {
                 <TabsTrigger value="executive">Executive</TabsTrigger>
                 </TabsList>
                 
-                {error && <p className="text-destructive">Failed to load programs.</p>}
+                {error && <p className="text-destructive">Failed to load programs. Please refresh.</p>}
 
                 {Object.entries(programsByType).map(([key, programs]) => (
                 <TabsContent key={key} value={key}>

@@ -93,15 +93,14 @@ export default function NetworkPage() {
 
     // --- DATA QUERIES ---
     
-    // 1. Get IDs of current connections
+    // Explicitly guard all queries by currentUser and profile validation
     const connectionIds = useMemo(() => currentUserProfile?.connections || [], [currentUserProfile]);
     
-    // 2. Fetch profiles for current connections
     const connectionsQuery = useMemoFirebase(() =>
-        (connectionIds.length > 0 && firestore && currentUserProfile)
+        (connectionIds.length > 0 && firestore && currentUser && currentUserProfile)
             ? query(collection(firestore, 'users'), where(documentId(), 'in', connectionIds))
             : null,
-        [connectionIds, firestore, currentUserProfile]
+        [connectionIds, firestore, currentUser, currentUserProfile]
     );
     const { data: connections, isLoading: connectionsLoading } = useCollection<TGNMember>(connectionsQuery);
 
@@ -115,21 +114,18 @@ export default function NetworkPage() {
         });
     }, [connections, searchQuery]);
 
-    // 3. Fetch incoming friend requests
     const receivedRequestsQuery = useMemoFirebase(() =>
         (currentUser && firestore && currentUserProfile) ? query(collection(firestore, 'friend_requests'), where('recipientId', '==', currentUser.uid), where('status', '==', 'pending')) : null,
         [currentUser, firestore, currentUserProfile]
     );
     const { data: receivedRequests, isLoading: receivedLoading } = useCollection<FriendRequest>(receivedRequestsQuery);
 
-    // 4. Fetch outgoing friend requests
     const sentRequestsQuery = useMemoFirebase(() =>
         (currentUser && firestore && currentUserProfile) ? query(collection(firestore, 'friend_requests'), where('senderId', '==', currentUser.uid), where('status', '==', 'pending')) : null,
         [currentUser, firestore, currentUserProfile]
     );
     const { data: sentRequests, isLoading: sentLoading } = useCollection<FriendRequest>(sentRequestsQuery);
 
-    // 5. Get user IDs from all requests to fetch their profiles
     const requestUserIds = useMemo(() => {
         const ids = new Set<string>();
         receivedRequests?.forEach(req => ids.add(req.senderId));
@@ -137,7 +133,6 @@ export default function NetworkPage() {
         return Array.from(ids);
     }, [receivedRequests, sentRequests]);
 
-    // 6. Fetch profiles for users in requests
     const requestUsersQuery = useMemoFirebase(() =>
         (requestUserIds.length > 0 && firestore && currentUserProfile) ? query(collection(firestore, 'users'), where(documentId(), 'in', requestUserIds)) : null,
         [requestUserIds, firestore, currentUserProfile]

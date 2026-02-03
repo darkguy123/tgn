@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -62,8 +61,8 @@ const DirectoryPage = () => {
   const { user: currentUser } = useUser();
   const { profile: currentUserProfile, isLoading: isProfileLoading } = useMemberProfile();
   
-  // Guarded query: Only run if we have a valid profile, ensuring security rules have context
-  const membersRef = useMemoFirebase(() => (firestore && currentUserProfile) ? collection(firestore, 'users') : null, [firestore, currentUserProfile]);
+  // Guard the directory and request queries to strictly wait for user validation
+  const membersRef = useMemoFirebase(() => (firestore && currentUser && currentUserProfile) ? collection(firestore, 'users') : null, [firestore, currentUser, currentUserProfile]);
   const { data: members, isLoading: membersLoading, error } = useCollection<TGNMember>(membersRef);
   const { toast } = useToast();
 
@@ -379,7 +378,7 @@ const DirectoryPage = () => {
       
       {error && (
         <div className="text-center py-12 col-span-full">
-            <p className="text-destructive">Failed to load members.</p>
+            <p className="text-destructive">Failed to load members. Please refresh.</p>
         </div>
       )}
     </div>
