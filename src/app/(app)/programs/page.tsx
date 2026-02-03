@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from "react";
@@ -439,9 +438,9 @@ const ProgramsPage = () => {
                     <Card className="border-dashed">
                         <CardContent className="p-10 text-center flex flex-col items-center">
                             <Hammer className="h-12 w-12 text-muted-foreground mb-4" />
-                            <h3 className="text-lg font-semibold">Program Catalog Under Development</h3>
+                            <h3 className="text-lg font-semibold">Program Catalog Syncing...</h3>
                             <p className="text-sm text-muted-foreground max-w-sm mt-2">
-                                We're updating our curated program permissions. Our latest learning paths will be available shortly.
+                                We're updating our curated program catalog for global access. Our latest learning paths will be available shortly.
                             </p>
                         </CardContent>
                     </Card>

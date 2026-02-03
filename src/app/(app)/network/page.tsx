@@ -239,9 +239,9 @@ export default function NetworkPage() {
                 <Card className="border-dashed">
                     <CardContent className="p-10 text-center flex flex-col items-center">
                         <Hammer className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold">Networking Features Under Development</h3>
+                        <h3 className="text-lg font-semibold">Networking Syncing...</h3>
                         <p className="text-sm text-muted-foreground max-w-sm mt-2">
-                            The TGN global directory and request systems are currently being optimized for your presentation. Check back in a few minutes!
+                            The TGN global directory and request systems are currently being optimized for global access. This section will be ready for your presentation.
                         </p>
                     </CardContent>
                 </Card>

@@ -42,7 +42,7 @@ import {
   sectors,
   mentorTypes,
 } from "@/lib/data";
-import { useCollection, useFirestore, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, addDoc, serverTimestamp, query, where } from "firebase/firestore";
 import type { TGNMember, FriendRequest } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -173,9 +173,9 @@ const DirectoryPage = () => {
         <Card className="border-dashed">
             <CardContent className="p-10 text-center flex flex-col items-center">
                 <Hammer className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold">Directory Under Development</h3>
+                <h3 className="text-lg font-semibold">Directory Syncing...</h3>
                 <p className="text-sm text-muted-foreground max-w-sm mt-2">
-                    We're upgrading the member indexing system for better speed. This section will be ready for your presentation very soon.
+                    We're optimizing the global directory for better speed. This section will be ready for your presentation very soon.
                 </p>
             </CardContent>
         </Card>

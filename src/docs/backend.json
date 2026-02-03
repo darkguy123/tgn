@@ -66,18 +66,18 @@
   "firestore": {
     "/users/{userId}": {
       "schema": { "$ref": "#/backend/entities/Member" },
-      "description": "User profiles and metadata. Readable by all signed-in users, writable by owner."
+      "description": "User profiles and metadata. Readable by all signed-in users (list/get at root), writable by owner."
     },
     "/posts/{postId}": {
       "schema": { "$ref": "#/backend/entities/Post" },
-      "description": "Global community posts. Publicly readable for stability, writable by author."
+      "description": "Global community posts. Authorizes collection root queries (list) within the wildcard match."
     },
     "/products/{productId}": {
       "schema": { "$ref": "#/backend/entities/Product" },
-      "description": "Marketplace products. Publicly readable, writable by seller."
+      "description": "Marketplace products. Globally readable at root level for presentation stability."
     },
     "/{document=**}": {
-      "description": "Global fallback allowing read for all authenticated users, enforcing ownership for writes."
+      "description": "Global document fallback for read operations to ensure no permission crashes on newly added pages."
     }
   }
 }

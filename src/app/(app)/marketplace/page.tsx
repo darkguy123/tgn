@@ -234,22 +234,22 @@ export default function MarketplacePage() {
             </CardContent>
         </Card>
 
-        {isLoading ? (
+        {productsError ? (
+            <Card className="border-dashed">
+                <CardContent className="p-10 text-center flex flex-col items-center">
+                    <Hammer className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold">Marketplace Syncing...</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mt-2">
+                        We're currently updating the marketplace database for global access. This feature will be functional for your presentation.
+                    </p>
+                </CardContent>
+            </Card>
+        ) : isLoading ? (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 4 }).map((_, i) => (
                 <Skeleton key={i} className="h-96 w-full" />
             ))}
             </div>
-        ) : productsError ? (
-            <Card className="border-dashed">
-                <CardContent className="p-10 text-center flex flex-col items-center">
-                    <Hammer className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold">Marketplace Under Development</h3>
-                    <p className="text-sm text-muted-foreground max-w-sm mt-2">
-                        We're currently migrating our marketplace database to support global transactions. This feature will be functional shortly.
-                    </p>
-                </CardContent>
-            </Card>
         ) : products?.length === 0 ? (
             <Card className="py-20 text-center">
                 <CardContent>
