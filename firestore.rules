@@ -25,7 +25,7 @@ service cloud.firestore {
     // --- USER-OWNED DATA ---
     match /users/{userId} {
       // 👀 Anyone signed in can view profiles or list users (for directory/search)
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       
       // ✍️ User can create their own doc. Admin can too.
       allow create: if isOwner(userId) || isAdmin();
@@ -65,7 +65,7 @@ service cloud.firestore {
     // --- POSTS (Social Media Style) ---
     match /posts/{postId} {
       // 👀 Anyone logged in can read posts (feeds, profiles, explore)
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
 
       // ✍️ Create post (author must be the creator)
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
@@ -77,7 +77,7 @@ service cloud.firestore {
       allow delete: if (isSignedIn() && resource.data.authorId == request.auth.uid) || isAdmin();
 
       match /comments/{commentId} {
-        allow get, list: if isSignedIn();
+        allow read: if isSignedIn();
         allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
         allow update, delete: if isAdmin() || (isSignedIn() && request.resource.data.authorId == request.auth.uid);
       }
@@ -85,43 +85,43 @@ service cloud.firestore {
 
     // --- MARKETPLACE & CONTENT ---
     match /products/{productId} {
-      allow get, list: if true;
+      allow read: if true;
       allow create: if isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid;
       allow update, delete: if (isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid) || isAdmin();
     }
 
     match /programs/{programId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
     match /events/{eventId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /sectors/{sectorId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     // --- COMMUNITY & ADS ---
     match /ads/{adId} {
-      allow get, list: if true;
+      allow read: if true;
       allow create: if isSignedIn();
       allow update: if isAdmin();
     }
 
     match /causes/{causeId} {
-      allow get, list: if true;
+      allow read: if true;
       allow create: if isSignedIn();
       allow update: if isSignedIn(); // For contributing
     }
     
     // --- CHAT & CONNECTIONS ---
     match /chats/{chatId} {
-      allow get: if isSignedIn() && request.auth.uid in chatId.split('_');
-      allow list: if isSignedIn();
+      // Use read for queries or direct gets
+      allow read: if isSignedIn() && request.auth.uid in chatId.split('_');
       allow update: if isSignedIn() && request.auth.uid in resource.data.members;
       allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
 
@@ -133,38 +133,38 @@ service cloud.firestore {
     }
     
     match /friend_requests/{friendRequestId} {
-      allow get, list: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
+      allow read: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
       allow update: if isSignedIn() && (resource.data.recipientId == request.auth.uid || resource.data.senderId == request.auth.uid);
       allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
     }
 
     match /connections/{connectionId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create, delete: if isSignedIn() && request.auth.uid in connectionId.split('_');
     }
     
     // --- ADMIN & VERIFICATION ---
     match /mentor_certifications/{memberId} {
-      allow get, list: if isOwner(memberId) || isAdmin();
+      allow read: if isOwner(memberId) || isAdmin();
       allow write: if isAdmin();
     }
 
     match /mentor_kyc/{memberId} {
-      allow get, list: if isOwner(memberId) || isAdmin();
+      allow read: if isOwner(memberId) || isAdmin();
       allow create: if isOwner(memberId);
       allow update: if isOwner(memberId) || isAdmin();
     }
     
     // --- AFFILIATE SYSTEM ---
     match /commissions/{commissionId} {
-      allow get, list: if isAdmin() || (isSignedIn() && resource.data.referrerId == request.auth.uid);
+      allow read: if isAdmin() || (isSignedIn() && resource.data.referrerId == request.auth.uid);
       allow create: if isSignedIn(); 
       allow update, delete: if false;
     }
     
     match /affiliate_referrals/{referralId} {
-      allow get, list: if isAdmin() || (isSignedIn() && (resource.data.referrerMemberId == request.auth.uid || resource.data.referredMemberId == request.auth.uid));
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.referrerMemberId == request.auth.uid || resource.data.referredMemberId == request.auth.uid));
       allow create: if isSignedIn();
       allow update, delete: if false;
     }
