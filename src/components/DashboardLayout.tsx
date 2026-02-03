@@ -127,8 +127,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 }, [user, firestore]);
 
   const requestsQuery = useMemoFirebase(
-    () => user ? query(collection(firestore, 'friend_requests'), where('recipientId', '==', user.uid), where('status', '==', 'pending')) : null,
-    [user, firestore]
+    () => (user && profile) ? query(collection(firestore, 'friend_requests'), where('recipientId', '==', user.uid), where('status', '==', 'pending')) : null,
+    [user, profile, firestore]
   );
   const { data: pendingRequests } = useCollection<FriendRequest>(requestsQuery);
   const notificationCount = pendingRequests?.length || 0;

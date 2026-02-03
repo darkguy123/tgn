@@ -98,10 +98,10 @@ export default function NetworkPage() {
     
     // 2. Fetch profiles for current connections
     const connectionsQuery = useMemoFirebase(() =>
-        connectionIds.length > 0 && firestore
+        (connectionIds.length > 0 && firestore && currentUserProfile)
             ? query(collection(firestore, 'users'), where(documentId(), 'in', connectionIds))
             : null,
-        [connectionIds, firestore]
+        [connectionIds, firestore, currentUserProfile]
     );
     const { data: connections, isLoading: connectionsLoading } = useCollection<TGNMember>(connectionsQuery);
 
@@ -117,15 +117,15 @@ export default function NetworkPage() {
 
     // 3. Fetch incoming friend requests
     const receivedRequestsQuery = useMemoFirebase(() =>
-        currentUser && firestore ? query(collection(firestore, 'friend_requests'), where('recipientId', '==', currentUser.uid), where('status', '==', 'pending')) : null,
-        [currentUser, firestore]
+        (currentUser && firestore && currentUserProfile) ? query(collection(firestore, 'friend_requests'), where('recipientId', '==', currentUser.uid), where('status', '==', 'pending')) : null,
+        [currentUser, firestore, currentUserProfile]
     );
     const { data: receivedRequests, isLoading: receivedLoading } = useCollection<FriendRequest>(receivedRequestsQuery);
 
     // 4. Fetch outgoing friend requests
     const sentRequestsQuery = useMemoFirebase(() =>
-        currentUser && firestore ? query(collection(firestore, 'friend_requests'), where('senderId', '==', currentUser.uid), where('status', '==', 'pending')) : null,
-        [currentUser, firestore]
+        (currentUser && firestore && currentUserProfile) ? query(collection(firestore, 'friend_requests'), where('senderId', '==', currentUser.uid), where('status', '==', 'pending')) : null,
+        [currentUser, firestore, currentUserProfile]
     );
     const { data: sentRequests, isLoading: sentLoading } = useCollection<FriendRequest>(sentRequestsQuery);
 
@@ -139,8 +139,8 @@ export default function NetworkPage() {
 
     // 6. Fetch profiles for users in requests
     const requestUsersQuery = useMemoFirebase(() =>
-        requestUserIds.length > 0 && firestore ? query(collection(firestore, 'users'), where(documentId(), 'in', requestUserIds)) : null,
-        [requestUserIds, firestore]
+        (requestUserIds.length > 0 && firestore && currentUserProfile) ? query(collection(firestore, 'users'), where(documentId(), 'in', requestUserIds)) : null,
+        [requestUserIds, firestore, currentUserProfile]
     );
     const { data: requestUsers, isLoading: requestUsersLoading } = useCollection<TGNMember>(requestUsersQuery);
 
@@ -169,8 +169,6 @@ export default function NetworkPage() {
                     const recipientRef = doc(firestore, 'users', currentUser.uid);
                     const senderRef = doc(firestore, 'users', senderId);
 
-                    // This transaction will fail if the rules don't allow the recipient to update the sender's document.
-                    // This is a known limitation in client-side only scenarios without more permissive rules or cloud functions.
                     transaction.update(requestRef, { status: 'accepted' });
                     transaction.update(recipientRef, { connections: arrayUnion(senderId) });
                     transaction.update(senderRef, { connections: arrayUnion(currentUser.uid) });
@@ -201,7 +199,6 @@ export default function NetworkPage() {
 
         try {
             await runTransaction(firestore, async (transaction) => {
-                 // This transaction will fail if the rules don't allow the user to update the other member's document.
                 transaction.update(currentUserRef, { connections: arrayRemove(memberIdToRemove) });
                 transaction.update(memberToRemoveRef, { connections: arrayRemove(currentUser.uid) });
             });
