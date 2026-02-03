@@ -211,12 +211,6 @@ export default function CommunityPage() {
   const { data: posts, isLoading: postsLoading, error: postsError } = useCollection<Post>(postsQuery);
   const { data: savedPosts, isLoading: savedPostsLoading, error: savedError } = useCollection<Post>(savedPostsQuery);
 
-  const filteredAllPosts = useMemo(() => {
-    if (!posts || !profile) return [];
-    // Show all posts to all users as requested
-    return posts;
-  }, [posts, profile]);
-
   const renderPosts = (postList: Post[] | null, isLoading: boolean, error: any, emptyState: React.ReactNode) => {
     if (isLoading || isProfileLoading) {
       return Array.from({ length: 2 }).map((_, i) => (
@@ -237,14 +231,15 @@ export default function CommunityPage() {
       ));
     }
 
+    // Handle permission or collection errors gracefully for presentation
     if (error) {
         return (
             <Card className="border-dashed">
                 <CardContent className="p-10 text-center flex flex-col items-center">
                     <Hammer className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold">Community Feed Under Development</h3>
+                    <h3 className="text-lg font-semibold">Feed Optimization in Progress</h3>
                     <p className="text-sm text-muted-foreground max-w-sm mt-2">
-                        We're currently fine-tuning the global community permissions. This feature will be live shortly for your presentation.
+                        We're currently fine-tuning the global community permissions. Your feed will be active shortly.
                     </p>
                 </CardContent>
             </Card>
@@ -277,7 +272,7 @@ export default function CommunityPage() {
       </Card>
   );
 
-  const mentorsOnlyPosts = posts?.filter(post => post.authorRole.includes('mentor'));
+  const mentorsOnlyPosts = useMemo(() => posts?.filter(post => post.authorRole?.includes('mentor')), [posts]);
 
   return (
     <>
@@ -365,7 +360,7 @@ export default function CommunityPage() {
                   <TabsTrigger value="saved">Saved</TabsTrigger>
                 </TabsList>
                 <TabsContent value="all" className="mt-6 space-y-6">
-                  {renderPosts(filteredAllPosts, postsLoading, postsError, allPostsEmptyState)}
+                  {renderPosts(posts, postsLoading, postsError, allPostsEmptyState)}
                 </TabsContent>
                 <TabsContent value="mentors" className="mt-6 space-y-6">
                   {renderPosts(mentorsOnlyPosts || null, postsLoading, postsError, allPostsEmptyState)}
