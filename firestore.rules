@@ -14,167 +14,147 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      // Using a combination of a hardcoded super admin and a role-based admin.
-      return (request.auth.token.email == 'valentinoboss18@gmail.com') || 
-             (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['country-manager', 'admin']);
+      // Safely check for admin privileges.
+      return isSignedIn() && (
+        (request.auth.token.email == 'valentinoboss18@gmail.com') || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['country-manager', 'admin'])
+      );
     }
 
     // --- USER-OWNED DATA ---
     match /users/{userId} {
-      allow read: if true; // Publicly readable profiles
-      allow create: if isOwner(userId); // User can create their own document
-      // User can update their own doc, but cannot change their role. Admin can do anything.
+      // Allow any signed-in user to view profiles or list users (for directory/search)
+      allow get, list: if isSignedIn();
+      allow create: if isOwner(userId);
+      // User can update their own doc (but not their role). Admin can do anything.
       allow update: if (isOwner(userId) && !(request.resource.data.role != resource.data.role)) || isAdmin();
 
       // Subcollections
       match /media/{mediaId} {
         allow read: if true;
         allow create, delete: if isOwner(userId);
-        allow update: if false; // Disallow updates to media docs
+        allow update: if false;
       }
       match /cards/{cardId} {
         allow read, write: if isOwner(userId);
       }
       match /transactions/{transactionId} {
-        allow read, create: if isOwner(userId);
-        allow update: if isAdmin(); // Admin can update to approve withdrawals
+        allow create: if isOwner(userId);
+        allow read: if isOwner(userId) || isAdmin();
+        allow update: if isAdmin(); 
         allow delete: if false;
       }
       match /enrolled_programs/{programId} {
           allow read, create: if isOwner(userId);
           allow update, delete: if false;
       }
+      match /menteeVerifications/{verificationId} {
+          allow read, write: if isOwner(userId);
+      }
     }
     
-    // Wallets are keyed by user ID
+    // Wallets are private to the owner and admin
     match /wallets/{userId} {
       allow read, write: if isOwner(userId) || isAdmin();
     }
 
     // --- GLOBAL/PUBLIC DATA ---
     match /programs/{programId} {
-      allow read: if isSignedIn(); // Any signed-in user can read programs
-      allow write: if isAdmin(); // Only admins can create/update programs
+      allow get, list: if isSignedIn();
+      allow write: if isAdmin();
     }
     match /sectors/{sectorId} {
-      allow read: if true; // Publicly readable reference data
+      allow get, list: if true;
       allow write: if isAdmin();
     }
     match /events/{eventId} {
-      allow read: if true; // Publicly readable
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
-    // --- COMMUNITY & USER-GENERATED CONTENT ---
+    // --- COMMUNITY & FEED ---
     match /posts/{postId} {
-      allow read: if isSignedIn();
+      // Allow all signed-in users to view the feed and individual posts
+      allow get, list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-      // Allow any signed-in user to update (for liking). This is a common pattern.
+      // Allow updating for likes/saves. In a production app, you'd restrict this to only those fields.
       allow update: if isSignedIn();
-      allow delete: if isOwner(resource.data.authorId) || isAdmin();
+      // Only the author or an admin can delete
+      allow delete: if (isSignedIn() && resource.data.authorId == request.auth.uid) || isAdmin();
 
       match /comments/{commentId} {
-        allow read: if isSignedIn();
+        allow get, list: if isSignedIn();
         allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-        allow update, delete: if false; // Comments are immutable
+        allow update, delete: if false;
       }
     }
     
     match /products/{productId} {
-      allow read: if true; // Publicly readable marketplace
+      allow get, list: if true;
       allow create: if isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid;
-      // Only the seller or an admin can update/delete
       allow update, delete: if (isSignedIn() && resource.data.sellerMemberId == request.auth.uid) || isAdmin();
     }
 
     match /ads/{adId} {
-      allow read: if true;
-      allow create: if isSignedIn(); // Any signed-in user can create an ad
-      allow update: if isAdmin(); // Only admins can approve/reject/pause ads
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
     }
 
     match /causes/{causeId} {
-      allow read: if true; // Publicly readable fundraisers
-      allow create: if isSignedIn(); // Any signed-in user can create a cause
-      // Any signed-in user can update (to contribute/back a cause).
-      allow update: if isSignedIn();
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn(); // For contributing
     }
     
     // --- CHAT & CONNECTIONS ---
     match /chats/{chatId} {
-      // A user can read a chat document if their UID is in the chatId.
-      // This rule works for non-existent documents because it does not access `resource.data`.
       allow get: if isSignedIn() && request.auth.uid in chatId.split('_');
-
-      // A user can list chats they are a member of.
-      // The client MUST use a `where('members', 'array-contains', request.auth.uid)` clause.
       allow list: if isSignedIn();
-      
-      // A member can update a chat (e.g., lastMessage, typing indicator).
       allow update: if isSignedIn() && request.auth.uid in resource.data.members;
-      
-      // A user can create a chat if they are including themselves in the members list.
       allow create: if isSignedIn() && request.auth.uid in request.resource.data.members;
 
-      // --- MESSAGES SUBCOLLECTION ---
       match /messages/{messageId} {
-        // Helper to check if the user is a member of the parent chat.
-        function isParentChatMember() {
-          return isSignedIn() && 
-                 exists(/databases/$(database)/documents/chats/$(chatId)) &&
-                 request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
-        }
-        
-        // Allow GET for single messages, using the more secure check.
-        allow get: if isParentChatMember();
-        
-        // Allow LIST for queries, using a non-blocking check against the chatId format.
-        // This is necessary because `get()` is not allowed in `list` rules.
-        allow list: if isSignedIn() && request.auth.uid in chatId.split('_');
-        
-        // Allow create if user is the sender AND is a participant based on chatId.
-        // This avoids get() which fails in transactions when parent doc doesn't exist yet.
-        allow create: if isSignedIn() && 
-                        request.resource.data.senderId == request.auth.uid &&
-                        request.auth.uid in chatId.split('_');
-        
-        // Disallow updating or deleting messages for simplicity and integrity.
+        allow read: if isSignedIn() && request.auth.uid in chatId.split('_');
+        allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid && request.auth.uid in chatId.split('_');
         allow update, delete: if false;
       }
     }
     
     match /friend_requests/{friendRequestId} {
-      allow read: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
+      allow get, list: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.recipientId == request.auth.uid; // Recipient can accept/decline
+      allow update: if isSignedIn() && (resource.data.recipientId == request.auth.uid || resource.data.senderId == request.auth.uid);
       allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
+    }
+
+    match /connections/{connectionId} {
+      allow get, list: if isSignedIn();
+      allow create, delete: if isSignedIn() && request.auth.uid in connectionId.split('_');
     }
     
     // --- ADMIN & VERIFICATION ---
     match /mentor_certifications/{memberId} {
-      allow read: if isOwner(memberId) || isAdmin();
+      allow get, list: if isOwner(memberId) || isAdmin();
       allow write: if isAdmin();
     }
 
     match /mentor_kyc/{memberId} {
-      allow read: if isOwner(memberId) || isAdmin();
+      allow get, list: if isOwner(memberId) || isAdmin();
       allow create: if isOwner(memberId);
-      // User can submit/update their own KYC, admin can update status
       allow update: if isOwner(memberId) || isAdmin();
     }
     
     // --- AFFILIATE SYSTEM ---
     match /commissions/{commissionId} {
-      allow read: if isSignedIn() && resource.data.referrerId == request.auth.uid;
-      // Commissions are created via transaction.
+      allow get, list: if isAdmin() || (isSignedIn() && resource.data.referrerId == request.auth.uid);
       allow create: if isSignedIn(); 
       allow update, delete: if false;
     }
     
     match /affiliate_referrals/{referralId} {
-      allow read: if isSignedIn() && (resource.data.referrerMemberId == request.auth.uid || resource.data.referredMemberId == request.auth.uid);
-      // Referrals are created during onboarding.
+      allow get, list: if isAdmin() || (isSignedIn() && (resource.data.referrerMemberId == request.auth.uid || resource.data.referredMemberId == request.auth.uid));
       allow create: if isSignedIn();
       allow update, delete: if false;
     }
