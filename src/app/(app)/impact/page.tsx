@@ -6,16 +6,18 @@ import {
   BarChart3, TrendingUp, Users, Globe, Award, Star,
   DollarSign, Heart, Loader2, BookOpen
 } from "lucide-react";
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, Timestamp } from 'firebase/firestore';
 import { subDays } from 'date-fns';
 import type { TGNMember, Cause, AffiliateReferral, Commission, EnrolledProgram } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
+import { isUserAdmin } from '@/lib/auth-utils';
 
 const ImpactPage = () => {
   const firestore = useFirestore();
   const { profile, isLoading: isProfileLoading } = useMemberProfile();
+  const isAdmin = isUserAdmin(profile);
 
   // --- QUERIES ---
   const thirtyDaysAgoTimestamp = useMemo(() => {
@@ -23,8 +25,9 @@ const ImpactPage = () => {
     return Timestamp.fromDate(thirtyDaysAgo);
   }, []);
 
-  const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
-  const newUsersQuery = useMemoFirebase(() => query(collection(firestore, 'users'), where('createdAt', '>=', thirtyDaysAgoTimestamp)), [firestore, thirtyDaysAgoTimestamp]);
+  // Only fetch global data if user is admin
+  const usersQuery = useMemoFirebase(() => (firestore && isAdmin) ? collection(firestore, 'users') : null, [firestore, isAdmin]);
+  const newUsersQuery = useMemoFirebase(() => (firestore && isAdmin) ? query(collection(firestore, 'users'), where('createdAt', '>=', thirtyDaysAgoTimestamp)) : null, [firestore, thirtyDaysAgoTimestamp, isAdmin]);
   const fundraisersQuery = useMemoFirebase(() => query(collection(firestore, 'causes'), where('status', '==', 'approved')), [firestore]);
 
   // Personal Impact Queries
@@ -53,7 +56,7 @@ const ImpactPage = () => {
   const isLoading = usersLoading || newUsersLoading || fundraisersLoading || isProfileLoading || isDownlineLoading || isCommissionsLoading || isEnrollmentsLoading;
   
   // --- CALCULATIONS ---
-  // Network stats
+  // Network stats (Calculated but only shown if admin)
   const totalMembers = allUsers?.length || 0;
   const newMembersCount = newUsers?.length || 0;
   const totalRaised = fundraisers?.reduce((acc, fundraiser) => acc + fundraiser.currentAmount, 0) || 0;
@@ -85,7 +88,7 @@ const ImpactPage = () => {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Impact Overview</h1>
-        <p className="text-muted-foreground">Track our collective contribution and network growth.</p>
+        <p className="text-muted-foreground">Track your personal contribution and growth in the network.</p>
       </div>
 
       {/* Highlights */}
@@ -120,28 +123,30 @@ const ImpactPage = () => {
         </Card>
       </div>
 
-      {/* Network Statistics */}
-      <Card className="mb-6">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" />
-                Network Statistics
-              </CardTitle>
-              <CardDescription>An overview of our collective impact.</CardDescription>
+      {/* Network Statistics - ONLY FOR ADMINS */}
+      {isAdmin && (
+        <Card className="mb-6">
+            <CardHeader>
+            <div className="flex items-center justify-between">
+                <div>
+                <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-primary" />
+                    Global Network Statistics (Admin Only)
+                </CardTitle>
+                <CardDescription>Comprehensive overview of network-wide impact.</CardDescription>
+                </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {renderStatCard("Total Members", totalMembers.toLocaleString(), <Users className="h-4 w-4" />, isLoading)}
-            {renderStatCard("New Members (30d)", newMembersCount.toLocaleString(), <TrendingUp className="h-4 w-4" />, isLoading)}
-            {renderStatCard("Total Raised", formatCurrency(totalRaised), <DollarSign className="h-4 w-4" />, isLoading)}
-            {renderStatCard("Fundraisers Funded", fundedFundraisers, <Heart className="h-4 w-4" />, isLoading)}
-          </div>
-        </CardContent>
-      </Card>
+            </CardHeader>
+            <CardContent>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {renderStatCard("Total Members", totalMembers.toLocaleString(), <Users className="h-4 w-4" />, isLoading)}
+                {renderStatCard("New Members (30d)", newMembersCount.toLocaleString(), <TrendingUp className="h-4 w-4" />, isLoading)}
+                {renderStatCard("Total Raised", formatCurrency(totalRaised), <DollarSign className="h-4 w-4" />, isLoading)}
+                {renderStatCard("Fundraisers Funded", fundedFundraisers, <Heart className="h-4 w-4" />, isLoading)}
+            </div>
+            </CardContent>
+        </Card>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Your Personal Impact */}
@@ -181,19 +186,25 @@ const ImpactPage = () => {
           </CardContent>
         </Card>
 
-        {/* Network Performance */}
+        {/* Global Causes Overview */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Network Performance
+              <Heart className="h-5 w-5 text-primary" />
+              Community Support
             </CardTitle>
-             <CardDescription>Insights into the network's health.</CardDescription>
+             <CardDescription>Collective impact on fundraising causes.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center justify-center text-center py-10">
-                <TrendingUp className="h-10 w-10 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Network performance data is not yet available.</p>
+            <div className="space-y-4">
+                <div className="p-4 bg-muted/50 rounded-lg flex items-center justify-between">
+                    <div>
+                        <p className="text-sm text-muted-foreground">Total Raised by Community</p>
+                        <p className="text-2xl font-bold">{formatCurrency(totalRaised)}</p>
+                    </div>
+                    <DollarSign className="h-10 w-10 text-accent opacity-20" />
+                </div>
+                <p className="text-xs text-muted-foreground text-center">Every contribution helps a community initiative succeed.</p>
             </div>
           </CardContent>
         </Card>
