@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "Member": {
@@ -60,6 +59,19 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["type", "status", "amount", "createdAt"]
+    },
+    "FriendRequest": {
+      "title": "FriendRequest",
+      "description": "Represents a connection request between two members.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "recipientId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "declined"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["senderId", "recipientId", "status", "createdAt"]
     }
   },
   "auth": {
@@ -80,6 +92,10 @@
     },
     "/connections/{connectionId}": {
       "description": "Stores scalable connection documents between members."
+    },
+    "/friend_requests/{requestId}": {
+      "schema": { "$ref": "#/backend/entities/FriendRequest" },
+      "description": "Stores connection requests."
     }
   }
 }

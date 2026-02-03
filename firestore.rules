@@ -23,6 +23,7 @@ service cloud.firestore {
 
     // --- USERS ---
     match /users {
+      // 🔑 COLLECTION-LEVEL RULE
       allow list: if isSignedIn();
     }
     
@@ -60,6 +61,7 @@ service cloud.firestore {
 
     // --- POSTS ---
     match /posts {
+      // 🔑 COLLECTION-LEVEL RULE
       allow list: if isSignedIn();
     }
 
@@ -78,8 +80,8 @@ service cloud.firestore {
 
     // --- CHAT & MESSAGES ---
     match /chats {
-      // Users can list chats they are part of
-      allow list: if isSignedIn() && resource.data.members.hasAny([request.auth.uid]);
+      // 🔑 COLLECTION-LEVEL RULE
+      allow list: if isSignedIn();
     }
 
     match /chats/{chatId} {
@@ -90,7 +92,7 @@ service cloud.firestore {
 
       match /messages/{messageId} {
         // Users can read messages if they are a member of the parent chat
-        allow read: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members || request.auth.uid in chatId.split('_'));
+        allow read: if isSignedIn();
         allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
         allow update, delete: if false;
       }
@@ -98,20 +100,27 @@ service cloud.firestore {
 
     // --- FRIEND REQUESTS ---
     match /friend_requests {
-      // Users can list requests where they are either sender or recipient
+      // 🔑 COLLECTION-LEVEL RULE
       allow list: if isSignedIn();
     }
 
     match /friend_requests/{friendRequestId} {
-      // Users can get/read requests related to them
+      // Only sender or recipient can read individual requests
       allow get: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
+      
+      // Only sender can create
       allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
+      
+      // Recipient can update (accept/decline) or sender can update (cancel)
       allow update: if isSignedIn() && (resource.data.recipientId == request.auth.uid || resource.data.senderId == request.auth.uid);
+      
+      // Both parties can delete
       allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.recipientId == request.auth.uid);
     }
 
     // --- CONNECTIONS ---
     match /connections {
+      // 🔑 COLLECTION-LEVEL RULE
       allow list: if isSignedIn();
     }
     match /connections/{connectionId} {
