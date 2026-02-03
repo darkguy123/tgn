@@ -249,86 +249,94 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["members", "createdAt"]
+    },
+    "Sector": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Sector",
+      "type": "object",
+      "description": "Represents an industry sector for mentorship and programs.",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["name"]
     }
   },
   "auth": {
     "providers": ["password", "anonymous"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": { "entityName": "Member", "schema": { "$ref": "#/backend/entities/Member" }, "description": "Stores user profiles. The document ID is the user's UID." }
-      },
-      {
-        "path": "/users/{userId}/enrolled_programs/{programId}",
-        "definition": { "entityName": "EnrolledProgram", "schema": { "$ref": "#/backend/entities/EnrolledProgram" }, "description": "Tracks a member's enrollment in a program." }
-      },
-      {
-        "path": "/users/{userId}/transactions/{transactionId}",
-        "definition": { "entityName": "Transaction", "schema": { "$ref": "#/backend/entities/Transaction" }, "description": "A log of a user's wallet transactions." }
-      },
-      {
-        "path": "/mentor_kyc/{memberId}",
-        "definition": { "entityName": "MentorKYC", "schema": { "$ref": "#/backend/entities/MentorKYC" }, "description": "Stores mentor KYC submissions. Document ID is the member's UID." }
-      },
-      {
-        "path": "/mentor_certifications/{memberId}",
-        "definition": { "entityName": "MentorCertification", "schema": { "$ref": "#/backend/entities/MentorCertification" }, "description": "Stores mentor certifications for each user. The document ID is the user's UID." }
-      },
-      {
-        "path": "/commissions/{commissionId}",
-        "definition": { "entityName": "Commission", "schema": { "$ref": "#/backend/entities/Commission" }, "description": "Stores affiliate commissions." }
-      },
-      {
-        "path": "/affiliate_referrals/{referralId}",
-        "definition": { "entityName": "AffiliateReferral", "schema": { "$ref": "#/backend/entities/AffiliateReferral" }, "description": "Stores multi-level affiliate referral relationships." }
-      },
-       {
-        "path": "/users/{userId}/cards/{cardId}",
-        "definition": { "entityName": "SavedCard", "schema": { "$ref": "#/backend/entities/SavedCard" }, "description": "Stores saved payment cards for a user. Path-based ownership." }
-      },
-      {
-        "path": "/products/{productId}",
-        "definition": { "entityName": "Product", "schema": { "$ref": "#/backend/entities/Product" }, "description": "Stores product information. The `sellerMemberId` field is used for access control." }
-      },
-      {
-        "path": "/friend_requests/{friendRequestId}",
-        "definition": { "entityName": "FriendRequest", "schema": { "$ref": "#/backend/entities/FriendRequest" }, "description": "Stores connection requests between members." }
-      },
-      {
-        "path": "/connections/{connectionId}",
-        "definition": { "entityName": "Connection", "schema": { "$ref": "#/backend/entities/Connection" }, "description": "Stores established mutual connections between members." }
-      },
-      {
-        "path": "/events/{eventId}",
-        "definition": { "entityName": "Event", "schema": { "$ref": "#/backend/entities/Event" }, "description": "Stores event information." }
-      },
-      {
-        "path": "/programs/{programId}",
-        "definition": { "entityName": "Program", "schema": { "$ref": "#/backend/entities/Program" }, "description": "Stores learning programs. Publicly readable but should only be writable by admins." }
-      },
-      {
-        "path": "/ads/{adId}",
-        "definition": { "entityName": "AdCampaign", "schema": { "$ref": "#/backend/entities/AdCampaign" }, "description": "Stores ad campaigns created by members." }
-      },
-      {
-        "path": "/causes/{causeId}",
-        "definition": { "entityName": "Cause", "schema": { "$ref": "#/backend/entities/Cause" }, "description": "Stores fundraising causes." }
-      },
-      {
-        "path": "/wallets/{userId}",
-        "definition": { "entityName": "Wallet", "schema": { "$ref": "#/backend/entities/Wallet" }, "description": "Stores user wallet information." }
-      },
-      {
-        "path": "/posts/{postId}",
-        "definition": { "entityName": "Post", "schema": { "$ref": "#/backend/entities/Post" }, "description": "Stores community feed posts." }
-      },
-      {
-        "path": "/posts/{postId}/comments/{commentId}",
-        "definition": { "entityName": "Comment", "schema": { "$ref": "#/backend/entities/Comment" }, "description": "Stores comments for a specific post." }
-      }
-    ],
-    "reasoning": "This Firestore structure is designed to support the Transcend Global Network Hub application, focusing on secure and scalable data access. It uses top-level collections for public or shared data (Posts, Products, Connections) and nested user subcollections for private or owner-specific data (Cards, Transactions, Enrolled Programs)."
+    "/users/{userId}": {
+      "schema": { "$ref": "#/backend/entities/Member" },
+      "description": "Stores user profiles. The document ID is the user's UID."
+    },
+    "/users/{userId}/enrolled_programs/{programId}": {
+      "schema": { "$ref": "#/backend/entities/EnrolledProgram" },
+      "description": "Tracks a member's enrollment in a program."
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/backend/entities/Transaction" },
+      "description": "A log of a user's wallet transactions."
+    },
+    "/users/{userId}/cards/{cardId}": {
+      "schema": { "$ref": "#/backend/entities/SavedCard" },
+      "description": "Stores saved payment cards for a user."
+    },
+    "/mentor_kyc/{memberId}": {
+      "schema": { "$ref": "#/backend/entities/MentorKYC" },
+      "description": "Stores mentor KYC submissions. Document ID is the member's UID."
+    },
+    "/mentor_certifications/{memberId}": {
+      "schema": { "$ref": "#/backend/entities/MentorCertification" },
+      "description": "Stores mentor certifications for each user."
+    },
+    "/commissions/{commissionId}": {
+      "schema": { "$ref": "#/backend/entities/Commission" },
+      "description": "Stores affiliate commissions."
+    },
+    "/affiliate_referrals/{referralId}": {
+      "schema": { "$ref": "#/backend/entities/AffiliateReferral" },
+      "description": "Stores multi-level affiliate referral relationships."
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/backend/entities/Product" },
+      "description": "Stores product information."
+    },
+    "/friend_requests/{friendRequestId}": {
+      "schema": { "$ref": "#/backend/entities/FriendRequest" },
+      "description": "Stores connection requests between members."
+    },
+    "/connections/{connectionId}": {
+      "schema": { "$ref": "#/backend/entities/Connection" },
+      "description": "Stores established mutual connections between members."
+    },
+    "/programs/{programId}": {
+      "schema": { "$ref": "#/backend/entities/Program" },
+      "description": "Stores learning programs."
+    },
+    "/sectors/{sectorId}": {
+      "schema": { "$ref": "#/backend/entities/Sector" },
+      "description": "Stores mentorship and program sectors."
+    },
+    "/ads/{adId}": {
+      "schema": { "type": "object" },
+      "description": "Stores ad campaigns created by members."
+    },
+    "/causes/{causeId}": {
+      "schema": { "type": "object" },
+      "description": "Stores fundraising causes."
+    },
+    "/wallets/{userId}": {
+      "schema": { "type": "object" },
+      "description": "Stores user wallet information."
+    },
+    "/posts/{postId}": {
+      "schema": { "$ref": "#/backend/entities/Post" },
+      "description": "Stores community feed posts."
+    },
+    "/posts/{postId}/comments/{commentId}": {
+      "schema": { "$ref": "#/backend/entities/Comment" },
+      "description": "Stores comments for a specific post."
+    }
   }
 }
