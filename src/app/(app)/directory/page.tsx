@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Tooltip,
   TooltipContent,
@@ -62,8 +62,8 @@ const DirectoryPage = () => {
   const { user: currentUser } = useUser();
   const { profile: currentUserProfile, isLoading: isProfileLoading } = useMemberProfile();
   
-  // Load to check if user is normal user before loading lists to validate permission
-  const membersRef = useMemoFirebase(() => (firestore && currentUserProfile ? collection(firestore, 'users') : null), [firestore, currentUserProfile]);
+  // Guarded query: Only run if we have a valid profile, ensuring security rules have context
+  const membersRef = useMemoFirebase(() => (firestore && currentUserProfile) ? collection(firestore, 'users') : null, [firestore, currentUserProfile]);
   const { data: members, isLoading: membersLoading, error } = useCollection<TGNMember>(membersRef);
   const { toast } = useToast();
 
