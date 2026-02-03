@@ -22,6 +22,12 @@ service cloud.firestore {
       );
     }
 
+    // --- COLLECTION GROUP RULES ---
+    match /{path=**}/transactions/{transactionId} {
+      // Allow admin to list and get any transaction for review/approval
+      allow read: if isAdmin() || (isSignedIn() && resource.data.memberId == request.auth.uid);
+    }
+
     // --- USER-OWNED DATA ---
     match /users/{userId} {
       // 👀 Anyone signed in can view profiles or list users (for directory/search)
@@ -87,7 +93,7 @@ service cloud.firestore {
     match /products/{productId} {
       allow read: if true;
       allow create: if isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid;
-      allow update, delete: if (isSignedIn() && request.resource.data.sellerMemberId == request.auth.uid) || isAdmin();
+      allow update, delete: if (isSignedIn() && resource.data.sellerMemberId == request.auth.uid) || isAdmin();
     }
 
     match /programs/{programId} {
