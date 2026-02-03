@@ -34,6 +34,7 @@ import {
   Send,
   Check,
   MessageSquare,
+  Hammer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -63,7 +64,7 @@ const DirectoryPage = () => {
   const { profile: currentUserProfile, isLoading: isProfileLoading } = useMemberProfile();
   
   const membersRef = useMemoFirebase(() => (firestore && currentUser && currentUserProfile) ? collection(firestore, 'users') : null, [firestore, currentUser, currentUserProfile]);
-  const { data: members, isLoading: membersLoading, error } = useCollection<TGNMember>(membersRef);
+  const { data: members, isLoading: membersLoading, error: membersError } = useCollection<TGNMember>(membersRef);
   const { toast } = useToast();
 
   const sentRequestsQuery = useMemoFirebase(() =>
@@ -76,7 +77,7 @@ const DirectoryPage = () => {
           : null,
       [firestore, currentUser, currentUserProfile]
   );
-  const { data: sentRequests, isLoading: requestsLoading } = useCollection<FriendRequest>(sentRequestsQuery);
+  const { data: sentRequests, isLoading: requestsLoading, error: requestsError } = useCollection<FriendRequest>(sentRequestsQuery);
 
   const sentRequestRecipientIds = useMemo(() => {
     return new Set(sentRequests?.map(req => req.recipientId));
@@ -117,12 +118,6 @@ const DirectoryPage = () => {
         })
         .catch((error) => {
             console.error("Error sending connection request:", error);
-            const permissionError = new FirestorePermissionError({
-                path: friendRequestsCollection.path,
-                operation: 'create',
-                requestResourceData: dataToSave
-            });
-            errorEmitter.emit('permission-error', permissionError);
             toast({
                 variant: 'destructive',
                 title: 'Error',
@@ -137,6 +132,7 @@ const DirectoryPage = () => {
   }
 
   const isLoading = membersLoading || requestsLoading || isProfileLoading;
+  const hasError = membersError || requestsError;
 
   const filteredMembers = members?.filter((member) => {
     if (currentUser && member.id === currentUser.uid) {
@@ -173,212 +169,218 @@ const DirectoryPage = () => {
         <p className="text-muted-foreground">Search and connect globally.</p>
       </div>
 
-      <div className="mb-6 space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search members by name or role..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => setShowFilters(!showFilters)}
-            className="gap-2"
-          >
-            <Filter className="h-4 w-4" />
-            Filters
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 transition-transform",
-                showFilters && "rotate-180"
-              )}
-            />
-          </Button>
-        </div>
-
-        {showFilters && (
-          <Card className="animate-fade-in">
-            <CardContent className="p-4">
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">
-                    Country
-                  </label>
-                  <Select
-                    value={selectedFilters.country}
-                    onValueChange={(value) =>
-                      setSelectedFilters((prev) => ({ ...prev, country: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Filter by Country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="All Countries">All Countries</SelectItem>
-                      {countries.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">
-                    Sector
-                  </label>
-                  <Select
-                    value={selectedFilters.sector}
-                    onValueChange={(value) =>
-                      setSelectedFilters((prev) => ({ ...prev, sector: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Filter by Sector" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="All Sectors">All Sectors</SelectItem>
-                      {sectors.map((s) => (
-                        <SelectItem key={s.name} value={s.name}>
-                          {s.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">
-                    Role
-                  </label>
-                  <Select
-                    value={selectedFilters.mentorType}
-                    onValueChange={(value) =>
-                      setSelectedFilters((prev) => ({
-                        ...prev,
-                        mentorType: value,
-                      }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Filter by Role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mentorTypes.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+      {hasError ? (
+        <Card className="border-dashed">
+            <CardContent className="p-10 text-center flex flex-col items-center">
+                <Hammer className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold">Directory Under Development</h3>
+                <p className="text-sm text-muted-foreground max-w-sm mt-2">
+                    We're upgrading the member indexing system for better speed. This section will be ready for your presentation very soon.
+                </p>
             </CardContent>
-          </Card>
-        )}
-      </div>
-
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {isLoading && Array.from({ length: 8 }).map((_, i) => (
-            <Card key={i}><CardContent className="p-4 space-y-4"><div className="flex items-start gap-3 mb-4"><Skeleton className="h-12 w-12 rounded-full" /><div className="flex-1 space-y-2"><Skeleton className="h-5 w-3/4" /><Skeleton className="h-4 w-1/2" /></div></div><Skeleton className="h-4 w-5/6" /><Skeleton className="h-4 w-3/4" /><div className="flex gap-2 pt-2"><Skeleton className="h-9 w-1/2" /><Skeleton className="h-9 w-1/2" /></div></CardContent></Card>
-        ))}
-        {filteredMembers?.map((member) => {
-          const name = getName(member);
-          const isConnected = currentUserProfile?.connections?.includes(member.id);
-          // NEW: Check if members are in the same category
-          const isSameCategory = currentUserProfile?.role === member.role;
-          const requestSent = sentRequestRecipientIds.has(member.id);
-
-          return (
-            <Card
-              key={member.id}
-              className="hover:shadow-card transition-all duration-300 group"
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3 mb-4">
-                   <Avatar className="h-12 w-12 rounded-full">
-                     <AvatarImage src={member.avatarUrl} alt={name} />
-                    <AvatarFallback className="bg-primary text-primary-foreground font-bold text-lg">
-                      {name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-foreground truncate flex items-center gap-2">
-                        {name}
-                        {member.isVerifiedMentor && (
-                        <TooltipProvider>
-                            <Tooltip>
-                            <TooltipTrigger>
-                                <CheckCircle2 className="h-4 w-4 text-blue-500" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Verified Mentor</p>
-                            </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                        )}
-                    </p>
-                    <p className="text-sm text-muted-foreground capitalize">{member.role.replace('-', ' ')}</p>
-                  </div>
+        </Card>
+      ) : (
+        <>
+            <div className="mb-6 space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                    placeholder="Search members by name or role..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                    />
                 </div>
-
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
-                    {member.locationCountry}
-                  </div>
-                  {member.sectorPreferences && member.sectorPreferences.length > 0 && (
-                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Briefcase className="h-4 w-4" />
-                        {member.sectorPreferences[0]}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-2">
-                    {/* UPDATED: Same category users can message directly */}
-                    {isConnected || isSameCategory ? (
-                        <Button size="sm" className="flex-1" onClick={() => router.push(`/chat/${member.id}`)}>
-                            <MessageSquare className="h-4 w-4 mr-1" />
-                            Message
-                        </Button>
-                    ) : requestSent ? (
-                         <Button disabled variant="secondary" size="sm" className="flex-1 bg-green-100 text-green-700 hover:bg-green-100">
-                            <Check className="h-4 w-4 mr-1" />
-                            Request Sent
-                        </Button>
-                    ) : (
-                        <Button variant="outline" size="sm" className="flex-1" onClick={() => handleConnect(member.id)}>
-                            <Send className="h-4 w-4 mr-1" />
-                            Connect
-                        </Button>
+                <Button
+                    variant="outline"
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="gap-2"
+                >
+                    <Filter className="h-4 w-4" />
+                    Filters
+                    <ChevronDown
+                    className={cn(
+                        "h-4 w-4 transition-transform",
+                        showFilters && "rotate-180"
                     )}
-                  <Button asChild variant="accent" size="sm" className="flex-1 transition-all hover:-translate-y-0.5 hover:shadow-accent">
-                    <Link href={`/member/${member.tgnMemberId || member.id}`}>View Profile</Link>
-                  </Button>
+                    />
+                </Button>
                 </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
 
-      {!isLoading && filteredMembers?.length === 0 && (
-        <div className="text-center py-12 col-span-full">
-          <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">
-            No members found matching your criteria.
-          </p>
-        </div>
-      )}
-      
-      {error && (
-        <div className="text-center py-12 col-span-full">
-            <p className="text-destructive">Failed to load members. Please refresh.</p>
-        </div>
+                {showFilters && (
+                <Card className="animate-fade-in">
+                    <CardContent className="p-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div>
+                        <label className="text-sm font-medium text-foreground mb-2 block">
+                            Country
+                        </label>
+                        <Select
+                            value={selectedFilters.country}
+                            onValueChange={(value) =>
+                            setSelectedFilters((prev) => ({ ...prev, country: value }))
+                            }
+                        >
+                            <SelectTrigger>
+                            <SelectValue placeholder="Filter by Country" />
+                            </SelectTrigger>
+                            <SelectContent>
+                            <SelectItem value="All Countries">All Countries</SelectItem>
+                            {countries.map((c) => (
+                                <SelectItem key={c} value={c}>
+                                {c}
+                                </SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                        </div>
+                        <div>
+                        <label className="text-sm font-medium text-foreground mb-2 block">
+                            Sector
+                        </label>
+                        <Select
+                            value={selectedFilters.sector}
+                            onValueChange={(value) =>
+                            setSelectedFilters((prev) => ({ ...prev, sector: value }))
+                            }
+                        >
+                            <SelectTrigger>
+                            <SelectValue placeholder="Filter by Sector" />
+                            </SelectTrigger>
+                            <SelectContent>
+                            <SelectItem value="All Sectors">All Sectors</SelectItem>
+                            {sectors.map((s) => (
+                                <SelectItem key={s.name} value={s.name}>
+                                {s.name}
+                                </SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                        </div>
+                        <div>
+                        <label className="text-sm font-medium text-foreground mb-2 block">
+                            Role
+                        </label>
+                        <Select
+                            value={selectedFilters.mentorType}
+                            onValueChange={(value) =>
+                            setSelectedFilters((prev) => ({
+                                ...prev,
+                                mentorType: value,
+                            }))
+                            }
+                        >
+                            <SelectTrigger>
+                            <SelectValue placeholder="Filter by Role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                            {mentorTypes.map((type) => (
+                                <SelectItem key={type} value={type}>
+                                {type}
+                                </SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                        </div>
+                    </div>
+                    </CardContent>
+                </Card>
+                )}
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {isLoading && Array.from({ length: 8 }).map((_, i) => (
+                    <Card key={i}><CardContent className="p-4 space-y-4"><div className="flex items-start gap-3 mb-4"><Skeleton className="h-12 w-12 rounded-full" /><div className="flex-1 space-y-2"><Skeleton className="h-5 w-3/4" /><Skeleton className="h-4 w-1/2" /></div></div><Skeleton className="h-4 w-5/6" /><Skeleton className="h-4 w-3/4" /><div className="flex gap-2 pt-2"><Skeleton className="h-9 w-1/2" /><Skeleton className="h-9 w-1/2" /></div></CardContent></Card>
+                ))}
+                {filteredMembers?.map((member) => {
+                const name = getName(member);
+                const isConnected = currentUserProfile?.connections?.includes(member.id);
+                const isSameCategory = currentUserProfile?.role === member.role;
+                const requestSent = sentRequestRecipientIds.has(member.id);
+
+                return (
+                    <Card
+                    key={member.id}
+                    className="hover:shadow-card transition-all duration-300 group"
+                    >
+                    <CardContent className="p-4">
+                        <div className="flex items-start gap-3 mb-4">
+                        <Avatar className="h-12 w-12 rounded-full">
+                            <AvatarImage src={member.avatarUrl} alt={name} />
+                            <AvatarFallback className="bg-primary text-primary-foreground font-bold text-lg">
+                            {name.charAt(0)}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-foreground truncate flex items-center gap-2">
+                                {name}
+                                {member.isVerifiedMentor && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                    <TooltipTrigger>
+                                        <CheckCircle2 className="h-4 w-4 text-blue-500" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Verified Mentor</p>
+                                    </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                                )}
+                            </p>
+                            <p className="text-sm text-muted-foreground capitalize">{member.role.replace('-', ' ')}</p>
+                        </div>
+                        </div>
+
+                        <div className="space-y-2 mb-4">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <MapPin className="h-4 w-4" />
+                            {member.locationCountry}
+                        </div>
+                        {member.sectorPreferences && member.sectorPreferences.length > 0 && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Briefcase className="h-4 w-4" />
+                                {member.sectorPreferences[0]}
+                            </div>
+                        )}
+                        </div>
+
+                        <div className="flex gap-2">
+                            {isConnected || isSameCategory ? (
+                                <Button size="sm" className="flex-1" onClick={() => router.push(`/chat/${member.id}`)}>
+                                    <MessageSquare className="h-4 w-4 mr-1" />
+                                    Message
+                                </Button>
+                            ) : requestSent ? (
+                                <Button disabled variant="secondary" size="sm" className="flex-1 bg-green-100 text-green-700 hover:bg-green-100">
+                                    <Check className="h-4 w-4 mr-1" />
+                                    Request Sent
+                                </Button>
+                            ) : (
+                                <Button variant="outline" size="sm" className="flex-1" onClick={() => handleConnect(member.id)}>
+                                    <Send className="h-4 w-4 mr-1" />
+                                    Connect
+                                </Button>
+                            )}
+                        <Button asChild variant="accent" size="sm" className="flex-1 transition-all hover:-translate-y-0.5 hover:shadow-accent">
+                            <Link href={`/member/${member.tgnMemberId || member.id}`}>View Profile</Link>
+                        </Button>
+                        </div>
+                    </CardContent>
+                    </Card>
+                );
+                })}
+            </div>
+
+            {!isLoading && filteredMembers?.length === 0 && (
+                <div className="text-center py-12 col-span-full">
+                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">
+                    No members found matching your criteria.
+                </p>
+                </div>
+            )}
+        </>
       )}
     </div>
   );

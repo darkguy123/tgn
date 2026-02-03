@@ -44,7 +44,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Wallet, CheckCircle, XCircle, ShoppingBag, List, Loader2 } from 'lucide-react';
+import { Search, Wallet, CheckCircle, XCircle, ShoppingBag, List, Loader2, Hammer } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { AdPlacement } from '@/components/AdPlacement';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
@@ -74,7 +74,7 @@ export default function MarketplacePage() {
   const {
     data: products,
     isLoading: productsLoading,
-    error,
+    error: productsError,
   } = useCollection<Product>(productsQuery);
 
   const handleBuyClick = (product: Product) => {
@@ -97,13 +97,11 @@ export default function MarketplacePage() {
     setIsSubmitting(true);
 
     try {
-        // 1. Find all referrers for the current user
         const referralsRef = collection(firestore, 'affiliate_referrals');
         const q = query(referralsRef, where('referredMemberId', '==', currentUser.uid));
         const referralsSnapshot = await getDocs(q);
         const upline = referralsSnapshot.docs.map(doc => doc.data() as AffiliateReferral);
 
-        // 2. Perform atomic transaction
         await runTransaction(firestore, async (transaction) => {
             const buyerWalletRef = doc(firestore, 'wallets', currentUser.uid);
             const sellerWalletRef = doc(firestore, 'wallets', selectedProduct.sellerMemberId);
@@ -113,17 +111,14 @@ export default function MarketplacePage() {
                 throw new Error("Insufficient funds.");
             }
 
-            // Debit Buyer
             const newBuyerBalance = buyerWalletDoc.data().balance - selectedProduct.price;
             transaction.update(buyerWalletRef, { balance: newBuyerBalance });
 
-            // Credit Seller (base amount, before commissions)
             let sellerGets = selectedProduct.price;
 
-            // Distribute Commissions
             for (const referral of upline) {
                 const commissionAmount = selectedProduct.price * (referral.commissionPercentage / 100);
-                sellerGets -= commissionAmount; // Reduce seller's cut by commission amount
+                sellerGets -= commissionAmount; 
                 
                 const referrerWalletRef = doc(firestore, 'wallets', referral.referrerMemberId);
                 const referrerWalletDoc = await transaction.get(referrerWalletRef);
@@ -138,7 +133,6 @@ export default function MarketplacePage() {
             transaction.set(sellerWalletRef, { balance: newSellerBalance, memberId: selectedProduct.sellerMemberId, currency: 'USD' }, { merge: true });
       });
       
-      // 3. Log transactions and commissions (post-atomic update)
       const buyerTransactionsRef = collection(firestore, 'users', currentUser.uid, 'transactions');
       await addDoc(buyerTransactionsRef, {
           type: 'purchase',
@@ -240,17 +234,23 @@ export default function MarketplacePage() {
             </CardContent>
         </Card>
 
-        {isLoading && (
+        {isLoading ? (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 4 }).map((_, i) => (
                 <Skeleton key={i} className="h-96 w-full" />
             ))}
             </div>
-        )}
-
-        {error && <p className="text-destructive p-6 text-center">Failed to load products. Please try again.</p>}
-
-        {!isLoading && products?.length === 0 && (
+        ) : productsError ? (
+            <Card className="border-dashed">
+                <CardContent className="p-10 text-center flex flex-col items-center">
+                    <Hammer className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold">Marketplace Under Development</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mt-2">
+                        We're currently migrating our marketplace database to support global transactions. This feature will be functional shortly.
+                    </p>
+                </CardContent>
+            </Card>
+        ) : products?.length === 0 ? (
             <Card className="py-20 text-center">
                 <CardContent>
                     <ShoppingBag className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -263,59 +263,59 @@ export default function MarketplacePage() {
                     </Button>
                 </CardContent>
             </Card>
+        ) : (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {products?.map(product => {
+                return (
+                    <Card key={product.id} className="flex flex-col overflow-hidden group">
+                    <CardHeader className="p-0 relative">
+                        <Link href="#">
+                        <Image
+                            src={product.imageUrl || 'https://placehold.co/600x400'}
+                            alt={product.name}
+                            width={600}
+                            height={400}
+                            className="aspect-[3/2] w-full object-cover transition-transform group-hover:scale-105"
+                        />
+                        </Link>
+                        <Badge
+                        className="absolute top-3 right-3"
+                        variant={
+                            product.type === 'Book' || product.type === 'Tool'
+                            ? 'secondary'
+                            : 'default'
+                        }
+                        >
+                        {product.type}
+                        </Badge>
+                    </CardHeader>
+                    <CardContent className="p-4 flex-1 flex flex-col">
+                        <CardTitle className="text-lg mb-2 leading-tight">
+                        <Link href="#" className="hover:text-primary transition-colors">{product.name}</Link>
+                        </CardTitle>
+                        
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                            <Avatar className="h-6 w-6">
+                                <AvatarImage src={product.sellerAvatarUrl} />
+                                <AvatarFallback>{product.sellerName.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <span>{product.sellerName}</span>
+                        </div>
+
+                        <p className="text-2xl font-semibold mt-auto">
+                        ${product.price.toFixed(2)}
+                        </p>
+                    </CardContent>
+                    <CardFooter className="p-4 pt-0">
+                        <Button className="w-full" onClick={() => handleBuyClick(product)}>
+                        Buy Now
+                        </Button>
+                    </CardFooter>
+                    </Card>
+                );
+                })}
+            </div>
         )}
-
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {products?.map(product => {
-            return (
-                <Card key={product.id} className="flex flex-col overflow-hidden group">
-                <CardHeader className="p-0 relative">
-                    <Link href="#">
-                    <Image
-                        src={product.imageUrl || 'https://placehold.co/600x400'}
-                        alt={product.name}
-                        width={600}
-                        height={400}
-                        className="aspect-[3/2] w-full object-cover transition-transform group-hover:scale-105"
-                    />
-                    </Link>
-                    <Badge
-                    className="absolute top-3 right-3"
-                    variant={
-                        product.type === 'Book' || product.type === 'Tool'
-                        ? 'secondary'
-                        : 'default'
-                    }
-                    >
-                    {product.type}
-                    </Badge>
-                </CardHeader>
-                <CardContent className="p-4 flex-1 flex flex-col">
-                    <CardTitle className="text-lg mb-2 leading-tight">
-                    <Link href="#" className="hover:text-primary transition-colors">{product.name}</Link>
-                    </CardTitle>
-                    
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                        <Avatar className="h-6 w-6">
-                            <AvatarImage src={product.sellerAvatarUrl} />
-                            <AvatarFallback>{product.sellerName.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <span>{product.sellerName}</span>
-                    </div>
-
-                    <p className="text-2xl font-semibold mt-auto">
-                    ${product.price.toFixed(2)}
-                    </p>
-                </CardContent>
-                <CardFooter className="p-4 pt-0">
-                    <Button className="w-full" onClick={() => handleBuyClick(product)}>
-                    Buy Now
-                    </Button>
-                </CardFooter>
-                </Card>
-            );
-            })}
-        </div>
       </div>
       <aside className="lg:col-span-1 space-y-6 hidden lg:block sticky top-24">
         <AdPlacement size="skyscraper" />

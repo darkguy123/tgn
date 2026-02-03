@@ -27,6 +27,7 @@ import {
   Loader2,
   Heart,
   Bookmark,
+  Hammer,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
@@ -120,12 +121,6 @@ function CreatePostDialog({ open, onOpenChange, startWithMedia }: { open: boolea
       })
       .catch((error) => {
         console.error("Error creating post: ", error);
-        const permissionError = new FirestorePermissionError({
-            path: postsCollection.path,
-            operation: 'create',
-            requestResourceData: dataToSave
-        });
-        errorEmitter.emit('permission-error', permissionError);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to publish your post.' });
       });
   };
@@ -203,7 +198,6 @@ export default function CommunityPage() {
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'all';
 
-  // Guard all community queries strictly by user and profile validation
   const postsQuery = useMemoFirebase(() =>
     (firestore && user && profile) ? query(collection(firestore, 'posts'), orderBy('createdAt', 'desc')) : null,
     [firestore, user, profile]
@@ -214,10 +208,10 @@ export default function CommunityPage() {
     [firestore, user, profile]
   );
   
-  const { data: posts, isLoading: postsLoading } = useCollection<Post>(postsQuery);
-  const { data: savedPosts, isLoading: savedPostsLoading } = useCollection<Post>(savedPostsQuery);
+  const { data: posts, isLoading: postsLoading, error: postsError } = useCollection<Post>(postsQuery);
+  const { data: savedPosts, isLoading: savedPostsLoading, error: savedError } = useCollection<Post>(savedPostsQuery);
 
-  const renderPosts = (postList: Post[] | null, isLoading: boolean, emptyState: React.ReactNode) => {
+  const renderPosts = (postList: Post[] | null, isLoading: boolean, error: any, emptyState: React.ReactNode) => {
     if (isLoading || isProfileLoading) {
       return Array.from({ length: 2 }).map((_, i) => (
         <Card key={i}>
@@ -235,6 +229,20 @@ export default function CommunityPage() {
           </CardContent>
         </Card>
       ));
+    }
+
+    if (error) {
+        return (
+            <Card className="border-dashed">
+                <CardContent className="p-10 text-center flex flex-col items-center">
+                    <Hammer className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold">Community Feed Under Development</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mt-2">
+                        We're currently fine-tuning the global community permissions. This feature will be live shortly for your presentation.
+                    </p>
+                </CardContent>
+            </Card>
+        )
     }
 
     if (!postList || postList.length === 0) {
@@ -351,13 +359,13 @@ export default function CommunityPage() {
                   <TabsTrigger value="saved">Saved</TabsTrigger>
                 </TabsList>
                 <TabsContent value="all" className="mt-6 space-y-6">
-                  {renderPosts(posts, postsLoading, allPostsEmptyState)}
+                  {renderPosts(posts, postsLoading, postsError, allPostsEmptyState)}
                 </TabsContent>
                 <TabsContent value="mentors" className="mt-6 space-y-6">
-                  {renderPosts(mentorsOnlyPosts || null, postsLoading, allPostsEmptyState)}
+                  {renderPosts(mentorsOnlyPosts || null, postsLoading, postsError, allPostsEmptyState)}
                 </TabsContent>
                  <TabsContent value="saved" className="mt-6 space-y-6">
-                  {renderPosts(savedPosts, savedPostsLoading, savedPostsEmptyState)}
+                  {renderPosts(savedPosts, savedPostsLoading, savedError, savedPostsEmptyState)}
                 </TabsContent>
               </Tabs>
             </main>

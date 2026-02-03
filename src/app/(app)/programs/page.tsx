@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Clock, Users, Award,
   ChevronRight, Star, Calendar, ArrowLeft,
-  Video, Book, Wallet, Loader2, PartyPopper, MapPin
+  Video, Book, Wallet, Loader2, PartyPopper, MapPin, Hammer
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, doc, runTransaction, serverTimestamp, increment, addDoc, getDocs } from 'firebase/firestore';
@@ -40,12 +40,11 @@ const ProgramsPage = () => {
   const { wallet, isLoading: isWalletLoading } = useWallet();
   const { toast } = useToast();
   
-  // Guard the query to ensure auth and profile are fully initialized before listing
   const programsCollectionRef = useMemoFirebase(() => 
     (firestore && user && profile) ? query(collection(firestore, 'programs'), where('deactivatedAt', '==', null)) : null, 
     [firestore, user, profile]
   );
-  const { data: allPrograms, isLoading: programsLoading, error } = useCollection<Program>(programsCollectionRef);
+  const { data: allPrograms, isLoading: programsLoading, error: programsError } = useCollection<Program>(programsCollectionRef);
 
   const programsByType = useMemo(() => {
     if (!allPrograms) return { free: [], paid: [], executive: [] };
@@ -410,7 +409,7 @@ const ProgramsPage = () => {
   );
 
 
-  const isLoading = (programsLoading || !allPrograms) && !error;
+  const isLoading = (programsLoading || !allPrograms) && !programsError;
 
   return (
     <div>
@@ -435,80 +434,90 @@ const ProgramsPage = () => {
                 <TabsTrigger value="executive">Executive</TabsTrigger>
                 </TabsList>
                 
-                {error && <p className="text-destructive">Failed to load programs. Please refresh.</p>}
-
-                {Object.entries(programsByType).map(([key, programs]) => (
-                <TabsContent key={key} value={key}>
-                    {isLoading ? renderSkeletons() : (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {programs.length === 0 && !isLoading && <p className="text-muted-foreground col-span-full text-center py-10">No {key} programs available yet.</p>}
-                        {programs.map((program) => {
-                        const img = getImage(program.imageId);
-                        return (
-                            <Card 
-                                key={program.id} 
-                                className="flex flex-col hover:shadow-card transition-all duration-300 cursor-pointer group"
-                                onClick={() => setSelectedProgram(program)}
-                            >
-                                <CardHeader className="p-0 relative">
-                                {img ? (
-                                    <Image
-                                        src={img.imageUrl}
-                                        alt={program.title}
-                                        width={600}
-                                        height={400}
-                                        className="aspect-[3/2] w-full object-cover rounded-t-lg"
-                                        data-ai-hint={img.imageHint}
-                                    />
-                                ) : (
-                                    <div className="aspect-[3/2] w-full object-cover rounded-t-lg bg-muted flex items-center justify-center">
-                                        <p className="text-muted-foreground text-sm">No Image</p>
-                                    </div>
-                                )}
-                                </CardHeader>
-                                <CardContent className="p-4 flex flex-col flex-1">
-                                    <CardTitle className="text-lg group-hover:text-primary transition-colors leading-tight">
-                                    {program.title}
-                                    </CardTitle>
-                                    <CardDescription className="mt-1">with {program.mentor}</CardDescription>
-                                    <div className="space-y-3 my-4 flex-1">
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="flex items-center gap-1.5 text-muted-foreground">
-                                        <Clock className="h-4 w-4" /> {program.duration}
-                                        </span>
-                                        <span className="flex items-center gap-1.5">
-                                        <Star className="h-4 w-4 text-accent fill-accent" /> {program.rating.toFixed(1)}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="flex items-center gap-1.5 text-muted-foreground">
-                                        <Users className="h-4 w-4" /> {program.enrolled || 0} enrolled
-                                        </span>
-                                        {program.certified && (
-                                        <span className="flex items-center gap-1.5 text-accent font-medium">
-                                            <Award className="h-4 w-4" /> Certified
-                                        </span>
-                                        )}
-                                    </div>
-                                    </div>
-                                    <div className="flex items-center justify-between mt-auto">
-                                        {program.price ? (
-                                            <span className="text-xl font-bold text-foreground">${program.price}</span>
-                                        ) : (
-                                            <span className="text-xl font-bold text-accent">Free</span>
-                                        )}
-                                        <Button variant="accent" size="sm">
-                                            View Program <ChevronRight className="h-4 w-4 ml-1" />
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        );
-                        })}
-                    </div>
-                    )}
-                </TabsContent>
-                ))}
+                {programsError ? (
+                    <Card className="border-dashed">
+                        <CardContent className="p-10 text-center flex flex-col items-center">
+                            <Hammer className="h-12 w-12 text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-semibold">Program Catalog Under Development</h3>
+                            <p className="text-sm text-muted-foreground max-w-sm mt-2">
+                                We're updating our curated program permissions. Our latest learning paths will be available shortly.
+                            </p>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    Object.entries(programsByType).map(([key, programs]) => (
+                    <TabsContent key={key} value={key}>
+                        {isLoading ? renderSkeletons() : (
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {programs.length === 0 && !isLoading && <p className="text-muted-foreground col-span-full text-center py-10">No {key} programs available yet.</p>}
+                            {programs.map((program) => {
+                            const img = getImage(program.imageId);
+                            return (
+                                <Card 
+                                    key={program.id} 
+                                    className="flex flex-col hover:shadow-card transition-all duration-300 cursor-pointer group"
+                                    onClick={() => setSelectedProgram(program)}
+                                >
+                                    <CardHeader className="p-0 relative">
+                                    {img ? (
+                                        <Image
+                                            src={img.imageUrl}
+                                            alt={program.title}
+                                            width={600}
+                                            height={400}
+                                            className="aspect-[3/2] w-full object-cover rounded-t-lg"
+                                            data-ai-hint={img.imageHint}
+                                        />
+                                    ) : (
+                                        <div className="aspect-[3/2] w-full object-cover rounded-t-lg bg-muted flex items-center justify-center">
+                                            <p className="text-muted-foreground text-sm">No Image</p>
+                                        </div>
+                                    )}
+                                    </CardHeader>
+                                    <CardContent className="p-4 flex flex-col flex-1">
+                                        <CardTitle className="text-lg group-hover:text-primary transition-colors leading-tight">
+                                        {program.title}
+                                        </CardTitle>
+                                        <CardDescription className="mt-1">with {program.mentor}</CardDescription>
+                                        <div className="space-y-3 my-4 flex-1">
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="flex items-center gap-1.5 text-muted-foreground">
+                                            <Clock className="h-4 w-4" /> {program.duration}
+                                            </span>
+                                            <span className="flex items-center gap-1.5">
+                                            <Star className="h-4 w-4 text-accent fill-accent" /> {program.rating.toFixed(1)}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="flex items-center gap-1.5 text-muted-foreground">
+                                            <Users className="h-4 w-4" /> {program.enrolled || 0} enrolled
+                                            </span>
+                                            {program.certified && (
+                                            <span className="flex items-center gap-1.5 text-accent font-medium">
+                                                <Award className="h-4 w-4" /> Certified
+                                            </span>
+                                            )}
+                                        </div>
+                                        </div>
+                                        <div className="flex items-center justify-between mt-auto">
+                                            {program.price ? (
+                                                <span className="text-xl font-bold text-foreground">${program.price}</span>
+                                            ) : (
+                                                <span className="text-xl font-bold text-accent">Free</span>
+                                            )}
+                                            <Button variant="accent" size="sm">
+                                                View Program <ChevronRight className="h-4 w-4 ml-1" />
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            );
+                            })}
+                        </div>
+                        )}
+                    </TabsContent>
+                    ))
+                )}
             </Tabs>
         </TabsContent>
 

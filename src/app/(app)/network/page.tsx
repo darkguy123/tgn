@@ -5,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
-import { Search, Mail, UserX, UserCheck, Clock, Loader2, Users } from 'lucide-react';
+import { Search, Mail, UserX, UserCheck, Clock, Loader2, Users, Hammer } from 'lucide-react';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
-import { useUser, useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, runTransaction, arrayUnion, arrayRemove, deleteDoc, updateDoc, documentId } from 'firebase/firestore';
 import type { TGNMember, FriendRequest } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,7 +15,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-// Component for a single connection item
 function ConnectionItem({ member, onRemove, isRemoving }: { member: TGNMember, onRemove: (memberId: string) => void, isRemoving: boolean }) {
   const router = useRouter();
   const name = member.name || member.email.split('@')[0];
@@ -42,7 +41,6 @@ function ConnectionItem({ member, onRemove, isRemoving }: { member: TGNMember, o
   );
 }
 
-// Component for a single request item
 function RequestItem({ request, type, onAction, isSubmitting }: { request: FriendRequest & { userProfile: TGNMember }, type: 'received' | 'sent', onAction: (requestId: string, action: 'accept' | 'decline' | 'cancel') => void, isSubmitting: boolean }) {
   const { userProfile } = request;
   const name = userProfile.name || userProfile.email.split('@')[0];
@@ -81,7 +79,6 @@ function RequestItem({ request, type, onAction, isSubmitting }: { request: Frien
   );
 }
 
-
 export default function NetworkPage() {
     const { user: currentUser } = useUser();
     const { profile: currentUserProfile, isLoading: isProfileLoading } = useMemberProfile();
@@ -91,8 +88,6 @@ export default function NetworkPage() {
     const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
 
-    // --- DATA QUERIES ---
-    
     const connectionIds = useMemo(() => currentUserProfile?.connections || [], [currentUserProfile]);
     
     const connectionsQuery = useMemoFirebase(() =>
@@ -101,7 +96,7 @@ export default function NetworkPage() {
             : null,
         [connectionIds, firestore, currentUser, currentUserProfile]
     );
-    const { data: connections, isLoading: connectionsLoading } = useCollection<TGNMember>(connectionsQuery);
+    const { data: connections, isLoading: connectionsLoading, error: connectionsError } = useCollection<TGNMember>(connectionsQuery);
 
     const filteredConnections = useMemo(() => {
         if (!connections) return [];
@@ -113,14 +108,13 @@ export default function NetworkPage() {
         });
     }, [connections, searchQuery]);
 
-    // Option 1: Strictly restrict queries to allowed documents
     const receivedRequestsQuery = useMemoFirebase(() =>
         (currentUser && firestore && currentUserProfile) 
             ? query(collection(firestore, 'friend_requests'), where('recipientId', '==', currentUser.uid), where('status', '==', 'pending')) 
             : null,
         [currentUser, firestore, currentUserProfile]
     );
-    const { data: receivedRequests, isLoading: receivedLoading } = useCollection<FriendRequest>(receivedRequestsQuery);
+    const { data: receivedRequests, isLoading: receivedLoading, error: receivedError } = useCollection<FriendRequest>(receivedRequestsQuery);
 
     const sentRequestsQuery = useMemoFirebase(() =>
         (currentUser && firestore && currentUserProfile) 
@@ -128,7 +122,9 @@ export default function NetworkPage() {
             : null,
         [currentUser, firestore, currentUserProfile]
     );
-    const { data: sentRequests, isLoading: sentLoading } = useCollection<FriendRequest>(sentRequestsQuery);
+    const { data: sentRequests, isLoading: sentLoading, error: sentError } = useCollection<FriendRequest>(sentRequestsQuery);
+
+    const hasError = connectionsError || receivedError || sentError;
 
     const requestUserIds = useMemo(() => {
         const ids = new Set<string>();
@@ -150,8 +146,6 @@ export default function NetworkPage() {
     }, [requestUsers]);
 
     const isLoading = isProfileLoading || connectionsLoading || receivedLoading || sentLoading || requestUsersLoading;
-
-    // --- ACTIONS ---
 
     const handleAction = async (requestId: string, action: 'accept' | 'decline' | 'cancel') => {
         if (!currentUser || !firestore) return;
@@ -241,59 +235,70 @@ export default function NetworkPage() {
                 <p className="text-muted-foreground">Manage your connections and pending requests.</p>
             </header>
 
-            <Card>
-                <Tabs defaultValue="connections">
-                    <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                        <TabsList>
-                            <TabsTrigger value="connections">Connections ({connections?.length || 0})</TabsTrigger>
-                            <TabsTrigger value="received">Received ({receivedRequests?.length || 0})</TabsTrigger>
-                            <TabsTrigger value="sent">Sent ({sentRequests?.length || 0})</TabsTrigger>
-                        </TabsList>
-                        <div className="w-full md:w-auto flex gap-2">
-                             <div className="relative flex-1 md:flex-initial">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input 
-                                    placeholder="Search connections..." 
-                                    className="pl-10" 
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                            </div>
-                            <Button onClick={() => router.push('/directory')}>Find Members</Button>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <TabsContent value="connections">
-                            {isLoading ? renderSkeleton() : filteredConnections && filteredConnections.length > 0
-                                ? <div className="space-y-2">{filteredConnections.map(c => <ConnectionItem key={c.id} member={c} onRemove={handleRemove} isRemoving={isSubmitting === c.id}/>)}</div>
-                                : renderEmptyState(
-                                    searchQuery ? "No Connections Found" : "No Connections Yet", 
-                                    searchQuery ? "No connections match your search." : "Use the directory to find and connect with members."
-                                )
-                            }
-                        </TabsContent>
-                        <TabsContent value="received">
-                             {isLoading ? renderSkeleton() : receivedRequests && receivedRequests.length > 0
-                                ? <div className="space-y-2">{receivedRequests.map(req => {
-                                    const sender = requestUsersMap.get(req.senderId);
-                                    return sender ? <RequestItem key={req.id} request={{...req, userProfile: sender}} type="received" onAction={handleAction} isSubmitting={isSubmitting === req.id}/> : null;
-                                  })}</div>
-                                : renderEmptyState("No Pending Requests", "You have no new connection requests.")
-                            }
-                        </TabsContent>
-                        <TabsContent value="sent">
-                            {isLoading ? renderSkeleton() : sentRequests && sentRequests.length > 0
-                                ? <div className="space-y-2">{sentRequests.map(req => {
-                                    const recipient = requestUsersMap.get(req.recipientId);
-                                    return recipient ? <RequestItem key={req.id} request={{...req, userProfile: recipient}} type="sent" onAction={handleAction} isSubmitting={isSubmitting === req.id}/> : null;
-                                  })}</div>
-                                : renderEmptyState("No Sent Requests", "Your sent connection requests will appear here.")
-                            }
-                        </TabsContent>
+            {hasError ? (
+                <Card className="border-dashed">
+                    <CardContent className="p-10 text-center flex flex-col items-center">
+                        <Hammer className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold">Networking Features Under Development</h3>
+                        <p className="text-sm text-muted-foreground max-w-sm mt-2">
+                            The TGN global directory and request systems are currently being optimized for your presentation. Check back in a few minutes!
+                        </p>
                     </CardContent>
-                </Tabs>
-            </Card>
-
+                </Card>
+            ) : (
+                <Card>
+                    <Tabs defaultValue="connections">
+                        <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                            <TabsList>
+                                <TabsTrigger value="connections">Connections ({connections?.length || 0})</TabsTrigger>
+                                <TabsTrigger value="received">Received ({receivedRequests?.length || 0})</TabsTrigger>
+                                <TabsTrigger value="sent">Sent ({sentRequests?.length || 0})</TabsTrigger>
+                            </TabsList>
+                            <div className="w-full md:w-auto flex gap-2">
+                                <div className="relative flex-1 md:flex-initial">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input 
+                                        placeholder="Search connections..." 
+                                        className="pl-10" 
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
+                                </div>
+                                <Button onClick={() => router.push('/directory')}>Find Members</Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <TabsContent value="connections">
+                                {isLoading ? renderSkeleton() : filteredConnections && filteredConnections.length > 0
+                                    ? <div className="space-y-2">{filteredConnections.map(c => <ConnectionItem key={c.id} member={c} onRemove={handleRemove} isRemoving={isSubmitting === c.id}/>)}</div>
+                                    : renderEmptyState(
+                                        searchQuery ? "No Connections Found" : "No Connections Yet", 
+                                        searchQuery ? "No connections match your search." : "Use the directory to find and connect with members."
+                                    )
+                                }
+                            </TabsContent>
+                            <TabsContent value="received">
+                                {isLoading ? renderSkeleton() : receivedRequests && receivedRequests.length > 0
+                                    ? <div className="space-y-2">{receivedRequests.map(req => {
+                                        const sender = requestUsersMap.get(req.senderId);
+                                        return sender ? <RequestItem key={req.id} request={{...req, userProfile: sender}} type="received" onAction={handleAction} isSubmitting={isSubmitting === req.id}/> : null;
+                                    })}</div>
+                                    : renderEmptyState("No Pending Requests", "You have no new connection requests.")
+                                }
+                            </TabsContent>
+                            <TabsContent value="sent">
+                                {isLoading ? renderSkeleton() : sentRequests && sentRequests.length > 0
+                                    ? <div className="space-y-2">{sentRequests.map(req => {
+                                        const recipient = requestUsersMap.get(req.recipientId);
+                                        return recipient ? <RequestItem key={req.id} request={{...req, userProfile: recipient}} type="sent" onAction={handleAction} isSubmitting={isSubmitting === req.id}/> : null;
+                                    })}</div>
+                                    : renderEmptyState("No Sent Requests", "Your sent connection requests will appear here.")
+                                }
+                            </TabsContent>
+                        </CardContent>
+                    </Tabs>
+                </Card>
+            )}
         </div>
     );
 }
