@@ -67,18 +67,18 @@
   "firestore": {
     "/users/{userId}": {
       "schema": { "$ref": "#/backend/entities/Member" },
-      "description": "User profiles and metadata."
+      "description": "User profiles and metadata. Readable by all signed-in users, writable by owner."
     },
     "/posts/{postId}": {
       "schema": { "$ref": "#/backend/entities/Post" },
-      "description": "Global community posts."
+      "description": "Global community posts. Publicly readable, writable by author."
     },
     "/products/{productId}": {
       "schema": { "$ref": "#/backend/entities/Product" },
-      "description": "Marketplace products."
+      "description": "Marketplace products. Publicly readable, writable by seller."
     },
     "/{document=**}": {
-      "description": "Global fallback for reading data, enforcing ownership for writes."
+      "description": "Global fallback for reading data, enforcing ownership for writes to prevent crashes."
     }
   }
 }
