@@ -47,13 +47,13 @@ export interface MentorKYC {
   certificateType: string;
   certificateIssuer: string;
   certificateId: string;
-  certificateUrl: string;
+  certificateUrl?: string;
 
   // Degree Details
   degreeType: string;
   degreeInstitution: string;
   degreeId: string;
-  degreeUrl: string;
+  degreeUrl?: string;
 
   faceScanFrontUrl?: string;
   faceScanLeftUrl?: string;

@@ -17,7 +17,6 @@ import { type MentorKYC } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState } from 'react';
 import { FacialScan } from '@/components/facial-scan';
-import { FileUpload } from '@/components/ui/file-upload';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 
@@ -47,9 +46,6 @@ export default function KycPage() {
 
   const [isScanning, setIsScanning] = useState(false);
   const [scanResults, setScanResults] = useState<Record<string, string> | null>(null);
-  
-  const [certificateUrl, setCertificateUrl] = useState('');
-  const [degreeUrl, setDegreeUrl] = useState('');
 
   const kycDocRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -76,17 +72,10 @@ export default function KycPage() {
         toast({ variant: 'destructive', title: 'Facial Scan Required', description: 'Please complete the facial scan before submitting.' });
         return;
     }
-    
-    if (!certificateUrl || !degreeUrl) {
-      toast({ variant: 'destructive', title: 'File Uploads Required', description: 'Please upload the document files for your certificate and degree.' });
-      return;
-    }
 
     const dataToSave = {
       ...data,
       ...scanResults,
-      certificateUrl,
-      degreeUrl,
       memberId: user.uid,
       status: 'pending' as const,
       submittedAt: serverTimestamp(),
@@ -296,10 +285,6 @@ export default function KycPage() {
                     <Input id="certificateId" {...register('certificateId')} placeholder="e.g., CERT-987654321" />
                     {errors.certificateId && <p className="text-sm text-destructive">{errors.certificateId.message}</p>}
                 </div>
-                <div className="space-y-2">
-                    <Label>Upload Certificate Document</Label>
-                    {user && <FileUpload value={certificateUrl} onUploadComplete={setCertificateUrl} label="PDF or Image" accept={{ 'application/pdf': [], 'image/jpeg': [], 'image/png': [] }} userId={user.uid} storagePath="private" />}
-                </div>
             </div>
           </CardContent>
         </Card>
@@ -325,10 +310,6 @@ export default function KycPage() {
                     <Label htmlFor="degreeId">Degree Serial Number/ID</Label>
                     <Input id="degreeId" {...register('degreeId')} placeholder="e.g., DEG-123456" />
                     {errors.degreeId && <p className="text-sm text-destructive">{errors.degreeId.message}</p>}
-                </div>
-                <div className="space-y-2">
-                    <Label>Upload Degree Document</Label>
-                    {user && <FileUpload value={degreeUrl} onUploadComplete={degreeUrl => setDegreeUrl(degreeUrl)} label="PDF or Image" accept={{ 'application/pdf': [], 'image/jpeg': [], 'image/png': [] }} userId={user.uid} storagePath="private" />}
                 </div>
             </div>
           </CardContent>

@@ -220,7 +220,7 @@ export default function AdminKycPage() {
         <DialogContent className="max-w-2xl">
             <DialogHeader>
                 <DialogTitle>KYC Details: {viewKyc?.memberId}</DialogTitle>
-                <DialogDescription>Review documents and verified data.</DialogDescription>
+                <DialogDescription>Review submitted data and verification scan.</DialogDescription>
             </DialogHeader>
             {viewKyc && (
                 <div className="space-y-6 py-4">
@@ -243,9 +243,11 @@ export default function AdminKycPage() {
                                 <p><span className="text-muted-foreground">Issuer:</span> {viewKyc.certificateIssuer}</p>
                                 <p><span className="text-muted-foreground">ID:</span> {viewKyc.certificateId}</p>
                             </div>
-                            <Button asChild variant="outline" size="sm">
-                                <a href={viewKyc.certificateUrl} target="_blank" rel="noopener noreferrer">View Document</a>
-                            </Button>
+                            {viewKyc.certificateUrl && (
+                                <Button asChild variant="outline" size="sm">
+                                    <a href={viewKyc.certificateUrl} target="_blank" rel="noopener noreferrer">View Document</a>
+                                </Button>
+                            )}
                         </div>
                         <div className="space-y-3">
                             <h4 className="font-bold flex items-center gap-2"><GraduationCap className="h-4 w-4" /> Degree</h4>
@@ -254,9 +256,11 @@ export default function AdminKycPage() {
                                 <p><span className="text-muted-foreground">Institution:</span> {viewKyc.degreeInstitution}</p>
                                 <p><span className="text-muted-foreground">ID:</span> {viewKyc.degreeId}</p>
                             </div>
-                            <Button asChild variant="outline" size="sm">
-                                <a href={viewKyc.degreeUrl} target="_blank" rel="noopener noreferrer">View Document</a>
-                            </Button>
+                            {viewKyc.degreeUrl && (
+                                <Button asChild variant="outline" size="sm">
+                                    <a href={viewKyc.degreeUrl} target="_blank" rel="noopener noreferrer">View Document</a>
+                                </Button>
+                            )}
                         </div>
                     </div>
 
