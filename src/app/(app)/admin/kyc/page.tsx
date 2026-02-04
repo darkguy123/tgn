@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import {
@@ -17,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, Clock, MoreHorizontal, ExternalLink } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, MoreHorizontal, ExternalLink, FileText, GraduationCap } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { useMemberProfile } from '@/hooks/useMemberProfile';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export default function AdminKycPage() {
   const firestore = useFirestore();
@@ -44,6 +46,8 @@ export default function AdminKycPage() {
   const kycRef = useMemoFirebase(() => (firestore && profile) ? collection(firestore, 'mentor_kyc') : null, [firestore, profile]);
   const { data: kycSubmissions, isLoading, error } = useCollection<MentorKYC>(kycRef);
   const { toast } = useToast();
+
+  const [viewKyc, setViewKyc] = useState<MentorKYC | null>(null);
 
   const handleUpdateStatus = (kycId: string, memberId: string, status: 'approved' | 'rejected') => {
     if (!firestore) return;
@@ -66,6 +70,7 @@ export default function AdminKycPage() {
         title: 'KYC Submission Updated',
         description: `The submission has been ${status}.`,
       });
+      setViewKyc(null);
     }).catch((serverError) => {
       console.error("Failed to update KYC status: ", serverError);
       const permissionError = new FirestorePermissionError({
@@ -87,8 +92,8 @@ export default function AdminKycPage() {
       <TableHeader>
         <TableRow>
           <TableHead>Member ID</TableHead>
-          <TableHead>NIN</TableHead>
-          <TableHead>BVN</TableHead>
+          <TableHead>Certificate</TableHead>
+          <TableHead>Degree</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Submitted</TableHead>
           <TableHead className="text-right">Actions</TableHead>
@@ -98,8 +103,8 @@ export default function AdminKycPage() {
         {filteredSubmissions.map(kyc => (
           <TableRow key={kyc.id}>
             <TableCell className="font-mono text-xs">{kyc.memberId}</TableCell>
-            <TableCell>{kyc.nin}</TableCell>
-            <TableCell>{kyc.bvn}</TableCell>
+            <TableCell className="text-xs max-w-[150px] truncate">{kyc.certificateType}</TableCell>
+            <TableCell className="text-xs max-w-[150px] truncate">{kyc.degreeType}</TableCell>
             <TableCell>
               <Badge
                 variant={
@@ -127,6 +132,9 @@ export default function AdminKycPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => setViewKyc(kyc)}>
+                    <ExternalLink className="mr-2 h-4 w-4" /> View Details
+                  </DropdownMenuItem>
                   {kyc.status === 'pending' && (
                     <>
                       <DropdownMenuItem onClick={() => handleUpdateStatus(kyc.id, kyc.memberId, 'approved')}>
@@ -137,22 +145,6 @@ export default function AdminKycPage() {
                       </DropdownMenuItem>
                     </>
                   )}
-                   <DropdownMenuItem asChild>
-                        <a href={kyc.certificateUrl} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="mr-2 h-4 w-4" /> View Certificate
-                        </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                        <a href={kyc.degreeUrl} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="mr-2 h-4 w-4" /> View Degree
-                        </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel>Facial Scans</DropdownMenuLabel>
-                    {kyc.faceScanFrontUrl && <DropdownMenuItem asChild><a href={kyc.faceScanFrontUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="mr-2 h-4 w-4" /> View Front Face</a></DropdownMenuItem>}
-                    {kyc.faceScanLeftUrl && <DropdownMenuItem asChild><a href={kyc.faceScanLeftUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="mr-2 h-4 w-4" /> View Left Face</a></DropdownMenuItem>}
-                    {kyc.faceScanRightUrl && <DropdownMenuItem asChild><a href={kyc.faceScanRightUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="mr-2 h-4 w-4" /> View Right Face</a></DropdownMenuItem>}
-                    {kyc.faceScanSmileUrl && <DropdownMenuItem asChild><a href={kyc.faceScanSmileUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="mr-2 h-4 w-4" /> View Smile</a></DropdownMenuItem>}
                 </DropdownMenuContent>
               </DropdownMenu>
             </TableCell>
@@ -223,6 +215,61 @@ export default function AdminKycPage() {
           </Tabs>
         </CardContent>
       </Card>
+
+      <Dialog open={!!viewKyc} onOpenChange={(open) => !open && setViewKyc(null)}>
+        <DialogContent className="max-w-2xl">
+            <DialogHeader>
+                <DialogTitle>KYC Details: {viewKyc?.memberId}</DialogTitle>
+                <DialogDescription>Review documents and verified data.</DialogDescription>
+            </DialogHeader>
+            {viewKyc && (
+                <div className="space-y-6 py-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="p-3 border rounded-lg">
+                            <p className="text-xs text-muted-foreground font-semibold">NIN</p>
+                            <p className="font-mono">{viewKyc.nin}</p>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                            <p className="text-xs text-muted-foreground font-semibold">BVN</p>
+                            <p className="font-mono">{viewKyc.bvn}</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                            <h4 className="font-bold flex items-center gap-2"><FileText className="h-4 w-4" /> Certificate</h4>
+                            <div className="space-y-1 text-sm">
+                                <p><span className="text-muted-foreground">Type:</span> {viewKyc.certificateType}</p>
+                                <p><span className="text-muted-foreground">Issuer:</span> {viewKyc.certificateIssuer}</p>
+                                <p><span className="text-muted-foreground">ID:</span> {viewKyc.certificateId}</p>
+                            </div>
+                            <Button asChild variant="outline" size="sm">
+                                <a href={viewKyc.certificateUrl} target="_blank" rel="noopener noreferrer">View Document</a>
+                            </Button>
+                        </div>
+                        <div className="space-y-3">
+                            <h4 className="font-bold flex items-center gap-2"><GraduationCap className="h-4 w-4" /> Degree</h4>
+                            <div className="space-y-1 text-sm">
+                                <p><span className="text-muted-foreground">Degree:</span> {viewKyc.degreeType}</p>
+                                <p><span className="text-muted-foreground">Institution:</span> {viewKyc.degreeInstitution}</p>
+                                <p><span className="text-muted-foreground">ID:</span> {viewKyc.degreeId}</p>
+                            </div>
+                            <Button asChild variant="outline" size="sm">
+                                <a href={viewKyc.degreeUrl} target="_blank" rel="noopener noreferrer">View Document</a>
+                            </Button>
+                        </div>
+                    </div>
+
+                    {viewKyc.status === 'pending' && (
+                        <div className="flex gap-2 justify-end pt-4 border-t">
+                            <Button onClick={() => handleUpdateStatus(viewKyc.id, viewKyc.memberId, 'approved')} className="bg-green-600 hover:bg-green-700">Approve</Button>
+                            <Button variant="destructive" onClick={() => handleUpdateStatus(viewKyc.id, viewKyc.memberId, 'rejected')}>Reject</Button>
+                        </div>
+                    )}
+                </div>
+            )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

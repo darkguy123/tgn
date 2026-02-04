@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -11,17 +12,29 @@ import { Label } from '@/components/ui/label';
 import { useFirestore, useUser, useDoc, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Clock, AlertCircle, ShieldCheck, FileText, GraduationCap } from 'lucide-react';
 import { type MentorKYC } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState } from 'react';
 import { FacialScan } from '@/components/facial-scan';
 import { FileUpload } from '@/components/ui/file-upload';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 
 const kycSchema = z.object({
   nin: z.string().min(10, 'National Identification Number is required'),
   bvn: z.string().min(10, 'Bank Verification Number is required'),
   medicalLicenseNumber: z.string().optional(),
+  
+  // Certificate Fields
+  certificateType: z.string().min(2, 'Certificate type is required'),
+  certificateIssuer: z.string().min(2, 'Issuer is required'),
+  certificateId: z.string().min(2, 'Certificate ID is required'),
+  
+  // Degree Fields
+  degreeType: z.string().min(2, 'Degree type is required'),
+  degreeInstitution: z.string().min(2, 'Institution is required'),
+  degreeId: z.string().min(2, 'Degree ID/Serial is required'),
 });
 
 type KycFormData = z.infer<typeof kycSchema>;
@@ -35,7 +48,6 @@ export default function KycPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResults, setScanResults] = useState<Record<string, string> | null>(null);
   
-  const [avatarUrl, setAvatarUrl] = useState('');
   const [certificateUrl, setCertificateUrl] = useState('');
   const [degreeUrl, setDegreeUrl] = useState('');
 
@@ -65,15 +77,14 @@ export default function KycPage() {
         return;
     }
     
-    if (!avatarUrl || !certificateUrl || !degreeUrl) {
-      toast({ variant: 'destructive', title: 'File Uploads Required', description: 'Please upload all required documents.' });
+    if (!certificateUrl || !degreeUrl) {
+      toast({ variant: 'destructive', title: 'File Uploads Required', description: 'Please upload the document files for your certificate and degree.' });
       return;
     }
 
     const dataToSave = {
       ...data,
       ...scanResults,
-      avatarUrl,
       certificateUrl,
       degreeUrl,
       memberId: user.uid,
@@ -134,45 +145,91 @@ export default function KycPage() {
         <Button variant="ghost" onClick={() => router.back()} className="mb-4">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back
         </Button>
+        
         <Card>
           <CardHeader>
-            <CardTitle>Your KYC Status</CardTitle>
+            <div className="flex items-center justify-between">
+                <CardTitle>Verification Status</CardTitle>
+                {kycStatus.status === 'approved' && (
+                    <Badge className="bg-green-600 hover:bg-green-700">
+                        <CheckCircle className="h-3 w-3 mr-1" /> Verified
+                    </Badge>
+                )}
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
             {kycStatus.status === 'pending' && (
               <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-700 flex items-center gap-3">
                 <Clock className="h-6 w-6" />
                 <div>
-                  <h3 className="font-semibold">Pending Review</h3>
+                  <h3 className="font-semibold">Pending Verification</h3>
                   <p className="text-sm">Your submission is awaiting admin review. This usually takes 1-2 business days.</p>
                 </div>
               </div>
             )}
+            
             {kycStatus.status === 'approved' && (
               <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-700 flex items-center gap-3">
-                <CheckCircle className="h-6 w-6" />
+                <ShieldCheck className="h-6 w-6" />
                 <div>
-                  <h3 className="font-semibold">Approved!</h3>
-                  <p className="text-sm">Congratulations, you are now a verified mentor.</p>
+                  <h3 className="font-semibold">Verified Mentor</h3>
+                  <p className="text-sm">Congratulations, your identity and credentials have been verified.</p>
                 </div>
               </div>
             )}
+
             {kycStatus.status === 'rejected' && (
               <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive flex items-center gap-3">
                 <AlertCircle className="h-6 w-6" />
                 <div>
                   <h3 className="font-semibold">Submission Rejected</h3>
                   <p className="text-sm">
-                    There was an issue with your submission. Reason: {kycStatus.rejectionReason || "No reason provided."}
+                    Reason: {kycStatus.rejectionReason || "No reason provided."}
                   </p>
                    <Button variant="link" className="p-0 h-auto text-destructive" onClick={() => {
                        setDoc(kycDocRef, {status: 'pending'}, {merge: true})
-                       // This is a simplified way to allow resubmission. 
-                       // In a real app, you might want to delete the doc or handle state more gracefully.
                    }}>Resubmit</Button>
                 </div>
               </div>
             )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                <div className="space-y-4">
+                    <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                        <FileText className="h-4 w-4" /> Professional Certificate
+                    </h4>
+                    <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Type</p>
+                        <p className="font-medium">{kycStatus.certificateType}</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Issuer</p>
+                        <p className="font-medium">{kycStatus.certificateIssuer}</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Certificate ID</p>
+                        <p className="font-medium font-mono">{kycStatus.certificateId}</p>
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                        <GraduationCap className="h-4 w-4" /> Highest Degree
+                    </h4>
+                    <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Degree</p>
+                        <p className="font-medium">{kycStatus.degreeType}</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Institution</p>
+                        <p className="font-medium">{kycStatus.degreeInstitution}</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Degree ID/Serial</p>
+                        <p className="font-medium font-mono">{kycStatus.degreeId}</p>
+                    </div>
+                </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -187,44 +244,91 @@ export default function KycPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Mentor Verification (KYC)</h1>
-          <p className="text-muted-foreground">Submit your details to become a verified mentor.</p>
+          <p className="text-muted-foreground">Submit your credentials to become a verified TGN Mentor.</p>
         </div>
       </div>
+      
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card>
           <CardHeader>
-            <CardTitle>Verification Details</CardTitle>
+            <CardTitle>Identity Information</CardTitle>
             <CardDescription>
-              This information is confidential and used only for verification.
+              Your identification details are handled securely.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="nin">National Identification Number (NIN)</Label>
-              <Input id="nin" {...register('nin')} />
+              <Input id="nin" {...register('nin')} placeholder="Enter 11-digit NIN" />
               {errors.nin && <p className="text-sm text-destructive">{errors.nin.message}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="bvn">Bank Verification Number (BVN)</Label>
-              <Input id="bvn" {...register('bvn')} />
+              <Input id="bvn" {...register('bvn')} placeholder="Enter 11-digit BVN" />
               {errors.bvn && <p className="text-sm text-destructive">{errors.bvn.message}</p>}
             </div>
             <div className="md:col-span-2 space-y-2">
-              <Label htmlFor="medicalLicenseNumber">Medical License Number (Optional)</Label>
-              <Input id="medicalLicenseNumber" {...register('medicalLicenseNumber')} />
+              <Label htmlFor="medicalLicenseNumber">Medical/Professional License Number (Optional)</Label>
+              <Input id="medicalLicenseNumber" {...register('medicalLicenseNumber')} placeholder="e.g., MED-123456" />
             </div>
-            <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-6">
+          </CardContent>
+        </Card>
+
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Professional Certificate</CardTitle>
+            <CardDescription>Provide details of your primary professional certification.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                    <Label>Your Avatar Photo</Label>
-                    {user && <FileUpload value={avatarUrl} onUploadComplete={setAvatarUrl} label="Upload headshot" userId={user.uid} storagePath="private" />}
+                    <Label htmlFor="certificateType">Certificate Type/Name</Label>
+                    <Input id="certificateType" {...register('certificateType')} placeholder="e.g., Project Management Professional (PMP)" />
+                    {errors.certificateType && <p className="text-sm text-destructive">{errors.certificateType.message}</p>}
                 </div>
                 <div className="space-y-2">
-                    <Label>Professional Certificate</Label>
-                    {user && <FileUpload value={certificateUrl} onUploadComplete={setCertificateUrl} label="Upload certificate" accept={{ 'application/pdf': [], 'image/jpeg': [], 'image/png': [], 'image/webp': [] }} userId={user.uid} storagePath="private" />}
+                    <Label htmlFor="certificateIssuer">Issuing Organization</Label>
+                    <Input id="certificateIssuer" {...register('certificateIssuer')} placeholder="e.g., PMI" />
+                    {errors.certificateIssuer && <p className="text-sm text-destructive">{errors.certificateIssuer.message}</p>}
                 </div>
                 <div className="space-y-2">
-                    <Label>Highest Degree</Label>
-                    {user && <FileUpload value={degreeUrl} onUploadComplete={setDegreeUrl} label="Upload degree" accept={{ 'application/pdf': [], 'image/jpeg': [], 'image/png': [], 'image/webp': [] }} userId={user.uid} storagePath="private" />}
+                    <Label htmlFor="certificateId">Certificate ID/Number</Label>
+                    <Input id="certificateId" {...register('certificateId')} placeholder="e.g., CERT-987654321" />
+                    {errors.certificateId && <p className="text-sm text-destructive">{errors.certificateId.message}</p>}
+                </div>
+                <div className="space-y-2">
+                    <Label>Upload Certificate Document</Label>
+                    {user && <FileUpload value={certificateUrl} onUploadComplete={setCertificateUrl} label="PDF or Image" accept={{ 'application/pdf': [], 'image/jpeg': [], 'image/png': [] }} userId={user.uid} storagePath="private" />}
+                </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Highest Degree</CardTitle>
+            <CardDescription>Details of your highest academic qualification.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                    <Label htmlFor="degreeType">Degree Type</Label>
+                    <Input id="degreeType" {...register('degreeType')} placeholder="e.g., Master of Business Administration" />
+                    {errors.degreeType && <p className="text-sm text-destructive">{errors.degreeType.message}</p>}
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="degreeInstitution">Institution/University</Label>
+                    <Input id="degreeInstitution" {...register('degreeInstitution')} placeholder="e.g., University of Lagos" />
+                    {errors.degreeInstitution && <p className="text-sm text-destructive">{errors.degreeInstitution.message}</p>}
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="degreeId">Degree Serial Number/ID</Label>
+                    <Input id="degreeId" {...register('degreeId')} placeholder="e.g., DEG-123456" />
+                    {errors.degreeId && <p className="text-sm text-destructive">{errors.degreeId.message}</p>}
+                </div>
+                <div className="space-y-2">
+                    <Label>Upload Degree Document</Label>
+                    {user && <FileUpload value={degreeUrl} onUploadComplete={degreeUrl => setDegreeUrl(degreeUrl)} label="PDF or Image" accept={{ 'application/pdf': [], 'image/jpeg': [], 'image/png': [] }} userId={user.uid} storagePath="private" />}
                 </div>
             </div>
           </CardContent>
@@ -234,7 +338,7 @@ export default function KycPage() {
             <CardHeader>
                 <CardTitle>Facial Verification</CardTitle>
                 <CardDescription>
-                    Complete a quick facial scan for identity verification. This is a one-time process.
+                    Complete a quick facial scan for identity verification.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -242,8 +346,8 @@ export default function KycPage() {
                     <div className="flex items-center gap-3 p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-700">
                         <CheckCircle className="h-6 w-6" />
                         <div>
-                            <h3 className="font-semibold">Scan Completed Successfully</h3>
-                            <p className="text-sm">You can now proceed to submit your application.</p>
+                            <h3 className="font-semibold">Scan Completed</h3>
+                            <p className="text-sm">Identity scan verified.</p>
                         </div>
                     </div>
                 ) : (

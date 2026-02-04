@@ -1,5 +1,4 @@
 
-
 export interface TGNMember {
     id: string;
     tgnMemberId: string;
@@ -43,9 +42,19 @@ export interface MentorKYC {
   nin: string;
   bvn: string;
   medicalLicenseNumber?: string;
+  
+  // Certificate Details
+  certificateType: string;
+  certificateIssuer: string;
+  certificateId: string;
   certificateUrl: string;
+
+  // Degree Details
+  degreeType: string;
+  degreeInstitution: string;
+  degreeId: string;
   degreeUrl: string;
-  avatarUrl: string;
+
   faceScanFrontUrl?: string;
   faceScanLeftUrl?: string;
   faceScanRightUrl?: string;
