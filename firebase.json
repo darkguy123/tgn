@@ -2,5 +2,11 @@
   "apphosting": {
     "backendId": "tgn",
     "rootDir": "."
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }
