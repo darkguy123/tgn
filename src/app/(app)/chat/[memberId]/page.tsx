@@ -20,6 +20,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { TGNMember, ChatMessage, Chat } from '@/lib/types';
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
@@ -84,6 +86,45 @@ export default function ChatPage() {
   }, [chatDocRef]);
 
   const { data: messages, isLoading: areMessagesLoading } = useCollection<ChatMessage>(messagesQuery);
+  const { toast } = useToast();
+
+  const clearedAtTimestamp = chatData?.clearedAt?.[currentUser?.uid || ''];
+  const visibleMessages = useMemo(() => {
+    if (!messages) return [];
+    if (!clearedAtTimestamp) return messages;
+    const clearTime = clearedAtTimestamp.toMillis ? clearedAtTimestamp.toMillis() : clearedAtTimestamp;
+    return messages.filter(msg => {
+        if (!msg.createdAt || !msg.createdAt.toMillis) return true;
+        return msg.createdAt.toMillis() > clearTime;
+    });
+  }, [messages, clearedAtTimestamp]);
+
+  const isMuted = chatData?.muted?.[currentUser?.uid || ''] === true;
+
+  const handleClearChat = async () => {
+    if (!chatDocRef || !currentUser) return;
+    if (!window.confirm("Are you sure you want to clear this chat history?")) return;
+    try {
+      await updateDoc(chatDocRef, {
+        [`clearedAt.${currentUser.uid}`]: serverTimestamp()
+      });
+      toast({ title: 'Chat cleared', description: 'History has been hidden from your view.' });
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not clear chat.' });
+    }
+  };
+
+  const handleMuteChat = async () => {
+    if (!chatDocRef || !currentUser) return;
+    try {
+      await updateDoc(chatDocRef, {
+        [`muted.${currentUser.uid}`]: !isMuted
+      });
+      toast({ title: isMuted ? 'Chat unmuted' : 'Chat muted' });
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not update silence settings.' });
+    }
+  };
   
   // Refs and state for UI behavior
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -285,13 +326,25 @@ export default function ChatPage() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          <Button variant="ghost" size="icon"><MoreVertical /></Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon"><MoreVertical /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleMuteChat}>
+                    {isMuted ? 'Unmute Chat' : 'Mute Chat'}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleClearChat} className="text-destructive focus:text-destructive">
+                    Clear Chat History
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardHeader>
 
       <div ref={scrollRef} className="flex-1 p-4 overflow-y-auto space-y-4 chat-background">
-        {(isChatLoading || areMessagesLoading) && !messages && <div className="flex justify-center items-center h-full"><Loader2 className="h-6 w-6 animate-spin"/></div>}
-        {messages?.map(msg => (
+        {(isChatLoading || areMessagesLoading) && !visibleMessages && <div className="flex justify-center items-center h-full"><Loader2 className="h-6 w-6 animate-spin"/></div>}
+        {visibleMessages?.map(msg => (
           <div key={msg.id} className={cn("flex items-end gap-2", msg.senderId === currentUser?.uid ? "justify-end" : "justify-start")}>
             <div className={cn(
               "p-3 rounded-lg max-w-sm md:max-w-md",
@@ -306,7 +359,7 @@ export default function ChatPage() {
             </div>
           </div>
         ))}
-         {!areMessagesLoading && (!messages || messages.length === 0) && (
+         {!areMessagesLoading && (!visibleMessages || visibleMessages.length === 0) && (
             <div className="text-center text-muted-foreground pt-10">
                 <p>This is the beginning of your conversation with {otherMemberName}.</p>
                 <p className="text-xs mt-1">Messages you send will appear here.</p>

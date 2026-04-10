@@ -153,9 +153,22 @@ export function MenteeDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="mb-8">
-        <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Welcome, {userName}</h1>
-        <p className="text-muted-foreground">Here's your journey at a glance.</p>
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Welcome, {userName}</h1>
+          <p className="text-muted-foreground">Here's your journey at a glance.</p>
+        </div>
+        <Card className="bg-primary/5 border-primary/20 shrink-0">
+          <CardContent className="p-3 px-4 flex items-center gap-3">
+            <div className="bg-primary/10 p-2 rounded-full">
+              <BookOpen className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Account Type</p>
+              <p className="font-semibold text-primary capitalize">{profile?.role?.replace('-', ' ') || 'Mentee'}</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

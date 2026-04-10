@@ -88,6 +88,8 @@ const ADMIN_NAV_ITEMS = [
   { id: 'withdrawals', label: 'Withdrawals', icon: DollarSign, path: '/admin/withdrawals' },
   { id: 'commissions', label: 'Commissions', icon: DollarSign, path: '/admin/commissions' },
   { id: 'referrals', label: 'Referrals', icon: Share2, path: '/admin/referrals' },
+  { id: 'reports', label: 'Reports', icon: Shield, path: '/admin/reports' },
+  { id: 'settings', label: 'Site Settings', icon: Settings, path: '/admin/settings' },
 ];
 
 interface DashboardLayoutProps {

@@ -14,9 +14,22 @@ export function PartnerDashboard() {
 
     return (
         <div className="space-y-6">
-            <div className="mb-8">
-                <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Welcome, {userName}</h1>
-                <p className="text-muted-foreground">Your hub for collaboration and impact within the TGN.</p>
+            <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Welcome, {userName}</h1>
+                    <p className="text-muted-foreground">Your hub for collaboration and impact within the TGN.</p>
+                </div>
+                <Card className="bg-primary/5 border-primary/20 shrink-0">
+                    <CardContent className="p-3 px-4 flex items-center gap-3">
+                        <div className="bg-primary/10 p-2 rounded-full">
+                            <Handshake className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Account Type</p>
+                            <p className="font-semibold text-primary capitalize">{profile?.role?.replace('-', ' ') || 'Partner'}</p>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

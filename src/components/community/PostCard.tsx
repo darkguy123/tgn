@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,14 @@ import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePe
 import { collection, addDoc, serverTimestamp, query, orderBy, updateDoc, doc, increment, arrayUnion, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Collapsible,
   CollapsibleContent,
@@ -132,13 +140,39 @@ export function PostCard({ post }: { post: Post }) {
   const { profile } = useMemberProfile();
   const { toast } = useToast();
 
-  // Safety check: ensure likes and savedBy are treated as arrays
+  // Safety check: ensure likes are treated as an array
   const likesArr = Array.isArray(post.likes) ? post.likes : [];
-  const savedByArr = Array.isArray(post.savedBy) ? post.savedBy : [];
 
   const isLiked = useMemo(() => likesArr.includes(currentUser?.uid ?? ''), [likesArr, currentUser]);
-  const isSaved = useMemo(() => savedByArr.includes(currentUser?.uid ?? ''), [savedByArr, currentUser]);
   const isAuthor = currentUser?.uid === post.authorId;
+  
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+
+  const handleReportPost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firestore || !currentUser || !reportReason.trim()) return;
+    
+    setIsSubmittingReport(true);
+    try {
+      const reportsRef = collection(firestore, 'reports');
+      await addDoc(reportsRef, {
+        postId: post.id,
+        postAuthorId: post.authorId,
+        reportedBy: currentUser.uid,
+        reason: reportReason,
+        createdAt: serverTimestamp(),
+      });
+      toast({ title: 'Report Submitted', description: 'Thank you for keeping TGN safe.' });
+      setIsReportOpen(false);
+      setReportReason('');
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not submit report.' });
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
 
   const handleLike = () => {
     if (!firestore || !currentUser) {
@@ -163,28 +197,7 @@ export function PostCard({ post }: { post: Post }) {
       });
   };
 
-  const handleBookmark = () => {
-    if (!firestore || !currentUser) {
-        toast({ variant: 'destructive', title: 'You must be logged in to save posts.'});
-        return;
-    };
-    const postRef = doc(firestore, 'posts', post.id);
-    const payload = {
-        savedBy: isSaved ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid)
-    };
 
-    updateDoc(postRef, payload)
-      .catch((error) => {
-        console.error("Error saving post: ", error);
-        const permissionError = new FirestorePermissionError({
-            path: postRef.path,
-            operation: 'update',
-            requestResourceData: payload
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not save post.' });
-      });
-  };
 
   const handleDelete = () => {
     if (!firestore || !currentUser || !isAuthor) return;
@@ -239,7 +252,7 @@ export function PostCard({ post }: { post: Post }) {
                   Delete Post
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem>Report Post</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsReportOpen(true)}>Report Post</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -286,18 +299,60 @@ export function PostCard({ post }: { post: Post }) {
                         <MessageSquare className="h-5 w-5" /> Comment
                     </Button>
                 </CollapsibleTrigger>
-                <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground">
-                    <Share2 className="h-5 w-5" /> Share
-                </Button>
-                <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground" onClick={handleBookmark}>
-                    <Bookmark className={cn("h-5 w-5", isSaved && "fill-yellow-400 text-yellow-400")} /> Save
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex-1 flex items-center gap-2 text-muted-foreground">
+                        <Share2 className="h-5 w-5" /> Share
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={() => {
+                      const url = window ? `${window.location.origin}/community/post/${post.id}` : '';
+                      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent('Check out this post on TGN! ' + url)}`, '_blank');
+                    }}>WhatsApp</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      const url = window ? `${window.location.origin}/community/post/${post.id}` : '';
+                      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+                    }}>Facebook</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      const url = window ? `${window.location.origin}/community/post/${post.id}` : '';
+                      navigator.clipboard.writeText(url);
+                      toast({ title: 'Link copied to clipboard' });
+                    }}>Copy Link</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
             </div>
             <CollapsibleContent>
                 <PostComments post={post} />
             </CollapsibleContent>
         </Collapsible>
       </CardContent>
+
+      <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Report Post</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for reporting this post. Our team will review it.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleReportPost}>
+            <Textarea
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              placeholder="Why are you reporting this content?"
+              className="mt-4 mb-4"
+              required
+            />
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setIsReportOpen(false)}>Cancel</Button>
+              <Button type="submit" variant="destructive" disabled={isSubmittingReport}>
+                {isSubmittingReport ? 'Submitting...' : 'Submit Report'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

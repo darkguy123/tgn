@@ -166,6 +166,12 @@ export interface Chat {
   typing?: {
       [key: string]: boolean;
   };
+  clearedAt?: {
+      [key: string]: any;
+  };
+  muted?: {
+      [key: string]: boolean;
+  };
 }
 
 export interface MentorCertification {
@@ -294,5 +300,14 @@ export interface FriendRequest {
     senderId: string;
     recipientId: string;
     status: 'pending' | 'accepted' | 'declined';
+    createdAt: any; // Firestore Timestamp
+}
+
+export interface Report {
+    id: string;
+    postId: string;
+    postAuthorId: string;
+    reportedBy: string;
+    reason: string;
     createdAt: any; // Firestore Timestamp
 }
