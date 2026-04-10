@@ -1,6 +1,6 @@
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useFirestore, useCollection } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ export default function AdminReportsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const reportsQuery = firestore ? query(collection(firestore, 'reports'), orderBy('createdAt', 'desc')) : null;
+  const reportsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'reports'), orderBy('createdAt', 'desc')) : null, [firestore]);
   const { data: reports, isLoading } = useCollection<Report>(reportsQuery);
 
   const handleDeletePost = async (postId: string, reportId: string) => {

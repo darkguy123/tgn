@@ -2,7 +2,7 @@
 import type { TGNMember } from '@/lib/types';
 
 // List of hardcoded admin emails
-const ADMIN_EMAILS = ['valentinoboss18@gmail.com'];
+const ADMIN_EMAILS = ['valentinoboss18@gmail.com', 'cyclebreeze6@gmail.com'];
 const ADMIN_ROLES = ['admin', 'country-manager'];
 
 /**

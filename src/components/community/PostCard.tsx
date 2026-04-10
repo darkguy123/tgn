@@ -328,7 +328,14 @@ export function PostCard({ post }: { post: Post }) {
         </Collapsible>
       </CardContent>
 
-      <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
+      <Dialog open={isReportOpen} onOpenChange={(open) => {
+        setIsReportOpen(open);
+        if (!open) {
+          setTimeout(() => {
+            document.body.style.pointerEvents = 'auto';
+          }, 100);
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Report Post</DialogTitle>

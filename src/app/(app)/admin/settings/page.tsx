@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useFirestore, useDoc } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
@@ -14,7 +14,7 @@ export default function AdminSettingsPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
 
-  const brandingDocRef = firestore ? doc(firestore, 'app_settings', 'branding') : null;
+  const brandingDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'app_settings', 'branding') : null, [firestore]);
   const { data: brandingData, isLoading } = useDoc<{ logoUrl?: string }>(brandingDocRef);
 
   const handleUploadLogo = async () => {
