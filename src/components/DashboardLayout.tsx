@@ -137,8 +137,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   
   const profilePath = profile ? `/member/${profile.tgnMemberId || profile.id}` : '/member';
 
-  const handleLogout = () => {
-    signOut(auth);
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/signin');
   };
   
   const isAdmin = isUserAdmin(profile);

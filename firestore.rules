@@ -26,6 +26,14 @@ service cloud.firestore {
     }
 
     /* =========================
+       APP SETTINGS
+    ========================== */
+    match /app_settings/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    /* =========================
        USERS
     ========================== */
     match /users/{userId} {
