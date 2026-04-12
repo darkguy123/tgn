@@ -3,6 +3,7 @@
 
 import { generateMatchExplanation } from "@/ai/flows/mentor-mentee-match-explanations";
 import { generateRecommendations, type MatchmakingRecommendation as AIMatchmakingRecommendation } from "@/ai/flows/generate-recommendations";
+import { generateProfileBasedRecommendations } from "./profile-recommendations";
 import { z } from "zod";
 import type { TGNMember, Program, Product, Event, Sector } from '@/lib/types';
 import { GenerateRecommendationsInputSchema } from "./schemas";
@@ -73,6 +74,7 @@ export async function getRecommendations(
   allSectors: Sector[],
 ): Promise<RecommendationResult | { error: string }> {
   
+  // First, try to use AI-powered recommendations
   const input = {
     memberProfile: {
       role: member.role,
@@ -114,7 +116,16 @@ export async function getRecommendations(
 
   if (!validatedInput.success) {
     console.error("Invalid input for generateRecommendations:", validatedInput.error.format());
-    return { error: "Invalid input for recommendations." };
+    // Fall back to profile-based recommendations
+    const profileRecs = generateProfileBasedRecommendations(
+      member,
+      allMembers,
+      allPrograms,
+      allProducts,
+      allEvents,
+      allSectors
+    );
+    return { recommendations: profileRecs };
   }
 
   try {
@@ -150,11 +161,26 @@ export async function getRecommendations(
         return { ...rec, id, name, tgnMemberId };
     }).filter(Boolean) as RecommendationDetails[];
 
-
     return { recommendations: recommendationDetails };
 
   } catch (error) {
-    console.error("Error generating recommendations:", error);
-    return { error: "Failed to generate recommendations." };
+    console.error("Error generating AI recommendations:", error);
+    console.info("Falling back to profile-based recommendations...");
+    
+    // Fall back to profile-based recommendations when AI fails
+    try {
+      const profileRecs = generateProfileBasedRecommendations(
+        member,
+        allMembers,
+        allPrograms,
+        allProducts,
+        allEvents,
+        allSectors
+      );
+      return { recommendations: profileRecs };
+    } catch (fallbackError) {
+      console.error("Error generating profile-based recommendations:", fallbackError);
+      return { error: "Unable to generate recommendations at this time. Please try again later." };
+    }
   }
 }
