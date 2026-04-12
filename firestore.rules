@@ -115,6 +115,20 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /causes/{causeId} {
+      allow list: if isSignedIn();
+      allow get: if isSignedIn();
+      allow create: if isSignedIn();
+
+      // Admins can fully manage causes. Members can only increment funding counters.
+      allow update: if isAdmin() || (
+        isSignedIn()
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['currentAmount', 'backersCount'])
+        && request.resource.data.currentAmount >= resource.data.currentAmount
+        && request.resource.data.backersCount >= resource.data.backersCount
+      );
+    }
+
     /* =========================
        FRIEND REQUESTS
     ========================== */
